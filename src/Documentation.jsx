@@ -1,10 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { ArrowUpRight, ArrowLeft, ArrowRight, Download, Github, BookOpen, Network, SlidersHorizontal, ListChecks, Coins, ChartNoAxesCombined, ArrowLeftRight, Calculator, ShieldCheck, Server, Wallet, GitBranch, Activity, FileCheck2, Library, LayoutGrid } from 'lucide-react';
+import { TokenVisual, TransactionVisual, PrivacyVisual, ConversionPanel, WalletPanel } from './ProtocolVisuals';
 import { documents, DOCUMENT_VERSION, REPOSITORY_URL } from './docs-content';
 import { logFragmentFailure, fragmentFailureLabel, reconstructionThreshold, attackEconomics, nodeRewardScenario, fundedTokenQuantity } from './research-math.mjs';
 
 function DocumentCards({ compact = false }) {
-  return <div className="docs-grid">{(compact ? documents.filter(d => ['network', 'specifications', 'issuance', 'rules', 'probability', 'security'].includes(d.id)) : documents).map((doc) => <a className="doc-card" key={doc.id} href={`#/${doc.id}`}><span className="eyebrow">{doc.category}</span><h3>{doc.title}<ArrowUpRight size={17}/></h3><p>{doc.summary}</p><span className="doc-status">{doc.status}</span></a>)}</div>;
+  return <div className="docs-grid">{(compact ? documents.filter(d => ['token', 'transaction', 'privacy', 'exchange', 'wallet', 'probability'].includes(d.id)) : documents).map((doc) => <a className="doc-card" key={doc.id} href={`#/${doc.id}`}><span className="eyebrow">{doc.category}</span><h3>{doc.title}<ArrowUpRight size={17}/></h3><p>{doc.summary}</p><span className="doc-status">{doc.status}</span></a>)}</div>;
 }
 
 export function DocumentationTeaser() {
@@ -78,18 +79,18 @@ function NodeRewardCalculator() {
 }
 
 function ContentSection({ section }) {
-  return <section className="doc-section"><h2>{section.title}</h2>{section.formula && <div className="formula" role="math">{section.formula}</div>}{section.paragraphs?.map(p => <p key={p}>{p}</p>)}{section.bullets && <ul>{section.bullets.map(p => <li key={p}>{p}</li>)}</ul>}{section.table && <div className="table-scroll" role="region" aria-label={section.title} tabIndex={0}><table><thead><tr>{section.table.headers.map(h => <th key={h} scope="col">{h}</th>)}</tr></thead><tbody>{section.table.rows.map((row, i) => <tr key={i}>{row.map((cell, j) => j === 0 ? <th scope="row" key={j}>{cell}</th> : <td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>}{section.links && <ul className="source-links">{section.links.map(([label, url]) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{label} <ArrowUpRight size={14}/></a></li>)}</ul>}</section>;
+  return <section className="doc-section"><h2>{section.title}</h2>{section.formula && <div className="formula" role="math">{section.formula}</div>}{section.paragraphs?.map(p => <p key={p}>{p}</p>)}{section.bullets && <ul>{section.bullets.map(p => <li key={p}>{p}</li>)}</ul>}{section.table && <div className="table-scroll" role="region" aria-label={section.title} tabIndex={0}><table><thead><tr>{section.table.headers.map(h => <th key={h} scope="col">{h}</th>)}</tr></thead><tbody>{section.table.rows.map((row, i) => <tr key={i}>{row.map((cell, j) => j === 0 ? <th scope="row" key={j}>{cell}</th> : <td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>}{section.links && <ul className="source-links">{section.links.map(([label, url]) => <li key={url}><a href={url} target={url.startsWith('#') ? undefined : '_blank'} rel="noreferrer">{label} <ArrowUpRight size={14}/></a></li>)}</ul>}</section>;
 }
 
 const docIcons = {
-  overview: BookOpen, network: Network, specifications: SlidersHorizontal, rules: ListChecks,
+  token: Coins, transaction: ArrowLeftRight, privacy: ShieldCheck, overview: BookOpen, network: Network, specifications: SlidersHorizontal, rules: ListChecks,
   issuance: Coins, economics: ChartNoAxesCombined, exchange: ArrowLeftRight,
   probability: Calculator, security: ShieldCheck, nodes: Server, wallet: Wallet,
   developers: Github, governance: GitBranch, status: Activity, disclosures: FileCheck2, references: Library,
 };
 const docGroups = [...new Set(documents.map(doc => doc.category))];
 
-function DocumentationSidebar({ route }) {
+export function DocumentationSidebar({ route, visible = false }) {
   const navigation = useRef(null);
   useLayoutEffect(() => {
     const nav = navigation.current;
@@ -100,11 +101,12 @@ function DocumentationSidebar({ route }) {
     if (item.bottom > viewport.bottom || item.top < viewport.top) {
       nav.scrollTop += item.top - viewport.top - (nav.clientHeight - item.height) / 2;
     }
-  }, [route]);
+  }, [route, visible]);
   return <aside className="doc-sidebar" aria-label="Documentation navigation">
     <label className="doc-select">Browse documentation<select value={documents.some(d => d.id === route) ? route : 'docs'} onChange={e => { location.hash = `/${e.target.value}`; }}><option value="docs">All documentation</option>{documents.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}</select></label>
-    <header className="doc-sidebar-heading"><h2>Documentation</h2><p>Explore SunPhi and its network.</p></header>
+    <header className="doc-sidebar-heading"><h2>SunPhi</h2><p>Wallet, conversion and documentation.</p></header>
     <nav ref={navigation} className="doc-sidebar-links" aria-label="Documentation sections">
+      <a href="#/exchange"><ArrowLeftRight size={18}/><span>Convert sun(φ)</span></a><a href="#/wallet"><Wallet size={18}/><span>Wallet & connection</span></a>
       <a href="#/docs" aria-current={route === 'docs' ? 'page' : undefined}><LayoutGrid size={18} strokeWidth={1.7} aria-hidden="true"/><span>Documentation home</span></a>
       {docGroups.map(group => <section className="doc-nav-group" key={group} aria-label={group}><h3>{group}</h3>{documents.filter(doc => doc.category === group).map(doc => {
         const Icon = docIcons[doc.id] || BookOpen;
@@ -121,9 +123,9 @@ export default function Documentation({ route }) {
   return <main id="content" tabIndex={-1} className="container documentation-page">
     <div className="doc-breadcrumb"><a href="#project">SunPhi</a><span>/</span><a href="#/docs">Documentation</a>{doc && <><span>/</span><span>{doc.title}</span></>}</div>
     <div className="documentation-layout">
-      <DocumentationSidebar route={route}/>
-      <article className="doc-article">
-        {isIndex ? <><p className="eyebrow">SunPhi / DOCUMENTATION</p><h1>Understand the network.<br/>Inspect the design.</h1><p className="lead">A working specification for sun(φ): architecture, economics, security, operating guides, and reproducible calculations.</p><div className="doc-version"><span className="badge">Working draft</span><span>Version {DOCUMENT_VERSION}</span></div><div className="doc-actions"><a className="button primary" href="/sunphi-whitepaper-draft.txt" download><Download size={16}/> Download working whitepaper</a><a className="button" href="#/probability">Open calculations <ArrowUpRight size={16}/></a></div><DocumentCards/></> : doc ? <><p className="eyebrow">{doc.category} / DOCUMENTATION</p><h1>{doc.title}</h1><p className="lead">{doc.summary}</p><div className="doc-version"><span className="badge">{doc.status}</span><span>Version {DOCUMENT_VERSION}</span></div>{doc.id === 'network' && <div className="network-diagram" aria-label="Proposed transfer flow"><div><strong>Sender</strong><span>Owner authorization</span></div><ArrowRight/><div><strong>Peer network</strong><span>State acceptance + fragments</span></div><ArrowRight/><div><strong>Recipient</strong><span>Verification + receipt</span></div></div>}{doc.sections.map((s, i) => <div key={s.title}><ContentSection section={s}/>{doc.id === 'probability' && i === 0 && <AvailabilityCalculator/>}{doc.id === 'economics' && i === 1 && <NodeRewardCalculator/>}</div>)}{doc.id === 'economics' && <EconomicsCalculator/>}{doc.id === 'developers' && <div className="repository-box"><Github size={25}/><div><h3>SunPhi on GitHub</h3>{REPOSITORY_URL ? <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">Open the public repository <ArrowUpRight size={16}/></a> : <p>A separate public repository is being prepared. Its verified link will appear here after creation.</p>}</div></div>}{doc.id === 'overview' && <a className="button" href="/sunphi-whitepaper-draft.txt" download><Download size={16}/> Download working whitepaper</a>}<nav className="doc-pagination" aria-label="Adjacent documents">{index > 0 ? <a href={`#/${documents[index - 1].id}`}><ArrowLeft size={16}/>{documents[index - 1].title}</a> : <a href="#/docs"><ArrowLeft size={16}/>All documentation</a>}{index < documents.length - 1 && <a href={`#/${documents[index + 1].id}`}>{documents[index + 1].title}<ArrowRight size={16}/></a>}</nav></> : <><h1>Document not found</h1><p>This documentation address is not available.</p><a className="button" href="#/docs">Browse documentation</a></>}
+      <nav className="doc-quick-links" aria-label="Quick access"><a href="#/exchange">Convert sun(φ)</a><a href="#/wallet">Wallet</a><a href="#/transaction">Transaction flow</a><a href="#/docs">All documentation</a></nav>
+      <article key={route} className="doc-article">
+        {isIndex ? <><p className="eyebrow">SunPhi / DOCUMENTATION</p><h1>Understand the network.<br/>Inspect the design.</h1><p className="lead">A working specification for sun(φ): architecture, economics, security, operating guides, and reproducible calculations.</p><div className="doc-version"><span className="badge">Working draft</span><span>Version {DOCUMENT_VERSION}</span></div><div className="doc-actions"><a className="button primary" href="/sunphi-whitepaper-draft.txt" download><Download size={16}/> Download working whitepaper</a><a className="button" href="#/probability">Open calculations <ArrowUpRight size={16}/></a></div><DocumentCards/></> : doc ? <><p className="eyebrow">{doc.category} / DOCUMENTATION</p><h1>{doc.title}</h1><p className="lead">{doc.summary}</p><div className="doc-version"><span className="badge">{doc.status}</span><span>Version {DOCUMENT_VERSION}</span></div>{doc.id === 'token' && <TokenVisual/>}{doc.id === 'transaction' && <TransactionVisual/>}{doc.id === 'privacy' && <PrivacyVisual/>}{doc.id === 'exchange' && <ConversionPanel/>}{doc.id === 'wallet' && <WalletPanel/>}{['network', 'rules', 'probability', 'security', 'overview'].includes(doc.id) && <div className="doc-actions"><a className="button" href="#/transaction">Transaction flow & reliability <ArrowRight size={16}/></a><a className="button" href="#/token">Token anatomy</a><a className="button" href="#/privacy">Privacy</a></div>}{doc.id === 'network' && <div className="network-diagram" aria-label="Proposed transfer flow"><div><strong>Sender</strong><span>Owner authorization</span></div><ArrowRight/><div><strong>Peer network</strong><span>State acceptance + fragments</span></div><ArrowRight/><div><strong>Recipient</strong><span>Verification + receipt</span></div></div>}{doc.sections.map((s, i) => <div key={s.title}><ContentSection section={s}/>{doc.id === 'probability' && i === 0 && <AvailabilityCalculator/>}{doc.id === 'economics' && i === 1 && <NodeRewardCalculator/>}</div>)}{doc.id === 'economics' && <EconomicsCalculator/>}{doc.id === 'developers' && <div className="repository-box"><Github size={25}/><div><h3>SunPhi on GitHub</h3>{REPOSITORY_URL ? <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">Open the public repository <ArrowUpRight size={16}/></a> : <p>A separate public repository is being prepared. Its verified link will appear here after creation.</p>}</div></div>}{doc.id === 'overview' && <a className="button" href="/sunphi-whitepaper-draft.txt" download><Download size={16}/> Download working whitepaper</a>}<nav className="doc-pagination" aria-label="Adjacent documents">{index > 0 ? <a href={`#/${documents[index - 1].id}`}><ArrowLeft size={16}/>{documents[index - 1].title}</a> : <a href="#/docs"><ArrowLeft size={16}/>All documentation</a>}{index < documents.length - 1 && <a href={`#/${documents[index + 1].id}`}>{documents[index + 1].title}<ArrowRight size={16}/></a>}</nav></> : <><h1>Document not found</h1><p>This documentation address is not available.</p><a className="button" href="#/docs">Browse documentation</a></>}
       </article>
     </div>
   </main>;

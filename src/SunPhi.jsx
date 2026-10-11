@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowUpRight, ArrowDown, Sun, Moon, Download, FileText, Monitor, KeyRound, Network, ChevronRight } from 'lucide-react';
 import Documentation, { DocumentationTeaser } from './Documentation';
+import NavigationControls from './NavigationControls';
 import { documents } from './docs-content';
 import './documentation.css';
 
@@ -28,7 +29,7 @@ export default function SunPhi() {
   useEffect(() => {
     document.title = route ? `${documents.find(d => d.id === route)?.title ?? 'Documentation'} — SunPhi` : 'SunPhi — Digital transfers';
     const frame = requestAnimationFrame(() => {
-      if (route) window.scrollTo({ top: 0, behavior: 'instant' });
+      if (route) window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
       else if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
     });
     return () => cancelAnimationFrame(frame);
@@ -60,7 +61,7 @@ export default function SunPhi() {
     <a className="skip" href="#content" onClick={event => { event.preventDefault(); const main = document.getElementById('content'); main?.focus(); main?.scrollIntoView(); }}>Skip to content</a>
     <header className="header"><div className="header-inner">
       <a className="brand" href="#project" aria-label="SunPhi — home"><span className="brand-symbol" aria-hidden="true">φ</span><strong>SunPhi</strong><span className="brand-caption">Digital transfers</span></a>
-      <nav aria-label="Main navigation">{sections.map(([id, title]) => <a key={id} href={id === 'documentation' ? '#/docs' : `#${id}`} aria-current={(route ? id === 'documentation' : active === id) ? 'location' : undefined} onClick={() => setActive(id)}>{title}</a>)}</nav>
+      <nav aria-label="Main navigation"><a href="#project" aria-current={!route ? 'page' : undefined}>Project</a><a className="priority-link" href="#/exchange" aria-current={route === 'exchange' ? 'page' : undefined}>Convert</a><a className="priority-link" href="#/wallet" aria-current={route === 'wallet' ? 'page' : undefined}>Wallet</a><a href="#/docs" aria-current={route && !['exchange', 'wallet'].includes(route) ? 'page' : undefined}>Docs</a></nav>
       <button className="theme-button" onClick={() => setTheme(theme === 'light' ? 'graphite' : 'light')} aria-label={theme === 'light' ? 'Switch to graphite theme' : 'Switch to light theme'} title={theme === 'light' ? 'Graphite theme' : 'Light theme'}>{theme === 'light' ? <Moon size={19}/> : <Sun size={19}/>}</button>
     </div></header>
     {route ? <Documentation key={route} route={route}/> : <main id="content" tabIndex={-1} className="container">
@@ -99,6 +100,7 @@ export default function SunPhi() {
         </section>
       </div><aside aria-label="Project information"><div className="side-panel"><span className="eyebrow">SunPhi / NAVIGATION</span><h2>About the project</h2>{sections.map(([id, title], i) => <a key={id} href={`#${id}`}><span>0{i+1}</span>{title}<ArrowUpRight size={15}/></a>)}<div className="side-status"><span className="status-dot"/><strong>Prototype development</strong><p>The public network, installer, and token sales have not launched.</p></div></div><div className="side-caption">Open documentation.<br/>Verifiable results.<br/>Development in stages.</div></aside></div>
     </main>}
+    <NavigationControls route={route}/>
     <footer><div className="container footer-inner"><a className="brand" href="#project"><span className="brand-symbol" aria-hidden="true">φ</span><strong>SunPhi</strong></a><p>A distributed digital transfers project · 2026</p><a href="https://sun-phi.com/business-search?theme=graphite&mode=solution">SUN PHI Business Search <ArrowUpRight size={15}/></a></div></footer>
   </>;
 }

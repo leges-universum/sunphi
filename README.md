@@ -16,6 +16,9 @@ This repository is not a production cryptocurrency, wallet, or distributed conse
 src/SunPhi.jsx                # Project website and hash navigation
 src/Documentation.jsx        # Documentation pages and calculators
 src/docs-content.js          # Canonical English documentation
+src/protocol-docs.js         # Token, two-circuit workflow, privacy and recovery
+src/ProtocolVisuals.jsx      # Interactive diagrams and conversion preview
+src/NavigationControls.jsx  # Accessible drawer and page scrolling
 src/research-math.mjs         # Conditional probability calculations
 src/research-math.test.mjs    # Mathematical boundary and reference tests
 research/model.mjs           # Sequential transaction reference model
@@ -61,7 +64,7 @@ The exchange documentation considers a first native sun(φ)/BTC market and onwar
 
 The transaction reference model uses a single in-memory arbiter and its clock. It has no network, signature, or erasure-code implementation. Its legacy emission arithmetic uses an assumed 2,048-byte record; the separate 4,096-byte documentation scenario is another assumption, not a measurement or format change.
 
-The working whitepaper is generated from `src/docs-content.js`, keeping website and download content aligned. Update that source, then build.
+The working whitepaper is generated from `src/docs-content.js` and its imported `src/protocol-docs.js`, keeping all 19 chapters aligned with the website. The diagrams illustrate proposed behavior, not live network execution. The conversion preview uses a user-supplied price assumption and the selected inclusive fee, not a market quote. Update canonical content, then build.
 
 ## Security and contributions
 

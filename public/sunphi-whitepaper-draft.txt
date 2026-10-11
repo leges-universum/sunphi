@@ -1,5 +1,5 @@
 SunPhi — Working whitepaper
-Version 0.3 · 11 October 2026
+Version 0.4 · 11 October 2026
 Token symbol: sun(φ)
 Protocol proposal and conditional research. No live issuance, sale, or distributed-network security claim.
 
@@ -25,7 +25,100 @@ How to read this documentation
 Design requirement identifies intended behavior. A scenario is a calculation under stated assumptions. An open decision has no approved value. A measured result must identify executable code, parameters, environment, and test outcome.
 This working whitepaper records the design and its open questions. It is not an issuance prospectus, an audit opinion, or a commitment to a launch date.
 
-2. HOW THE NETWORK WORKS
+2. TOKEN ANATOMY & RECOVERY
+Status: Proposed record format
+What sun(φ) contains, what is fragmented, and which protections address which kinds of loss.
+
+A token is an accepted ownership record
+The permanent identifier names one issued asset; its accepted state identifies who may authorize the next transfer. Copying the bytes does not create another issued token. Genesis must admit every identifier exactly once against an approved supply. Supply, genesis format and admission rules are not yet finalized.
+The private signing key is never in the token or its fragments. The token is not a secret string that belongs to whoever assembles it.
+
+Main object: stored at rest and fragmented
+Component | Purpose
+Network and format version | Separate protocol versions, networks and signing domains.
+Permanent token ID | Links ownership revisions to the same issued asset, for example token 123.
+Ownership revision and owner | Names the accepted state and public key authorized to spend it.
+Last completed credit time | Bound to the signed receipt; interpreted with accepted-state evidence.
+Recent transfer history | Baseline: ten records binding parties, transfer IDs and signatures. Ten is not a proven security optimum.
+Accepted-state evidence | Establishes issuance admission and current ownership beyond a short history window. Its distributed proof format remains unimplemented.
+Main hash | Commits to canonical serialized content, including signatures but excluding its own hash field. Algorithms and binary format remain open.
+
+Temporary second part: only in transit
+In transit: mainHash–reservationHash · At rest: main object only
+A separate, unfragmented reservation binds the main hash, expected revision, token ID, transfer ID, sender, intended recipient and sending time. The sender signs that payload. The reservation hash identifies the complete signed record; the two hashes do not replace the underlying records.
+The main hash stays unchanged from sending until completed credit. A completed receipt changes owner, credit time and history, producing a new main hash. There is no permanent “free” marker. Terminal receipt or cancellation evidence must still be retained for replay protection.
+
+How fragments are formed
+- Serialize the main object canonically and compute its hash.
+- Encode into n fragments, recoverable from k valid distinct fragments. Include main hash, token revision, coding generation, fragment index and verifiable integrity metadata.
+- Place fragments across the defined holder set. Codec and placement implementation are pending.
+- Recover fragments from one version and coding generation; verify their integrity and the reconstructed hash. Duplicate copies of one fragment do not count toward k.
+- Recoding unchanged content changes storage metadata, not ownership. A newer timestamp alone does not establish the accepted current state.
+- Reconstruction recovers data only. It supplies neither the recipient’s private key nor permission to credit.
+Follow the transaction: #/transaction
+Erasure coding: RFC 5510: https://www.rfc-editor.org/rfc/rfc5510.html
+
+Signatures and hashes: no circular dependency
+The sender signs the canonical reservation payload excluding its signature field. The recipient signs a receipt payload binding the same token, main hash, reservation, transfer ID, parties and receipt time, again excluding its own signature field. The new main object can then include that signed receipt and receive a new hash.
+Receipt time must be covered by the signature. A recipient signature is cryptographic authorization, not an arbitrary random mark; some schemes are deterministic. SunPhi has not finalized its signature suite.
+Signature reference: RFC 8032: https://www.rfc-editor.org/rfc/rfc8032.html
+
+Protection against loss: scope and limits
+Event | Protection / limit
+Some nodes disconnect | Redundancy permits recovery while k valid distinct fragments remain available. Correlated outages require separate analysis.
+Old node reconnects | Verify accepted current state before retiring stale fragments. Keep the last recoverable encoding until replacement is safe.
+Someone copies the token | The copy contains no private key. Signature checks and unique state acceptance must prevent unauthorized or conflicting spends.
+Receipt acknowledgement is lost | Retrieve accepted status by transfer ID. A missing response does not authorize refund.
+Private key is lost | Public fragments cannot recover it. Secure key backup or a separately designed recovery scheme is needed.
+Key is stolen or wrong recipient signed | Fragmentation cannot reverse an otherwise valid authorization.
+All recoverable data and backups disappear | Recovery is impossible. This design does not promise zero loss.
+
+3. TWO-CIRCUIT TRANSACTION
+Status: Workflow specification
+Payment → sending time → reservation. Fragments → receipt time → recipient signature → accepted credit. Every gate has a different job.
+
+Circuit 1 · authorize and reserve
+Broadcasting a reservation does not prove that every peer received it. Unique reservation acceptance among independent nodes is required; random storage placement does not itself implement it.
+Stage | Token 123: Ivan sends to Anna
+1. Payment instruction | Identify Ivan, accepted main hash H7, intended recipient Anna and unique transfer T. H7 is an illustrative label.
+2. Sending time and signature | Ivan signs a reservation request binding the time, both parties, T and H7.
+3. Accepted reservation | Accept only one conflicting reservation. Ivan cannot make another accepted spend while T is pending. Main M7 / H7 remains unchanged; the second part carries the reservation.
+
+Circuit 2 · reconstruct, sign and credit
+A local signature is not global finality. Publication, exclusive acceptance and durable placement still require a distributed implementation. The diagram illustrates requirements; it does not execute a payment.
+Stage | Recipient-side action
+4. Assemble fragments | Recover M7 from k valid distinct fragments of one coding generation and verify H7. Data is recovered; the transaction is not complete.
+5. Verify and record receipt time | Check Ivan’s authority and the current accepted reservation T naming Anna. Put receipt time in the payload to be signed.
+6. Recipient signature | Anna signs with her private key. Someone who merely assembled the public token cannot sign as Anna under the signature scheme’s security assumptions.
+7. Accepted credit | Publish candidate M8 / H8 naming Anna. Verify and uniquely accept credit instead of cancellation, with required durable storage. Only then show a spendable balance.
+
+Reliability is attached to each gate
+n = 5, k = 1, q = 0.8 → P(insufficient fragments) = (1 − 0.8)^5 = 0.032%
+This illustrative result describes only reconstruction, not illicit acceptance or lifetime loss. The strict any-1% reference is n=N, k=ceil(N/100), conditional on a suitable codec and valid distinct fragments.
+The two circuits are linked checks, not independent lotteries. Multiplying probabilities of two groups does not prove this transaction secure.
+Workflow gate | What it establishes
+Fragment availability · stage 4 | P(X < k), X ~ Binomial(n,q), estimates insufficient valid fragments for one object at one snapshot, assuming independent equally available holders.
+Authenticity · stages 2, 5 and 6 | Signature verification binds the exact record to an authorized key. The availability formula does not measure forgery.
+Recipient binding · stages 5 and 6 | Reservation and receipt must name the same recipient and transfer. Fragments do not authorize credit.
+Freshness and exclusivity · stages 3 and 7 | A distributed acceptance rule must exclude conflicting reservations, credit and cancellation. That mechanism remains unimplemented.
+Durability · stage 7 onward | New state must survive churn and recoding. Repair, checkpoints and shared failures need testing.
+Adjust the reconstruction assumptions: #/probability
+
+What a copied token can and cannot do
+An outsider may reconstruct H7, but replacing Anna with Boris in Ivan’s signed reservation invalidates the signature. The outsider also needs Anna’s private key to sign her receipt. Stale copies must fail the accepted-current-state check.
+A malicious owner can genuinely sign two conflicting requests. Preventing both from being accepted requires unique reservation and finality rules. Random storage, timestamps and recipient signatures alone do not supply those rules.
+The intended invariant is one spendable owner and never both accepted credit and cancellation for the same reservation. It depends on correct signatures, exclusive acceptance, replay protection and durable state. Seven tests of a serial reference model check local transitions; they are not a proof across hostile independent nodes.
+
+Disconnects, expiry and return
+A timer requests resolution; it cannot unilaterally restore the sender’s balance. Credit and cancellation must be mutually exclusive. A partition may delay completion: rejecting an unverified transition protects safety, not uninterrupted availability.
+Last known stage | Safe action
+Reserved; no signed receipt | Remain pending. Expiry may permit a cancellation request under network rules.
+Fragments reconstructed | Still pending: having the data permits neither credit nor refund.
+Receipt signed; response lost | Outcome may be unknown. Retrieve accepted status; do not infer failure from silence.
+Credit accepted; acknowledgement lost | Anna owns the token. Replaying T returns its existing result.
+Cancellation accepted | Ivan may spend again. Advance accepted reservation-state evidence and reject later receipts for cancelled T.
+
+4. HOW THE NETWORK WORKS
 Status: Proposed architecture
 Peer discovery, token state, fragment placement, and recovery.
 
@@ -54,7 +147,7 @@ N refers to a defined snapshot of eligible holders for a storage epoch. Nodes ca
 Recover old data using its original threshold before recoding. Verify complete new placement and its manifest before retiring old fragments. A drop in online nodes does not make an old encoding recoverable with a smaller threshold.
 On restart, reconcile against verified current state before removing stale fragments. Keep the last usable encoding if migration or recovery is incomplete.
 
-3. TECHNICAL SPECIFICATIONS
+5. TECHNICAL SPECIFICATIONS
 Status: Parameters under study
 Token format, history, coding parameters, and resource scenarios.
 
@@ -93,7 +186,7 @@ Ideal payload per node = S × B / k
 Assume S=100 million separate token objects, each B=4,096 bytes, with n=N=1 million and k=10,000. The ideal packed payload is 40.96 MB per node. If each node instead needs a separate 128-byte record for every token, metadata alone would be 12.8 GB per node.
 At bootstrap, 100 million separate 200-byte genesis records require 20 GB for a full copy, before overhead. Compact genesis representation remains separate design work. RAM and bandwidth must be measured on an implemented client. MB and GB here use decimal units.
 
-4. TRANSFER RULES
+6. TRANSFER RULES
 Status: Design requirements
 Reservation, receipt, cancellation, stale data, and transaction identity.
 
@@ -119,7 +212,7 @@ Replay and retry rules
 - Apply transaction limits only after their enforcement and attack model are specified. The proposed ten-attempt identifier limit is a candidate rule, not an implemented network-wide defense.
 - Do not treat a new timestamp or a new transaction identifier as authority to bypass an existing reservation.
 
-5. SUPPLY & ISSUANCE
+7. SUPPLY & ISSUANCE
 Status: No issuance approved
 Fixed-supply proposal, treasury accounting, denominations, and distribution.
 
@@ -147,7 +240,7 @@ Fractional units and price
 Divisibility specifies a unit of accounting. Splitting a balance must conserve the total amount and must not create a second monetary supply. A split/merge protocol or fractional-ownership representation has not been selected.
 An initial price of one US dollar was discussed only as a scenario. There is no approved sale price, price peg, redemption promise, or guaranteed liquidity. The selected sale-fee model allocates revenue by wallet authorization time; it does not mint additional tokens.
 
-6. FEES & NODE ECONOMICS
+8. FEES & NODE ECONOMICS
 Status: 2% sale-fee design
 An inclusive 2% sale fee, time-weighted node rewards, and conditional operating economics.
 
@@ -205,9 +298,15 @@ Expected net payoff = p × G − C; break-even p = C / G
 p is the probability that an illicit outcome is actually accepted. G is the realizable gain if it succeeds, before costs C. C is the expected non-recoverable cost for the specified strategy and time window.
 With illustrative C=$1,000 and G=$100,000, the break-even probability is 1%. These inputs are sensitivity assumptions, not measured attack economics. Free node entry means a token stake cannot be counted as a mandatory attacker expense.
 
-7. EXCHANGE & CASH WITHDRAWAL
+9. CONVERT SUN(Φ) & CASH WITHDRAWAL
 Status: Design options; not live
 Trading sun(φ) for BTC, other cryptocurrencies, and bank money, with explicit funding and settlement requirements.
+
+Wallet → conversion → approval
+Convert is a primary navigation entry, linked to Wallet. The planned connection identifies the selected account and reads its accepted spendable balance; it must not automatically authorize a transfer. Review the quantity, rate, inclusive fee, destination and settlement terms, then explicitly sign in the wallet.
+The website currently provides only an illustrative sale calculator. For 1,000 sun(φ) at an assumed gross price of 0.000001 BTC each, the buyer pays 0.001 BTC: the seller receives 0.00098 BTC, the platform receives 0.00001 BTC, and reward funding receives 0.00001 BTC. Additional network and onward conversion charges are excluded. There is no live quote, connected wallet or executable order.
+Wallet connection and key safety: #/wallet
+Fees and funded token rewards: #/economics
 
 A proposed first market: sun(φ)/BTC
 A seller offers an existing quantity of sun(φ); a buyer pays the quoted amount of BTC. Initial fund sales and subsequent platform resales use the selected inclusive 2% fee. This trading pair is a design proposal, not a listed or operational market.
@@ -248,7 +347,7 @@ A displayed price is not a commitment to unlimited redemption. For example, a de
 Each sale of sun(φ) executed through the platform bears the selected 2% fee. Network fees, spread, price impact, external trading charges, and bank-withdrawal charges are additional costs to disclose in the quote; no provider rate is assumed here. Ordinary transfers are not automatically sales. A provider converting BTC after the SunPhi sale applies its own charges.
 Receiving sun(φ) rewards does not guarantee their current cash value or a buyer. Buying reward inventory can supply some demand, but its 1% funding does not guarantee liquidity for all holders.
 
-8. PROBABILITY & CALCULATIONS
+10. PROBABILITY & CALCULATIONS
 Status: Conditional models
 Interactive availability estimates, reconstruction thresholds, and explicit assumptions.
 
@@ -272,7 +371,7 @@ Independent attempts: P(at least one success) = 1 − (1 − p)^m
 This expression requires m independent attempts with the same success probability p. For T events each with failure probability at most p, the union bound is at most min(1,Tp), without requiring independence.
 A per-object, per-snapshot figure is not an annual service guarantee. Real estimates need a defined time horizon, correlation model, placement process, and accepted-state mechanism.
 
-9. SECURITY & THREAT MODEL
+11. SECURITY & THREAT MODEL
 Status: Controls to implement
 Adversarial behavior, intended defenses, and unresolved security work.
 
@@ -297,7 +396,39 @@ Audit and vulnerability reporting
 No independent security audit or formal security proof is published. The release process should publish audit scope, findings, fixes, affected versions, and unresolved risks.
 A private vulnerability-reporting route and disclosure policy must be established before a public client release. No bug bounty or response-time commitment is currently offered. Never post signing keys or exploitable personal data in public issues.
 
-10. RUN A NODE
+12. PRIVACY & ANONYMITY
+Status: Threat model
+Public keys are pseudonyms. Records, network observations and payment data may connect them to a person.
+
+What can identify or link participants
+Information | Observer and possible inference
+Owner and recipient public identifiers | Record readers can link reused keys. A key alone does not prove a legal name.
+Persistent token ID and history | Record readers can trace ownership changes. Others may archive records beyond the ten-transfer window.
+Sending and receipt timestamps | Observers can correlate timing across sources. Precision and publication rules remain open.
+IP address and connection timing | Direct peers see network counterparts. NAT, shared computers and relays mean an IP is not proof of a person or original sender.
+Amounts, orders and BTC addresses | Exchange records can link both payment legs. The exact public amount representation is not yet defined.
+Bank or identity records | Payment providers may associate an order with a customer. This mapping is not inherently public.
+Reward authorization and payouts | The accounting service would see wallet session times and payouts. Shared timing may suggest, but not prove, a common operator.
+
+Fragmentation does not establish anonymity
+Erasure coding changes data placement; it is not encryption. Anyone who obtains enough valid fragments may reconstruct the public object. More nodes or wallets do not by themselves provide a measurable anonymity guarantee.
+Deleting local old data does not delete an observer’s archive. Private-key secrecy protects signing authority, not the unlinkability of public transactions.
+
+Privacy boundaries to implement
+- Keep names, email, phone and identity documents out of public token records.
+- Separate exchange customer records from public protocol data, with minimal collection and restricted access. The current website has no live wallet or exchange service.
+- Separate node transport identities from wallet keys where possible. New wallet keys may reduce reuse but do not erase token-history or timing links.
+- Authenticated encryption protects transport against some observers; endpoints still receive the data. Relay-based origin protection needs its own design and testing.
+- Stronger transaction confidentiality needs a separate design compatible with validity checks. It is not already delivered by fragmentation.
+
+Current claim: pseudonymity
+Full sender or recipient anonymity has not been established. No anonymity percentage is claimed without an implemented protocol, defined adversary and measurements.
+Bitcoin’s privacy guidance provides a useful comparison for address reuse and external identity links; it is not evidence of SunPhi’s implemented properties.
+Bitcoin privacy guidance: https://bitcoin.org/en/protect-your-privacy
+Wallet and key safety: #/wallet
+Security requirements: #/security
+
+13. RUN A NODE
 Status: Preparation guide
 Startup, resource planning, synchronization, and shutdown behavior.
 
@@ -317,9 +448,16 @@ When the network contracts
 Outages, software defects, participant withdrawal, and network partitions can reduce reachable holders. Reconstructability depends on the original coding threshold and the availability of distinct valid fragments.
 Do not lower an old threshold in place. Recover, recode, verify the replacement, and switch generations safely. If the network cannot establish current state or reconstruct required data, the intended behavior is to pause affected transfers rather than create an unsupported credit.
 
-11. WALLET & KEY SAFETY
+14. WALLET, CONNECTION & KEY SAFETY
 Status: Design guide
 Sending, receiving, backup, privacy, and recovery expectations.
+
+Connection and conversion
+The SunPhi wallet and website connection protocol have not been released. This site holds no connected account, balance or signing session. The intended flow is: connect a selected wallet, review a conversion offer, then approve the exact operation in the wallet.
+Connection and authorization to spend must be separate. The website must never ask for a private key or recovery phrase. Supported client, network identification and session revocation are release requirements.
+Open conversion planner: #/exchange
+How a transfer completes: #/transaction
+Privacy and identity links: #/privacy
 
 A wallet is not a fragment collection
 A wallet manages authorization keys and displays accepted token state. A fragment holder stores data. Anyone able to reconstruct a public object must still provide the owner’s valid authorization before spending.
@@ -336,7 +474,7 @@ Privacy and recovery limits
 Publicly distributed token records may expose transaction relationships. No anonymity guarantee or implemented privacy protocol is claimed.
 Losing a signing key may make assets inaccessible. A key-recovery or reversal authority has not been specified. Backups and recovery tests are part of the release requirements, not an available recovery service today.
 
-12. GITHUB & DEVELOPERS
+15. GITHUB & DEVELOPERS
 Status: Public source available
 Source code, local models, reproducibility, APIs, and contributions.
 
@@ -361,7 +499,7 @@ Contributing
 Useful early contributions include state-transition reviews, conflicting-transfer test cases, encoding benchmarks, and reproducible failure simulations. Proposal templates, maintainer permissions, and contribution licensing must be published with the repository.
 Open-source licensing and release-signing policy have not yet been approved. No third-party business-platform code is included in the new publication package.
 
-13. GOVERNANCE & UPGRADES
+16. GOVERNANCE & UPGRADES
 Status: Draft process
 Protocol changes, operator choice, compatibility, and treasury authority.
 
@@ -379,7 +517,7 @@ Storage recoding and ownership transfer are different operations. A storage upgr
 Treasury accountability
 Issuance-fund signers, access separation, public reporting, spending authority, and key replacement must be established before sales. These powers should be documented separately from node participation and protocol maintenance.
 
-14. NETWORK STATUS & RELEASES
+17. NETWORK STATUS & RELEASES
 Status: Prototype stage
 Actual readiness, testing, explorer availability, and release verification.
 
@@ -406,7 +544,7 @@ Explorer and incident history
 There are no live node counts, transaction statistics, supply balances, or uptime figures to display yet. Once a testnet exists, an explorer should identify the network, accepted state, data source, and observation time.
 An incident log should distinguish discovery, containment, recovery, and unresolved effects. Empty status panels must not be replaced with fabricated activity.
 
-15. PROJECT DISCLOSURES
+18. PROJECT DISCLOSURES
 Status: Current scope
 Publication status, data handling, issuer information, and launch documents.
 
@@ -426,7 +564,7 @@ This is a project readiness list, not a claim that one universal legal checklist
 - Applicable terms, privacy information, and licensing.
 - Release verification and vulnerability disclosure instructions.
 
-16. REFERENCES & GLOSSARY
+19. REFERENCES & GLOSSARY
 Status: Primary sources
 External technical references and the meaning of the terms used here.
 

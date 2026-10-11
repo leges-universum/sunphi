@@ -1,4 +1,5 @@
-export const DOCUMENT_VERSION = '0.3 · 11 October 2026';
+import { tokenDocument, transactionDocument, privacyDocument } from './protocol-docs.js';
+export const DOCUMENT_VERSION = '0.4 · 11 October 2026';
 export const REPOSITORY_URL = 'https://github.com/leges-universum/sunphi';
 export const documents = [
   {
@@ -11,6 +12,7 @@ export const documents = [
       { title: 'How to read this documentation', paragraphs: ['Design requirement identifies intended behavior. A scenario is a calculation under stated assumptions. An open decision has no approved value. A measured result must identify executable code, parameters, environment, and test outcome.', 'This working whitepaper records the design and its open questions. It is not an issuance prospectus, an audit opinion, or a commitment to a launch date.'] }
     ]
   },
+  tokenDocument, transactionDocument,
   {
     id: 'network', title: 'How the network works', category: 'Understand', status: 'Proposed architecture',
     summary: 'Peer discovery, token state, fragment placement, and recovery.',
@@ -67,9 +69,10 @@ export const documents = [
     ]
   },
   {
-    id: 'exchange', title: 'Exchange & cash withdrawal', category: 'Token economics', status: 'Design options; not live',
+    id: 'exchange', title: 'Convert sun(φ) & cash withdrawal', category: 'Token economics', status: 'Design options; not live',
     summary: 'Trading sun(φ) for BTC, other cryptocurrencies, and bank money, with explicit funding and settlement requirements.',
     sections: [
+      { title: 'Wallet → conversion → approval', paragraphs: ['Convert is a primary navigation entry, linked to Wallet. The planned connection identifies the selected account and reads its accepted spendable balance; it must not automatically authorize a transfer. Review the quantity, rate, inclusive fee, destination and settlement terms, then explicitly sign in the wallet.', 'The website currently provides only an illustrative sale calculator. For 1,000 sun(φ) at an assumed gross price of 0.000001 BTC each, the buyer pays 0.001 BTC: the seller receives 0.00098 BTC, the platform receives 0.00001 BTC, and reward funding receives 0.00001 BTC. Additional network and onward conversion charges are excluded. There is no live quote, connected wallet or executable order.'], links: [['Wallet connection and key safety', '#/wallet'], ['Fees and funded token rewards', '#/economics']] },
       { title: 'A proposed first market: sun(φ)/BTC', paragraphs: ['A seller offers an existing quantity of sun(φ); a buyer pays the quoted amount of BTC. Initial fund sales and subsequent platform resales use the selected inclusive 2% fee. This trading pair is a design proposal, not a listed or operational market.', 'Receiving node rewards in sun(φ) does not itself make those tokens exchangeable. A completed sale needs a willing funded buyer, an agreed rate, and a settlement mechanism. Selling fund inventory for BTC does not automatically create BTC bids for users selling their rewards.'] },
       { title: 'BTC payment example', table: { headers: ['Destination', 'For a gross payment of 0.01 BTC'], rows: [['Seller', '0.0098 BTC'], ['Platform', '0.0001 BTC'], ['Reward funding', '0.0001 BTC, to acquire existing sun(φ)']] }, paragraphs: ['At an illustrative effective acquisition cost of 0.000001 BTC per sun(φ), that reward funding buys 100 sun(φ). Ten thousand wallets with equal authorization time would receive 0.01 sun(φ) each. These are arithmetic assumptions, not a BTC price quote or a promised reward.', 'Only acquired or fully reserved existing tokens may become payable rewards. If acquisition is incomplete, the remaining funding stays pending. Do not credit imaginary tokens from a displayed exchange rate, spend the same inventory twice, or mint extra supply. An effective acquisition cost must include any conversion charges charged to the pool; responsibility for those charges is an open decision. Internal fund transfers must be distinguishable from new external sales to avoid fictitious fee volume.'] },
       { title: 'Settlement across two networks', bullets: ['Create an expiring quote with exact sun(φ) quantity, gross BTC payment, seller net, fees, destination networks, and confirmation requirements.', 'Reserve the seller’s tokens under the accepted SunPhi state rules and establish funded BTC payment or custody.', 'Verify actual BTC payment and the chosen confirmation policy; define handling for late payments, chain reorganizations, and failed delivery.', 'Complete token delivery and payment release with idempotent accounting and a defined dispute/recovery path.', 'A custodial exchange or settlement operator is a possible first architecture, but creates custody and reconciliation obligations. A swap without a custodian would require compatible conditional transfers on both networks; SunPhi has no such implemented mechanism today.'], links: [['Bitcoin developer guide: payment processing', 'https://developer.bitcoin.org/devguide/payment_processing.html']] },
@@ -96,6 +99,7 @@ export const documents = [
       { title: 'Audit and vulnerability reporting', paragraphs: ['No independent security audit or formal security proof is published. The release process should publish audit scope, findings, fixes, affected versions, and unresolved risks.', 'A private vulnerability-reporting route and disclosure policy must be established before a public client release. No bug bounty or response-time commitment is currently offered. Never post signing keys or exploitable personal data in public issues.'] }
     ]
   },
+  privacyDocument,
   {
     id: 'nodes', title: 'Run a node', category: 'Participate', status: 'Preparation guide',
     summary: 'Startup, resource planning, synchronization, and shutdown behavior.',
@@ -106,9 +110,10 @@ export const documents = [
     ]
   },
   {
-    id: 'wallet', title: 'Wallet & key safety', category: 'Participate', status: 'Design guide',
+    id: 'wallet', title: 'Wallet, connection & key safety', category: 'Participate', status: 'Design guide',
     summary: 'Sending, receiving, backup, privacy, and recovery expectations.',
     sections: [
+      { title: 'Connection and conversion', paragraphs: ['The SunPhi wallet and website connection protocol have not been released. This site holds no connected account, balance or signing session. The intended flow is: connect a selected wallet, review a conversion offer, then approve the exact operation in the wallet.', 'Connection and authorization to spend must be separate. The website must never ask for a private key or recovery phrase. Supported client, network identification and session revocation are release requirements.'], links: [['Open conversion planner', '#/exchange'], ['How a transfer completes', '#/transaction'], ['Privacy and identity links', '#/privacy']] },
       { title: 'A wallet is not a fragment collection', paragraphs: ['A wallet manages authorization keys and displays accepted token state. A fragment holder stores data. Anyone able to reconstruct a public object must still provide the owner’s valid authorization before spending.', 'The address format, key derivation, backup format, and hardware-wallet support have not been selected. No recovery phrase should be generated or entered on this website.'] },
       { title: 'Planned wallet behavior', bullets: ['Show spendable, reserved, received, and unresolved states separately.', 'Confirm the recipient and amount before signing.', 'Show a completed receipt only after the protocol’s acceptance rule is satisfied.', 'Keep a pending transfer visible through outages and recovery.', 'Support verifiable backups and explicit recovery instructions before holding real funds.'] },
       { title: 'Privacy and recovery limits', paragraphs: ['Publicly distributed token records may expose transaction relationships. No anonymity guarantee or implemented privacy protocol is claimed.', 'Losing a signing key may make assets inaccessible. A key-recovery or reversal authority has not been specified. Backups and recovery tests are part of the release requirements, not an available recovery service today.'] }
