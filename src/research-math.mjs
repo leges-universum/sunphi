@@ -30,3 +30,18 @@ export function attackEconomics(probability, gain, cost) {
   if (![probability, gain, cost].every(Number.isFinite) || probability < 0 || probability > 1 || gain <= 0 || cost < 0) throw new RangeError('Invalid economic assumptions.');
   return { expectedPayoff: probability * gain - cost, breakEvenProbability: cost / gain };
 }
+
+// Scenario arithmetic only. A settlement ledger must use integer monetary units.
+export function nodeRewardScenario(volume, totalNodeHours, walletHours, operatingCost = 0) {
+  if (![volume, totalNodeHours, walletHours, operatingCost].every(Number.isFinite) ||
+      volume < 0 || totalNodeHours < 0 || walletHours < 0 || walletHours > totalNodeHours || operatingCost < 0) {
+    throw new RangeError('Use non-negative values; wallet hours cannot exceed total eligible node-hours.');
+  }
+  const pool = volume * 0.01;
+  const share = totalNodeHours > 0 ? walletHours / totalNodeHours : 0;
+  const reward = pool * share;
+  const breakEvenVolume = share > 0 ? operatingCost / (0.01 * share) : null;
+  return { seller: volume * 0.98, platform: pool, pool, share, reward,
+    unallocatedPool: totalNodeHours === 0 ? pool : 0,
+    netReward: reward - operatingCost, breakEvenVolume };
+}

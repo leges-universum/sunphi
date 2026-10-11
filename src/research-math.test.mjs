@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { logFragmentFailure, fragmentFailureLabel, reconstructionThreshold, attackEconomics } from './research-math.mjs';
+import { logFragmentFailure, fragmentFailureLabel, reconstructionThreshold, attackEconomics, nodeRewardScenario } from './research-math.mjs';
 
 test('binomial tail agrees with exhaustive independent failure states', () => {
   for (let n = 1; n <= 8; n++) for (let k = 1; k <= n; k++) for (const q of [0.1, 0.5, 0.8]) {
@@ -37,4 +37,39 @@ test('economic break-even is a sensitivity result, including impossible threshol
   assert.deepEqual(attackEconomics(.01, 100000, 1000), { expectedPayoff: 0, breakEvenProbability: .01 });
   assert.equal(attackEconomics(1, 1000, 2000).breakEvenProbability, 2);
   assert.throws(() => attackEconomics(.5, 0, 1));
+});
+
+test('inclusive sale fee conserves proceeds and time-weighted rewards exhaust only the pool', () => {
+  const hours = [720, 360, 120];
+  const total = hours.reduce((a, b) => a + b, 0);
+  const allocations = hours.map(h => nodeRewardScenario(1000000, total, h));
+  const first = allocations[0];
+  assert.equal(first.seller + first.platform + first.pool, 1000000);
+  assert.equal(allocations.reduce((sum, r) => sum + r.reward, 0), first.pool);
+  assert.equal(allocations[0].reward, 2 * allocations[1].reward);
+});
+
+test('constant-uptime example, zero activity, and operating-cost break-even', () => {
+  const result = nodeRewardScenario(1000000, 10000 * 720, 720, 5);
+  assert.equal(result.reward, 1);
+  assert.equal(result.netReward, -4);
+  assert.ok(Math.abs(result.breakEvenVolume - 5000000) < 1e-8);
+  assert.equal(nodeRewardScenario(1000000, 10000 * 720, 360).reward, 0.5);
+  assert.equal(nodeRewardScenario(0, 720, 720).reward, 0);
+  const empty = nodeRewardScenario(1000000, 0, 0);
+  assert.equal(empty.reward, 0);
+  assert.equal(empty.unallocatedPool, 10000);
+  assert.equal(empty.breakEvenVolume, null);
+  for (const args of [[-1, 1, 1], [1, 0, 1], [1, 5, 6], [Infinity, 1, 1], [1, 1, 1, -1]]) {
+    assert.throws(() => nodeRewardScenario(...args));
+  }
+});
+
+test('multiple permitted wallets receive their aggregate time share', () => {
+  const otherHours = 10000 * 720;
+  const operatorHours = 10000 * 720;
+  assert.equal(nodeRewardScenario(1000000, otherHours + operatorHours, operatorHours).share, 0.5);
+  // Even a 100% reward share cannot recover the platform's 1% on self-trading.
+  const selfTrade = nodeRewardScenario(10000, 720, 720);
+  assert.equal(selfTrade.seller + selfTrade.reward - 10000, -100);
 });
