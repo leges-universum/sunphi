@@ -15,7 +15,9 @@ Current stage: prototype development.
 A sequential local transaction model and seven tests have been prepared.
 This is not a distributed implementation or proof of network security.
 The public network, installer, and token sales have not launched.
-Token supply, issuance terms, and final protocol parameters are not approved.
+Selected project rule: up to 100 million sun(φ), minted on completed fund purchases.
+Initial quote: $1 reserve principal + $0.02 commission. No permanent dollar peg is promised.
+Custody, holder rights, legal authorization and production protocol remain unresolved.
 
 Next steps: a network prototype, signature and storage verification,
 and tests covering conflicting requests, outages, and recovery.

@@ -2,7 +2,7 @@ export const tokenDocument = {
   id: 'token', title: 'Token anatomy & recovery', category: 'Understand', status: 'Proposed record format',
   summary: 'What sun(φ) contains, what is fragmented, and which protections address which kinds of loss.',
   sections: [
-    { title: 'A token is an accepted ownership record', paragraphs: ['The permanent identifier names one issued asset; its accepted state identifies who may authorize the next transfer. Copying the bytes does not create another issued token. Genesis must admit every identifier exactly once against an approved supply. Supply, genesis format and admission rules are not yet finalized.', 'The private signing key is never in the token or its fragments. The token is not a secret string that belongs to whoever assembles it.'] },
+    { title: 'A token is an accepted ownership record', paragraphs: ['The permanent identifier names one issued asset; its accepted state identifies who may authorize the next transfer. Copying the bytes does not create another issued token. Purchase-time issuance must admit every identifier exactly once within the selected cumulative cap of 100 million. Tokens are not minted in advance. The network admission proof and record format remain unimplemented; a serial purchase ledger only models the required gates.', 'The private signing key is never in the token or its fragments. The token is not a secret string that belongs to whoever assembles it.'] },
     { title: 'Main object: stored at rest and fragmented', table: { headers: ['Component', 'Purpose'], rows: [
       ['Network and format version', 'Separate protocol versions, networks and signing domains.'],
       ['Permanent token ID', 'Links ownership revisions to the same issued asset, for example token 123.'],

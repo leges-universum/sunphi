@@ -1,5 +1,5 @@
 SunPhi — Working whitepaper
-Version 0.4 · 11 October 2026
+Version 0.5 · 11 October 2026
 Token symbol: sun(φ)
 Protocol proposal and conditional research. No live issuance, sale, or distributed-network security claim.
 
@@ -30,7 +30,7 @@ Status: Proposed record format
 What sun(φ) contains, what is fragmented, and which protections address which kinds of loss.
 
 A token is an accepted ownership record
-The permanent identifier names one issued asset; its accepted state identifies who may authorize the next transfer. Copying the bytes does not create another issued token. Genesis must admit every identifier exactly once against an approved supply. Supply, genesis format and admission rules are not yet finalized.
+The permanent identifier names one issued asset; its accepted state identifies who may authorize the next transfer. Copying the bytes does not create another issued token. Purchase-time issuance must admit every identifier exactly once within the selected cumulative cap of 100 million. Tokens are not minted in advance. The network admission proof and record format remain unimplemented; a serial purchase ledger only models the required gates.
 The private signing key is never in the token or its fragments. The token is not a secret string that belongs to whoever assembles it.
 
 Main object: stored at rest and fragmented
@@ -161,7 +161,7 @@ Fragmented data | The main object; coding metadata belongs to the storage layer.
 Any-1% reference model | n = N, k = ceil(N / 100), one distinct valid fragment per holder.
 Codec, signature and hash algorithms | Not finalized for the network implementation.
 Transaction throughput and confirmation time | Not measured; no production target approved.
-Sale fee | 2% inclusive: 1% platform and 1% authenticated-wallet pool.
+Sale fee | Primary: 2% added to principal. Resale: 2% included in payment. Each splits 1% platform / 1% wallet rewards.
 Transfer fees, rate limits and reservation lifetime | Not finalized.
 Fractional accounting | 8 decimal places is a research scenario, not an approved denomination.
 First client platform | Windows planned; no installer released.
@@ -184,7 +184,7 @@ These are assumptions, not a wire format or measured memory use. The separate re
 Per-node storage scenario
 Ideal payload per node = S × B / k
 Assume S=100 million separate token objects, each B=4,096 bytes, with n=N=1 million and k=10,000. The ideal packed payload is 40.96 MB per node. If each node instead needs a separate 128-byte record for every token, metadata alone would be 12.8 GB per node.
-At bootstrap, 100 million separate 200-byte genesis records require 20 GB for a full copy, before overhead. Compact genesis representation remains separate design work. RAM and bandwidth must be measured on an implemented client. MB and GB here use decimal units.
+If all 100 million tokens have been issued, separate 200-byte initial records require 20 GB for a full copy, before overhead. With purchase-time issuance, unissued capacity does not require 100 million token objects at bootstrap. RAM and bandwidth must be measured on an implemented client. MB and GB here use decimal units.
 
 6. TRANSFER RULES
 Status: Design requirements
@@ -212,53 +212,101 @@ Replay and retry rules
 - Apply transaction limits only after their enforcement and attack model are specified. The proposed ten-attempt identifier limit is a candidate rule, not an implemented network-wide defense.
 - Do not treat a new timestamp or a new transaction identifier as authority to bypass an existing reservation.
 
-7. SUPPLY & ISSUANCE
-Status: No issuance approved
-Fixed-supply proposal, treasury accounting, denominations, and distribution.
+7. SUPPLY & PURCHASE-TIME ISSUANCE
+Status: Project rule · sales not open
+Maximum 100 million sun(φ). Initial token price $1, with issuance on completed purchase and the full token price allocated to reserves.
 
-Supply decision
-A fixed genesis supply is proposed. The final amount has not been approved, and no live issuance or token sale has taken place. A larger nominal supply does not by itself make the network more valuable or more secure.
-Candidate supply | Decision
-100,000,000 sun(φ) | Research candidate
-1,000,000,000 sun(φ) | Research candidate
-10,000,000,000 sun(φ) | Research candidate
+Approved economic parameters
+Parameter | Rule
+Maximum cumulative issuance | 100,000,000 sun(φ). Unissued capacity is not a treasury token balance.
+Initial issuance | No advance mint. Issue only for a completed, confirmed fund purchase.
+Initial token price | $1.00 per sun(φ); this is a sale price, not a permanent market-value guarantee.
+Primary purchase charge | $1.02 total: $1.00 reserve principal + $0.01 platform fee + $0.01 wallet reward funding.
+After issuance | Tokens enter circulation and can be transferred or resold under the accepted network rules. Secondary transfers do not mint tokens.
+Platform income | Transaction fees only. Reserve principal and reserve gains are not platform revenue.
+Current implementation | Tested serial purchase/issuance reference ledger; no production mint, sale or reserve wallet.
 
-Issuance fund accounting
-Fund balance + balances of all other owners = S
-This conservation rule assumes a fixed supply S with no burning. A sale transfers already-issued tokens from the fund to a buyer; it does not increase S. Reservations are subsets of existing balances, not extra tokens.
-A distribution statement must identify treasury and team allocations, any vesting, custody and signing arrangements, use of sale proceeds, and change permissions. None of those percentages or schedules is approved here.
+Supply accounting
+Cumulative issued ≤ 100,000,000; available capacity = cap − cumulative issued − committed unissued orders
+The 100 million limit is a cap, not an amount already issued. The new rule supersedes the earlier fixed-genesis-inventory proposal. An order can reserve issuance capacity without creating tokens. A completed purchase creates a unique admitted issuance record and releases the tokens to its buyer.
+The reference ledger uses whole tokens and integer USD cents for the initial-price phase. Fractional ownership, network token admission and any future price or burn policy still require specifications. No automatic remint allowance is created by a burn.
 
-Proposed purchase process
-Duplicate requests or payment notifications must not deliver tokens twice. External payment and token delivery are not automatically atomic. The payment provider and rules for late, partial, or disputed payments remain open.
-- Create a uniquely identified quote with buyer address, quantity, price, currency, and expiry.
-- Reserve the corresponding treasury balance.
-- Verify payment through a defined external payment source.
-- Deliver through one idempotent token transfer linked to the order.
-- Resolve delivery or cancellation before any refund that might conflict with a completed receipt.
+Purchase completion gates
+The reference ledger rejects duplicate payment allocation, changed receipt replay, incomplete backing allocation and cap oversubscription. Its receipt inputs are trusted laboratory facts; it does not verify bank settlement, execute purchases or establish network finality.
+- Create an idempotent order binding buyer, quantity and the exact initial-price quote; reserve remaining issuance capacity.
+- Verify settled payment of principal plus fees through a trusted payment adapter. A browser request or payment screenshot is not payment evidence.
+- Allocate the full token-price principal to settled reserve-asset purchases in the dedicated reserve. Keep fees in separate accounting.
+- Record acquired asset quantities, network, reserve destination and unique settlement evidence. Purchase costs and network fees need external operating funding if the full principal is to remain invested.
+- Complete issuance once after payment and reserve acquisition conditions are met. An order waiting for acquisition remains pending; it is not represented as a fully backed circulating token.
+- If payment or acquisition fails, reconcile before refund or issuance. The local model permits only unpaid cancellation; production refund and recovery require durable atomic accounting.
 
-Fractional units and price
-Divisibility specifies a unit of accounting. Splitting a balance must conserve the total amount and must not create a second monetary supply. A split/merge protocol or fractional-ownership representation has not been selected.
-An initial price of one US dollar was discussed only as a scenario. There is no approved sale price, price peg, redemption promise, or guaranteed liquidity. The selected sale-fee model allocates revenue by wallet authorization time; it does not mint additional tokens.
+Primary sale and secondary resale use different fee bases
+Primary: buyer = 1.02P; reserve = P; platform = 0.01P; rewards = 0.01P. Resale: seller = 0.98V; platform = 0.01V; rewards = 0.01V.
+P is the primary token-price principal before commission. V is a secondary buyer’s all-in platform payment. A primary 2% surcharge is measured against P, not against the $1.02 total. The secondary 2% fee remains included in V.
+If all 100 million tokens were sold at the initial price, buyers would pay $102 million: $100 million reserve principal, $1 million platform fees and $1 million reward funding, before separately funded operating costs. This is a full-sale scenario, not current assets or forecast sales.
+Reserve assets and valuation: #/reserve
+Wallet rewards: #/economics
 
-8. FEES & NODE ECONOMICS
+Backing value is not automatically a one-dollar promise
+Estimated net backing per circulating token = (eligible reserve market value − relevant liabilities) / verified circulating supply
+The initial $1 purchase allocates $1 of principal to reserve assets. Actual net market value depends on execution prices, costs, asset prices, custody and liabilities. A crypto basket can appreciate or fall after acquisition; neither purchase cost nor a public address guarantees a $1 market price or redemption.
+If the initial research basket is 90% USDC and 10% BTC and BTC falls 50% while USDC is unchanged, its value falls 5%: $0.95 per token before other costs, assuming no later issuance. USDC itself can deviate from $1.
+Later primary pricing requires a separate policy: issuing at $1 while existing net backing differs from $1 can transfer value between existing and new holders. The initial price does not settle this question. Redemption rights, valuation time and treatment of reserve gains/losses remain launch decisions.
+
+8. RESERVE & TRANSPARENCY
+Status: Custody and legal review pending
+Separate reserve assets, observable wallet balances, and valuation linked to issued supply. No live reserve addresses have been designated.
+
+Basket research: 90% USDC / 10% Bitcoin
+This is an initial research allocation, not a legally approved launch portfolio or an instruction to buy. A large dollar-stablecoin share reduces exposure to BTC price changes but introduces issuer, freeze, depeg and custody risks. Bitcoin remains a volatile component. The model uses native BTC on Bitcoin and native USDC on Ethereum, without bridges, lending, leverage or promised yield.
+Circle publishes reserve information for USDC. Those reserves support USDC; they are not evidence that SunPhi owns any USDC, has acquired its own backing, or can guarantee a dollar redemption.
+Circle reserve transparency: https://www.circle.com/transparency
+Official native USDC contract list: https://developers.circle.com/stablecoins/usdc-contract-addresses
+
+Corporate reserve custody, separate from personal wealth
+The reserve is intended to serve token backing, not the founder’s personal spending. Before real sales, define the issuer, holders’ rights, segregated accounts, permitted withdrawals, custody provider and independent reconciliation. A founder-owned company and the reserve’s beneficial ownership are distinct legal questions.
+A hardware wallet under the founder’s control is a possible development setup, not an approved custody architecture for a public $100 million issuance. Professional bank/custodian arrangements are under review. No bank partnership, insured reserve or production wallet is claimed. A bank safe-deposit box for a backup is not the same service as regulated crypto-asset custody.
+The software uses public addresses only. Private keys and recovery words are not generated on this site or published in its repository. Before enabling readings, verify every reserve address on the signing device or against the custodian contract. Include Bitcoin change addresses; an incomplete address list is not the full reserve.
+
+What the transparency page can show
+The prepared reader makes bounded public API calls only on a manual refresh after addresses are configured. It cannot sign, buy or withdraw. It reads confirmed BTC address totals and USDC at a finalized Ethereum block; USD quotes are third-party observations, not an audit or executable price.
+Publication of an address must not imply that anyone who sends money there has placed a valid purchase order. Purchases remain disabled until the full issuance, payment and legal process is ready.
+Observation | Required presentation
+Public addresses | Network, native asset/contract and explorer link. Addresses currently not configured.
+Asset balances | Read-only provider observations with retrieval time and, where available, block evidence. Missing data is unknown, not zero.
+USD valuation | Observed market quotes and their source; do not force USDC to $1. Missing prices prevent an aggregate valuation.
+Issued and circulating tokens | Verified supply ledger, not the 100 million cap or an assumed scenario. No live ledger exists yet.
+Net backing / coverage | Combine eligible assets, encumbrances and liabilities with verified supply at a disclosed valuation time. A visible wallet alone does not prove solvency.
+Controls | Show provider errors and stale observations. Custody control, reserve eligibility and absence of liens require independent evidence.
+
+Legal classification comes before reserve execution
+A token promising a fixed dollar, a token tracking a basket, and a token representing an investment interest can fall under different regimes. Issuance, exchange, custody and fiat payments need separate review in every target market. A bank custody contract does not license the issuer or exchange.
+For US and EU retail markets, do not treat the 90/10 research basket as an approved dollar-stablecoin reserve. The project has not obtained a licence or a legal classification opinion. Legal entity, territories, redemption rights and custody arrangements must be resolved before real-money operation.
+Wallet-time rewards also need legal review. The selected rule pays for accepted authorization time without requiring a token balance; it must not be marketed as guaranteed interest for holding tokens. This distinction does not itself establish regulatory approval.
+US GENIUS Act: enacted text and reserve rules: https://www.govinfo.gov/content/pkg/PLAW-119publ27/html/PLAW-119publ27.htm
+EU issuer authorization: ESMA guidance: https://www.esma.europa.eu/publications-data/questions-answers/2404
+MiCA Article 40: interest restrictions: https://www.esma.europa.eu/publications-and-data/interactive-single-rulebook/mica/article-40-prohibition-granting-interest
+OCC: bank crypto custody authority: https://www.occ.gov/topics/charters-and-licensing/interpretations-and-decisions/2025/int1184.pdf
+
+9. FEES & NODE ECONOMICS
 Status: 2% sale-fee design
-An inclusive 2% sale fee, time-weighted node rewards, and conditional operating economics.
+Primary and secondary 2% fees, time-weighted wallet rewards, and conditional operating economics.
 
 Sale-fee rule
-Buyer payment V = 0.98V to seller + 0.01V to platform + 0.01V to node pool
-The project owner selected a 2% fee included in the buyer’s payment, for both issuance-fund sales and resales executed through the platform. A payment of 100 leaves 98 for the seller, 1 for the platform, and 1 for the node reward pool. On a fund sale, the fund is the seller.
+Primary: 1.02P = P reserve + 0.01P platform + 0.01P rewards. Resale: V = 0.98V seller + 0.01V platform + 0.01V rewards.
+Primary purchases add 2% to the token-price principal: initially $1.02 pays $1 into reserves, $0.01 to the platform and $0.01 to rewards. Platform resales keep the inclusive split: an all-in payment of 100 leaves 98 for the seller, 1 for the platform and 1 for rewards. Reserve principal is not platform revenue.
 This is a design decision, not a live collection or payout service. Count completed, eligible, fee-bearing sales once. Do not treat wallet transfers as sales or assume that an off-platform sale is observable. Transfer fees remain a separate open decision. Payment-provider costs, taxes, chargebacks, and payout costs need their own explicit funding policy; they are not silently deducted from the selected 1% node share.
 
 Time-weighted distribution
-F = 0.01V; Q = funded sun(φ) pool; T = Σ tⱼ; rewardᵢ = Q × tᵢ / T
-For a defined accounting period, V is eligible settled sale volume in one settlement currency and F is the 1% funding allocation. Q is the quantity of existing sun(φ) actually acquired or irrevocably reserved for rewards, not newly minted tokens; and tᵢ is the accepted authorization time of distinct wallet i while connected to the network. T is the sum across all wallets, including i. Every wallet counts separately, including multiple wallets belonging to one operator. Overlapping sessions for the same wallet count once. Token balance does not enter this formula; buying or staking tokens is not a participation requirement.
+F = 0.01P + 0.01V; Q = funded sun(φ) pool; T = Σ tⱼ; rewardᵢ = Q × tᵢ / T
+For a defined accounting period and settlement currency, P is eligible primary principal excluding the surcharge, V is eligible all-in resale volume, and F is their combined 1% funding allocation. Q is the quantity of existing sun(φ) actually acquired or irrevocably reserved for rewards, not newly minted tokens; and tᵢ is the accepted authorization time of distinct wallet i while connected to the network. T is the sum across all wallets, including i. Every wallet counts separately, including multiple wallets belonging to one operator. Overlapping sessions for the same wallet count once. Token balance does not enter this formula; buying or staking tokens is not a participation requirement.
 This is a share of actual fee revenue, not interest on the wallet balance or a fixed annual yield. Zero eligible sales produce zero new rewards. A wallet authorized for half as long receives half the allocation of a full-time wallet within the same period. Authorization time is the chosen reward metric; storage capacity and completed operations do not increase its weight.
-The reward asset is selected: sun(φ). Track fee collections separately by payment currency, then distribute a funded token pool. Proposed funding route: purchase existing sun(φ) from the issuance fund or market using the 1% allocation. Under one effective acquisition price p, Q = F / p; with multiple fills, add the actual token quantities received. The execution venue, pricing rule, conversion-cost policy, and settlement period still require selection.
+The reward asset is selected: sun(φ). Track fee collections separately by payment currency, then distribute a funded token pool. Proposed funding route: purchase already-issued sun(φ) on the market using the 1% allocation. Unissued capacity is not reward inventory; no unpaid reward mint is allowed. Under one effective acquisition price p, Q = F / p; with multiple fills, add the actual token quantities received. The execution venue, pricing rule, conversion-cost policy, and settlement period still require selection.
 
 Illustrative funding equivalents
 Each node in this table represents one distinct wallet with equal authorization time. Dollar amounts in this table are funding equivalents, not dollar payouts or a promise that rewards can be sold for that amount. At an assumed acquisition price of $1 per sun(φ), the numerical token quantity is equal; at $0.50 it doubles and at $2 it halves. There is no live price or price peg. For changing membership, use summed wallet-hours rather than the wallet count at the end of the month. Monthly aggregation is exact for one monthly pool; with daily pools, calculate each day separately and add the rewards.
-At 10,000 full-time nodes, a $5 monthly cost per node requires $5 million in monthly eligible sales for gross rewards to cover that cost. Costs and volumes are illustrative. A once-only sale of 100 million tokens at an assumed gross $1 each would fund $1 million of node rewards over the sale period, not $1 million every year. Continuing rewards would need continuing eligible sales or a separately funded reserve.
-Eligible sales / month | Node pool (1%) | 1,000 full-time nodes | 10,000 full-time nodes | 100,000 full-time nodes
+At 10,000 full-time nodes, a $5 monthly cost per node requires $5 million in monthly eligible sales for gross rewards to cover that cost. Costs and volumes are illustrative. If all 100 million tokens sell at the initial $1 principal plus $0.02 fee, buyers pay $102 million, including $1 million of reward funding over the sale period, not every year. Continuing rewards would need continuing eligible sales or a separately funded reserve.
+Eligible fee base / month | Node pool (1%) | 1,000 full-time nodes | 10,000 full-time nodes | 100,000 full-time nodes
 $100,000 | $1,000 | $1 / node | $0.10 / node | $0.01 / node
 $1,000,000 | $10,000 | $10 / node | $1 / node | $0.10 / node
 $10,000,000 | $100,000 | $100 / node | $10 / node | $1 / node
@@ -284,7 +332,7 @@ No measured monthly node cost or guaranteed node income is available. Requiremen
 
 Remaining decisions
 Decision | Current status
-Sale-fee schedule | Selected: 2% inclusive, split 1% platform / 1% node pool
+Sale-fee schedule | Selected: primary 2% on top; resale 2% inclusive; split 1% / 1%
 Reward weighting | Selected: proportional to accepted wallet authorization time
 Ordinary transfer fee | Not selected
 Multiple wallets per operator | Allowed and intentionally encouraged; each distinct wallet counts separately
@@ -298,7 +346,7 @@ Expected net payoff = p × G − C; break-even p = C / G
 p is the probability that an illicit outcome is actually accepted. G is the realizable gain if it succeeds, before costs C. C is the expected non-recoverable cost for the specified strategy and time window.
 With illustrative C=$1,000 and G=$100,000, the break-even probability is 1%. These inputs are sensitivity assumptions, not measured attack economics. Free node entry means a token stake cannot be counted as a mandatory attacker expense.
 
-9. CONVERT SUN(Φ) & CASH WITHDRAWAL
+10. CONVERT SUN(Φ) & CASH WITHDRAWAL
 Status: Design options; not live
 Trading sun(φ) for BTC, other cryptocurrencies, and bank money, with explicit funding and settlement requirements.
 
@@ -309,8 +357,8 @@ Wallet connection and key safety: #/wallet
 Fees and funded token rewards: #/economics
 
 A proposed first market: sun(φ)/BTC
-A seller offers an existing quantity of sun(φ); a buyer pays the quoted amount of BTC. Initial fund sales and subsequent platform resales use the selected inclusive 2% fee. This trading pair is a design proposal, not a listed or operational market.
-Receiving node rewards in sun(φ) does not itself make those tokens exchangeable. A completed sale needs a willing funded buyer, an agreed rate, and a settlement mechanism. Selling fund inventory for BTC does not automatically create BTC bids for users selling their rewards.
+A seller offers an existing quantity of sun(φ); a buyer pays the quoted amount of BTC. Secondary platform resales use the inclusive 2% fee. A primary fund purchase instead adds 2% to its quoted token-price principal, all of which must fund the reserve. This trading pair is a design proposal, not a listed or operational market.
+Receiving node rewards in sun(φ) does not itself make those tokens exchangeable. A completed sale needs a willing funded buyer, an agreed rate, and a settlement mechanism. Accepting BTC for primary issuance does not automatically create BTC bids for users selling their rewards.
 
 BTC payment example
 At an illustrative effective acquisition cost of 0.000001 BTC per sun(φ), that reward funding buys 100 sun(φ). Ten thousand wallets with equal authorization time would receive 0.01 sun(φ) each. These are arithmetic assumptions, not a BTC price quote or a promised reward.
@@ -343,11 +391,11 @@ Uniswap v2 pools: token compatibility and funding: https://developers.uniswap.or
 
 Liquidity and costs
 Sellable quantity at a fixed bid ≤ available quote-currency budget / bid price
-A displayed price is not a commitment to unlimited redemption. For example, a dedicated 0.1 BTC purchase budget at 0.000001 BTC per token can buy at most 100,000 sun(φ) before costs, unless new buyers add funding. The reserve owner, source of funding, limits, and replenishment policy are not yet selected.
+A displayed price is not a commitment to unlimited redemption. For example, a dedicated 0.1 BTC purchase budget at 0.000001 BTC per token can buy at most 100,000 sun(φ) before costs, unless new buyers add funding. This market-making budget is separate from token backing; custody, spending limits and replenishment require explicit authority. A backing reserve must not silently become a trading subsidy.
 Each sale of sun(φ) executed through the platform bears the selected 2% fee. Network fees, spread, price impact, external trading charges, and bank-withdrawal charges are additional costs to disclose in the quote; no provider rate is assumed here. Ordinary transfers are not automatically sales. A provider converting BTC after the SunPhi sale applies its own charges.
 Receiving sun(φ) rewards does not guarantee their current cash value or a buyer. Buying reward inventory can supply some demand, but its 1% funding does not guarantee liquidity for all holders.
 
-10. PROBABILITY & CALCULATIONS
+11. PROBABILITY & CALCULATIONS
 Status: Conditional models
 Interactive availability estimates, reconstruction thresholds, and explicit assumptions.
 
@@ -371,7 +419,7 @@ Independent attempts: P(at least one success) = 1 − (1 − p)^m
 This expression requires m independent attempts with the same success probability p. For T events each with failure probability at most p, the union bound is at most min(1,Tp), without requiring independence.
 A per-object, per-snapshot figure is not an annual service guarantee. Real estimates need a defined time horizon, correlation model, placement process, and accepted-state mechanism.
 
-11. SECURITY & THREAT MODEL
+12. SECURITY & THREAT MODEL
 Status: Controls to implement
 Adversarial behavior, intended defenses, and unresolved security work.
 
@@ -396,7 +444,7 @@ Audit and vulnerability reporting
 No independent security audit or formal security proof is published. The release process should publish audit scope, findings, fixes, affected versions, and unresolved risks.
 A private vulnerability-reporting route and disclosure policy must be established before a public client release. No bug bounty or response-time commitment is currently offered. Never post signing keys or exploitable personal data in public issues.
 
-12. PRIVACY & ANONYMITY
+13. PRIVACY & ANONYMITY
 Status: Threat model
 Public keys are pseudonyms. Records, network observations and payment data may connect them to a person.
 
@@ -428,7 +476,7 @@ Bitcoin privacy guidance: https://bitcoin.org/en/protect-your-privacy
 Wallet and key safety: #/wallet
 Security requirements: #/security
 
-13. RUN A NODE
+14. RUN A NODE
 Status: Preparation guide
 Startup, resource planning, synchronization, and shutdown behavior.
 
@@ -448,7 +496,7 @@ When the network contracts
 Outages, software defects, participant withdrawal, and network partitions can reduce reachable holders. Reconstructability depends on the original coding threshold and the availability of distinct valid fragments.
 Do not lower an old threshold in place. Recover, recode, verify the replacement, and switch generations safely. If the network cannot establish current state or reconstruct required data, the intended behavior is to pause affected transfers rather than create an unsupported credit.
 
-14. WALLET, CONNECTION & KEY SAFETY
+15. WALLET, CONNECTION & KEY SAFETY
 Status: Design guide
 Sending, receiving, backup, privacy, and recovery expectations.
 
@@ -474,7 +522,7 @@ Privacy and recovery limits
 Publicly distributed token records may expose transaction relationships. No anonymity guarantee or implemented privacy protocol is claimed.
 Losing a signing key may make assets inaccessible. A key-recovery or reversal authority has not been specified. Backups and recovery tests are part of the release requirements, not an available recovery service today.
 
-15. GITHUB & DEVELOPERS
+16. GITHUB & DEVELOPERS
 Status: Public source available
 Source code, local models, reproducibility, APIs, and contributions.
 
@@ -499,7 +547,7 @@ Contributing
 Useful early contributions include state-transition reviews, conflicting-transfer test cases, encoding benchmarks, and reproducible failure simulations. Proposal templates, maintainer permissions, and contribution licensing must be published with the repository.
 Open-source licensing and release-signing policy have not yet been approved. No third-party business-platform code is included in the new publication package.
 
-16. GOVERNANCE & UPGRADES
+17. GOVERNANCE & UPGRADES
 Status: Draft process
 Protocol changes, operator choice, compatibility, and treasury authority.
 
@@ -517,7 +565,7 @@ Storage recoding and ownership transfer are different operations. A storage upgr
 Treasury accountability
 Issuance-fund signers, access separation, public reporting, spending authority, and key replacement must be established before sales. These powers should be documented separately from node participation and protocol maintenance.
 
-17. NETWORK STATUS & RELEASES
+18. NETWORK STATUS & RELEASES
 Status: Prototype stage
 Actual readiness, testing, explorer availability, and release verification.
 
@@ -530,6 +578,8 @@ Distributed state acceptance | Not implemented
 Public testnet / mainnet | Not launched
 Network explorer | Not available
 Wallet / node installer | Not released
+Purchase-time issuance model | Serial laboratory ledger with cap and payment/reserve gates; not a production mint
+Reserve transparency | Read-only reader prepared; addresses and live supply not configured
 Token issuance / sale | Not launched
 Independent security audit | Not published
 
@@ -544,7 +594,7 @@ Explorer and incident history
 There are no live node counts, transaction statistics, supply balances, or uptime figures to display yet. Once a testnet exists, an explorer should identify the network, accepted state, data source, and observation time.
 An incident log should distinguish discovery, containment, recovery, and unresolved effects. Empty status panels must not be replaced with fabricated activity.
 
-18. PROJECT DISCLOSURES
+19. PROJECT DISCLOSURES
 Status: Current scope
 Publication status, data handling, issuer information, and launch documents.
 
@@ -553,7 +603,7 @@ This website publishes project information and conditional research calculations
 The legal issuer, jurisdiction, sale eligibility, and contractual terms have not been designated. A final issuance document must resolve these matters before any proposed sale.
 
 Browser data
-The theme preference is stored locally in your browser. Calculator inputs are processed locally by this page; this calculator does not submit them to an application server.
+The theme preference is stored locally in your browser. Calculator inputs are processed locally. If public reserve addresses are configured, a manual refresh sends public address or asset queries to mempool.space, Ethereum PublicNode and Coinbase. These providers can observe the connection; no private keys are requested.
 The website is hosted on Base44 and its DNS is managed through Cloudflare. Hosting providers may process connection information. A complete hosting, analytics, retention, and privacy review remains to be published; this page makes no claim of anonymous browsing.
 
 Documents needed for a public launch
@@ -564,7 +614,7 @@ This is a project readiness list, not a claim that one universal legal checklist
 - Applicable terms, privacy information, and licensing.
 - Release verification and vulnerability disclosure instructions.
 
-19. REFERENCES & GLOSSARY
+20. REFERENCES & GLOSSARY
 Status: Primary sources
 External technical references and the meaning of the terms used here.
 
