@@ -1,0 +1,7 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from '@/SunPhi.jsx';
+import '@fontsource-variable/inter';
+import '@/sunphi.css';
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);

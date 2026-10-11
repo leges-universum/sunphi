@@ -1,0 +1,26 @@
+SunPhi — Project overview
+Updated: 11 October 2026.
+
+SunPhi is a distributed digital transfers project.
+Token symbol: sun(φ), using the lowercase Greek letter φ.
+SunPhi is the project name; sun(φ) is the token symbol.
+
+Running a node is intended to require no token purchase or stake.
+The owner's private key is kept separate from the public token object.
+The proposed transfer requires signatures from the sender and recipient.
+In transit, a token has a main object and a temporary reservation record.
+The main object is intended to be stored as distributed network fragments.
+
+Current stage: prototype development.
+A sequential local transaction model and seven tests have been prepared.
+This is not a distributed implementation or proof of network security.
+The public network, installer, and token sales have not launched.
+Token supply, issuance terms, and final protocol parameters are not approved.
+
+Next steps: a network prototype, signature and storage verification,
+and tests covering conflicting requests, outages, and recovery.
+Windows is planned as the platform for the first application.
+
+Relationship to SUN PHI: a separate project. Payment for platform services
+is a possibility for the future. Using SUN PHI does not require tokens.
+SUN PHI Business Search: https://sun-phi.com/business-search?theme=graphite&mode=solution

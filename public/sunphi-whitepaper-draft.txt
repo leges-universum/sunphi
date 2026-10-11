@@ -1,0 +1,379 @@
+SunPhi — Working whitepaper
+Version 0.1 · 11 October 2026
+Token symbol: sun(φ)
+Protocol proposal and conditional research. No live issuance, sale, or distributed-network security claim.
+
+1. PROJECT & WHITEPAPER
+Status: Working draft
+Purpose, participants, design commitments, and what exists today.
+
+What SunPhi proposes
+SunPhi is a proposed peer-to-peer system for transferring sun(φ) tokens. Participants would hold their own signing keys, while network nodes store verifiable fragments of token state. The project explores adaptive storage and recipient-signed transfers.
+The project name is SunPhi. The token symbol is sun(φ), using the lowercase Greek letter phi. Running a node must not require buying or staking tokens. Owning tokens and operating a node are separate roles.
+
+Three roles
+Role | Responsibility
+Owner / sender | Authorizes a transfer with the current owner’s private key.
+Recipient | Checks the intended transfer and signs receipt.
+Storage node | Stores and serves assigned fragments. Holding fragments does not grant token ownership.
+
+Current evidence
+A sequential local transaction model has passed seven tests. It uses a single in-memory arbiter and is a reference for expected behavior. It does not implement independent network agreement, real signatures, fragment coding, or token issuance.
+The public website and these documents are available. A public test network, wallet installer, token sale, and production protocol are not yet available.
+
+How to read this documentation
+Design requirement identifies intended behavior. A scenario is a calculation under stated assumptions. An open decision has no approved value. A measured result must identify executable code, parameters, environment, and test outcome.
+This working whitepaper records the design and its open questions. It is not an issuance prospectus, an audit opinion, or a commitment to a launch date.
+
+2. HOW THE NETWORK WORKS
+Status: Proposed architecture
+Peer discovery, token state, fragment placement, and recovery.
+
+Separate ownership from storage
+The main token object contains its persistent identifier, owner-related state, recent transfer history, and the timestamp of the last completed receipt. A hash commits to the serialized main object. The private signing key is never part of this object.
+A token at rest has only its main part. In transit, a separate reservation record accompanies it. This temporary record binds the main hash, transfer identifier, sender, recipient, and send time. The proposed two-part representation can be displayed as mainHash–reservationHash. Hashes identify records; they do not replace the records or their signatures.
+
+Proposed data flow
+- Discover peers through multiple routes and establish a defined holder snapshot.
+- Find fragments for one accepted token version and one encoding generation.
+- Verify fragment integrity, then reconstruct and verify the main object.
+- Check ownership, reservation, recipient, and the accepted state-transition evidence.
+- After an accepted receipt, distribute fragments of the new main object and retain recovery material until replacement is safe.
+
+Torrent-style transport
+Peer-to-peer discovery and fragment exchange take inspiration from torrent systems. BitTorrent’s DHT uses routing tables and iterative peer lookup; it does not require every lookup to scan every participant.
+Discovering peers and reconstructing data do not by themselves select one outcome between conflicting transfers. SunPhi still needs an explicit, tested rule for accepting a unique reservation, receipt, or cancellation.
+BitTorrent BEP 5: DHT protocol: https://www.bittorrent.org/beps/bep_0005.html
+
+Versions and timestamps
+The main part records the last receipt time; the temporary reservation records the send time. A node must associate each timestamp with the signed record, content hash, and version it belongs to. It must not combine fragments merely because they carry similar timestamps.
+The largest observed timestamp is a freshness hint, not proof that no conflicting or newer accepted state exists elsewhere. Clock rules and verifiable state acceptance remain open protocol work.
+
+Safe changes in network size
+N refers to a defined snapshot of eligible holders for a storage epoch. Nodes cannot assume that their current peer list is an exact global count.
+Recover old data using its original threshold before recoding. Verify complete new placement and its manifest before retiring old fragments. A drop in online nodes does not make an old encoding recoverable with a smaller threshold.
+On restart, reconcile against verified current state before removing stale fragments. Keep the last usable encoding if migration or recovery is incomplete.
+
+3. TECHNICAL SPECIFICATIONS
+Status: Parameters under study
+Token format, history, coding parameters, and resource scenarios.
+
+Parameter register
+Parameter | Current position
+Token symbol | sun(φ)
+History window | 10 recent transfers is the baseline; no security-optimal length is established.
+At-rest representation | Main token object only.
+In-transit representation | Main object plus a separate, unfragmented reservation record.
+Fragmented data | The main object; coding metadata belongs to the storage layer.
+Any-1% reference model | n = N, k = ceil(N / 100), one distinct valid fragment per holder.
+Codec, signature and hash algorithms | Not finalized for the network implementation.
+Transaction throughput and confirmation time | Not measured; no production target approved.
+Fees, rate limits and reservation lifetime | Not finalized.
+Fractional accounting | 8 decimal places is a research scenario, not an approved denomination.
+First client platform | Windows planned; no installer released.
+
+Bootstrap reference
+For N ≤ 100, this ideal any-k model uses full copies. The table concerns data reconstruction, not permission to accept payments. A scalable codec for the million-fragment case has not been implemented. RFC 5510 is a reference for erasure coding, not a ready-made implementation of this exact configuration.
+Holders N | Fragments n | Threshold k
+10 | 10 | 1
+100 | 100 | 1
+1,000 | 1,000 | 10
+10,000 | 10,000 | 100
+1,000,000 | 1,000,000 | 10,000
+RFC 5510: Reed–Solomon FEC: https://www.rfc-editor.org/rfc/rfc5510.html
+
+History size scenario
+Object bytes = 200 + 256 × h + C
+For comparison only, assume a 200-byte header and 256 bytes per retained transfer. C is the unknown size of additional accepted-state evidence. The resulting sizes before C are 456 bytes for h=1, 1,480 for h=5, and 2,760 for h=10.
+These are assumptions, not a wire format or measured memory use. The separate reservation, indexes, repair copies, transport, and proof structures can add overhead. Keeping fewer signatures is not evidence of equal security.
+
+Per-node storage scenario
+Ideal payload per node = S × B / k
+Assume S=100 million separate token objects, each B=4,096 bytes, with n=N=1 million and k=10,000. The ideal packed payload is 40.96 MB per node. If each node instead needs a separate 128-byte record for every token, metadata alone would be 12.8 GB per node.
+At bootstrap, 100 million separate 200-byte genesis records require 20 GB for a full copy, before overhead. Compact genesis representation remains separate design work. RAM and bandwidth must be measured on an implemented client. MB and GB here use decimal units.
+
+4. TRANSFER RULES
+Status: Design requirements
+Reservation, receipt, cancellation, stale data, and transaction identity.
+
+One accepted outcome
+A transfer identifies one main-object version, one sender, one recipient, and one transaction identifier. Only the current owner can authorize it. The network must admit at most one conflicting reservation and at most one final outcome for that reservation.
+The recipient reconstructs the required current object, verifies the intended parties and reservation, signs receipt, and publishes the resulting state. Gathering enough fragments and producing a signature are required steps; distributed rules must also make the completed outcome uniquely accepted.
+
+State transitions
+Starting state | Accepted action | Result
+Owned | Reserve a specific transfer | Reserved; unavailable for another spend.
+Reserved | Accept recipient-signed receipt | Owned by recipient at a new state version.
+Reserved | Accept cancellation under expiry rules | Returned to sender at a new state version.
+Credited or cancelled | Replay the old request | No additional transfer or issuance.
+
+Timeout is not automatic rollback
+A recipient may lose connectivity after signing or publishing receipt. Lack of an acknowledgement does not prove that receipt failed. A reservation remains unresolved until the protocol establishes receipt or cancellation.
+A local timer must not create a second spendable copy. Cancellation and late receipt must be mutually exclusive. The final lifetime, clock tolerance, and recovery procedure are not yet approved.
+
+Replay and retry rules
+- Bind signatures to the token version, transaction identifier, network identity, and intended parties.
+- Repeat an identical request idempotently; do not issue or credit twice.
+- Reject a saved old state once a newer state is accepted.
+- Apply transaction limits only after their enforcement and attack model are specified. The proposed ten-attempt identifier limit is a candidate rule, not an implemented network-wide defense.
+- Do not treat a new timestamp or a new transaction identifier as authority to bypass an existing reservation.
+
+5. SUPPLY & ISSUANCE
+Status: No issuance approved
+Fixed-supply proposal, treasury accounting, denominations, and distribution.
+
+Supply decision
+A fixed genesis supply is proposed. The final amount has not been approved, and no live issuance or token sale has taken place. A larger nominal supply does not by itself make the network more valuable or more secure.
+Candidate supply | Decision
+100,000,000 sun(φ) | Research candidate
+1,000,000,000 sun(φ) | Research candidate
+10,000,000,000 sun(φ) | Research candidate
+
+Issuance fund accounting
+Fund balance + balances of all other owners = S
+This conservation rule assumes a fixed supply S with no burning. A sale transfers already-issued tokens from the fund to a buyer; it does not increase S. Reservations are subsets of existing balances, not extra tokens.
+A distribution statement must identify treasury and team allocations, any vesting, custody and signing arrangements, use of sale proceeds, and change permissions. None of those percentages or schedules is approved here.
+
+Proposed purchase process
+Duplicate requests or payment notifications must not deliver tokens twice. External payment and token delivery are not automatically atomic. The payment provider and rules for late, partial, or disputed payments remain open.
+- Create a uniquely identified quote with buyer address, quantity, price, currency, and expiry.
+- Reserve the corresponding treasury balance.
+- Verify payment through a defined external payment source.
+- Deliver through one idempotent token transfer linked to the order.
+- Resolve delivery or cancellation before any refund that might conflict with a completed receipt.
+
+Fractional units and price
+Divisibility specifies a unit of accounting. Splitting a balance must conserve the total amount and must not create a second monetary supply. A split/merge protocol or fractional-ownership representation has not been selected.
+An initial price of one US dollar was discussed only as a scenario. There is no approved sale price, price peg, redemption promise, or guaranteed liquidity. Node participation does not automatically award free tokens.
+
+6. FEES & NODE ECONOMICS
+Status: Open decisions
+Operating costs, incentives, fee design, and attack-cost boundaries.
+
+What operating a node costs
+A free-to-join node still consumes disk capacity, memory, bandwidth, CPU time, and electricity. Costs also include synchronization, proof checking, repair after outages, and temporary overlap during recoding.
+No measured monthly node cost or guaranteed node income is available. Requirements must distinguish a small bootstrap network from a mature network because storage per holder can differ substantially.
+
+Incentives and fees
+Any incentive design must account for many identities controlled by one operator, unverifiable storage claims, and the cost of checking useful work. Node count alone cannot establish independent participation.
+Decision | Current status
+Transaction fee schedule | Not selected
+Storage rewards and funding source | Not selected
+Eligibility for rewards | Not selected
+Treasury custody and spending policy | Not selected
+Paid services or subsidies | No approved commitment
+
+Attack-cost boundary
+Expected net payoff = p × G − C; break-even p = C / G
+p is the probability that an illicit outcome is actually accepted. G is the realizable gain if it succeeds, before costs C. C is the expected non-recoverable cost for the specified strategy and time window.
+With illustrative C=$1,000 and G=$100,000, the break-even probability is 1%. These inputs are sensitivity assumptions, not measured attack economics. Free node entry means a token stake cannot be counted as a mandatory attacker expense.
+
+7. PROBABILITY & CALCULATIONS
+Status: Conditional models
+Interactive availability estimates, reconstruction thresholds, and explicit assumptions.
+
+Availability is not attack resistance
+P(unavailable) = Σ(i=0…k−1) C(n,i) q^i (1−q)^(n−i)
+The calculator below measures the chance of lacking enough valid fragments at one snapshot. It does not estimate forged signatures, conflicting receipts, loss of funds, or annual network reliability.
+Assume n distinct holders each stores one different, valid fragment of the same accepted version. Each holder independently makes that fragment available with the same probability q. Recovery requires at least k fragments. Shared outages, stale state, malicious withholding, and biased placement violate this model.
+
+Original any-1% requirement
+n(N) = N; k(N) = ceil(N / 100)
+In the ideal any-k model, at least k distinct valid fragments from the defined generation suffice, regardless of which holders supply them. N=1,000,000 gives k=10,000 and ideal payload expansion n/k=100.
+This requirement is stronger than succeeding with high probability for a random surviving subset. A different probabilistic placement model must not silently be presented as the original guarantee.
+
+Search effort
+E[queries to find k fragments] = k × (N + 1) / (H + 1)
+This expectation assumes uniformly random queries without replacement, H holders of different valid fragments among N discoverable nodes, and H≥k. It excludes timeouts, false responses, stale fragments, and cached locations.
+With N=H=1,000,000 and k=10,000, the expectation is 10,000 queries. A full million-node scan is not a universal lower bound. Reconstructing a public token object does not reveal its private key or authorize spending.
+
+Repeated events
+Independent attempts: P(at least one success) = 1 − (1 − p)^m
+This expression requires m independent attempts with the same success probability p. For T events each with failure probability at most p, the union bound is at most min(1,Tp), without requiring independence.
+A per-object, per-snapshot figure is not an annual service guarantee. Real estimates need a defined time horizon, correlation model, placement process, and accepted-state mechanism.
+
+8. SECURITY & THREAT MODEL
+Status: Controls to implement
+Adversarial behavior, intended defenses, and unresolved security work.
+
+Threat register
+Threat | Required control / investigation
+Forged authorization | Verify the owner’s signature over canonical, recipient-bound transaction data. Algorithms and implementation require review.
+Conflicting transfers | A unique accepted reservation and final outcome across independent nodes; still unresolved.
+Sybil identities | Specify how many identities an operator can obtain and how admission or weighting resists concentration. Free node entry alone supplies no bound.
+Eclipse or biased discovery | Use diverse discovery paths and test whether an attacker can isolate a recipient’s view.
+Replay / stale fragments | Bind accepted versions, transfer IDs, content hashes, and coding generations; reject invalid combinations.
+Fragment withholding / mass outages | Test redundancy, repair, independent failure domains, and safe mode below recovery thresholds.
+False timestamps | Authenticate records and define clock acceptance; never trust the numerically largest time alone.
+Compromised owner key | Protect local keys and backups. Fragmentation cannot undo a valid signature produced with a stolen key.
+Flooding and resource exhaustion | Bound message size, verification work, queues, retries, and storage allocation.
+
+What fragmentation protects
+Erasure coding can help recover data after some fragments become unavailable. Integrity checks can detect corrupted pieces. Neither property by itself proves ownership, honest peer selection, or exclusive payment finality.
+More online identities do not automatically imply more independent operators. Security calculations must state attacker resources and the actual acceptance rule.
+The Sybil Attack — Microsoft Research: https://www.microsoft.com/en-us/research/publication/the-sybil-attack/
+
+Audit and vulnerability reporting
+No independent security audit or formal security proof is published. The release process should publish audit scope, findings, fixes, affected versions, and unresolved risks.
+A private vulnerability-reporting route and disclosure policy must be established before a public client release. No bug bounty or response-time commitment is currently offered. Never post signing keys or exploitable personal data in public issues.
+
+9. RUN A NODE
+Status: Preparation guide
+Startup, resource planning, synchronization, and shutdown behavior.
+
+Before installation
+The first client is planned for Windows. No installer or public testnet endpoint is available yet. Minimum CPU, RAM, disk, operating-system version, and bandwidth will be published after benchmarks.
+A node must be able to start without a token balance. A node identity and a wallet’s spending key serve different purposes; storage participation should not require revealing wallet secrets.
+
+Planned operating sequence
+- Verify the release version, checksum, and publisher signature.
+- Create or load a node identity and configure resource limits.
+- Discover peers through more than one route and verify the accepted network configuration.
+- Synchronize current state and reconcile existing fragments before cleanup.
+- Monitor usable fragments, repair backlog, disk use, and connectivity.
+- Shut down safely; on restart, verify freshness before serving or deleting retained data.
+
+When the network contracts
+Outages, software defects, participant withdrawal, and network partitions can reduce reachable holders. Reconstructability depends on the original coding threshold and the availability of distinct valid fragments.
+Do not lower an old threshold in place. Recover, recode, verify the replacement, and switch generations safely. If the network cannot establish current state or reconstruct required data, the intended behavior is to pause affected transfers rather than create an unsupported credit.
+
+10. WALLET & KEY SAFETY
+Status: Design guide
+Sending, receiving, backup, privacy, and recovery expectations.
+
+A wallet is not a fragment collection
+A wallet manages authorization keys and displays accepted token state. A fragment holder stores data. Anyone able to reconstruct a public object must still provide the owner’s valid authorization before spending.
+The address format, key derivation, backup format, and hardware-wallet support have not been selected. No recovery phrase should be generated or entered on this website.
+
+Planned wallet behavior
+- Show spendable, reserved, received, and unresolved states separately.
+- Confirm the recipient and amount before signing.
+- Show a completed receipt only after the protocol’s acceptance rule is satisfied.
+- Keep a pending transfer visible through outages and recovery.
+- Support verifiable backups and explicit recovery instructions before holding real funds.
+
+Privacy and recovery limits
+Publicly distributed token records may expose transaction relationships. No anonymity guarantee or implemented privacy protocol is claimed.
+Losing a signing key may make assets inaccessible. A key-recovery or reversal authority has not been specified. Backups and recovery tests are part of the release requirements, not an available recovery service today.
+
+11. GITHUB & DEVELOPERS
+Status: Repository preparation
+Source code, local models, reproducibility, APIs, and contributions.
+
+Source publication
+A dedicated SunPhi repository is being prepared for the website, technical documentation, and research calculations. The existing private business-platform repository is separate from the intended public crypto-project source.
+The production network client does not yet exist. Publishing this website or a sequential reference model must not be presented as publishing a working cryptocurrency implementation.
+
+Reproducible research
+Availability calculations use a documented binomial model with explicit independent-holder assumptions. Boundary cases and known examples are checked in automated tests. These tests verify the calculator, not network security.
+Each future network experiment should record its code revision, configuration, number of independent processes, fault schedule, and machine-readable results. A security claim must identify the model and evidence behind it.
+
+API and client interfaces
+Interface | Status
+Network message schema | To be specified
+Wallet API / SDK | Not released
+Public RPC endpoint | Not available
+Explorer API | Not available
+Signed Windows installer | Not released
+
+Contributing
+Useful early contributions include state-transition reviews, conflicting-transfer test cases, encoding benchmarks, and reproducible failure simulations. Proposal templates, maintainer permissions, and contribution licensing must be published with the repository.
+Open-source licensing and release-signing policy have not yet been approved. No third-party business-platform code is included in the new publication package.
+
+12. GOVERNANCE & UPGRADES
+Status: Draft process
+Protocol changes, operator choice, compatibility, and treasury authority.
+
+Proposed change process
+- Publish a numbered proposal describing the problem and exact rule changes.
+- Document safety, economic, storage, and compatibility consequences.
+- Provide reference code and adversarial tests.
+- Run a versioned testnet experiment and publish the results.
+- Specify activation conditions, migration, and safe handling of old clients.
+
+What remains undecided
+Who can approve protocol changes, how disagreement is resolved, and how upgrades activate are not yet defined. No token-weighted voting system, DAO, administrator override, or automatic governance right is promised.
+Storage recoding and ownership transfer are different operations. A storage upgrade must not silently change balances, supply, owner identity, or the time of the last receipt.
+
+Treasury accountability
+Issuance-fund signers, access separation, public reporting, spending authority, and key replacement must be established before sales. These powers should be documented separately from node participation and protocol maintenance.
+
+13. NETWORK STATUS & RELEASES
+Status: Prototype stage
+Actual readiness, testing, explorer availability, and release verification.
+
+Readiness register
+Component | Current state
+Project website | Published at coin.sun-phi.com
+Sequential transaction model | Seven local tests passed; single-arbiter model only
+Probability calculator | Conditional browser-based research tool
+Distributed state acceptance | Not implemented
+Public testnet / mainnet | Not launched
+Network explorer | Not available
+Wallet / node installer | Not released
+Token issuance / sale | Not launched
+Independent security audit | Not published
+
+Release information to publish
+- Version, source commit, build instructions, and supported platforms.
+- File size, cryptographic checksum, and release-signing identity.
+- Protocol compatibility, known issues, and migration instructions.
+- Test results, dependency review, and audit status.
+- Withdrawal or replacement instructions for a compromised release.
+
+Explorer and incident history
+There are no live node counts, transaction statistics, supply balances, or uptime figures to display yet. Once a testnet exists, an explorer should identify the network, accepted state, data source, and observation time.
+An incident log should distinguish discovery, containment, recovery, and unresolved effects. Empty status panels must not be replaced with fabricated activity.
+
+14. PROJECT DISCLOSURES
+Status: Current scope
+Publication status, data handling, issuer information, and launch documents.
+
+Current website scope
+This website publishes project information and conditional research calculations. It does not accept token purchases, custody assets, connect a wallet, or request private keys. No token contract address, exchange listing, or redemption service is announced.
+The legal issuer, jurisdiction, sale eligibility, and contractual terms have not been designated. A final issuance document must resolve these matters before any proposed sale.
+
+Browser data
+The theme preference is stored locally in your browser. Calculator inputs are processed locally by this page; this calculator does not submit them to an application server.
+The website is hosted on Base44 and its DNS is managed through Cloudflare. Hosting providers may process connection information. A complete hosting, analytics, retention, and privacy review remains to be published; this page makes no claim of anonymous browsing.
+
+Documents needed for a public launch
+This is a project readiness list, not a claim that one universal legal checklist applies to every country.
+- Final protocol specification and test evidence.
+- Supply, allocation, treasury, vesting, fees, and sale rules if applicable.
+- Identified responsible entity and verified contact routes.
+- Applicable terms, privacy information, and licensing.
+- Release verification and vulnerability disclosure instructions.
+
+15. REFERENCES & GLOSSARY
+Status: Primary sources
+External technical references and the meaning of the terms used here.
+
+Website and documentation references
+Bitcoin, Ethereum, and Solana organize public information around getting started, protocol concepts, operating nodes, developer documentation, releases, security, and participation. Their structure informed this documentation. Their protocols and security properties are not attributed to SunPhi.
+Bitcoin: public project website: https://bitcoin.org/en/
+Bitcoin developer guides: https://developer.bitcoin.org/devguide/
+Ethereum: public project website: https://ethereum.org/
+Ethereum: nodes and clients: https://ethereum.org/en/developers/docs/nodes-and-clients/
+Solana developer documentation: https://solana.com/docs
+
+Technical references
+These sources explain components and threats. They are not endorsements, partnerships, audits, or implementations of SunPhi.
+BitTorrent BEP 5: peer discovery through a DHT: https://www.bittorrent.org/beps/bep_0005.html
+RFC 5510: Reed–Solomon erasure coding: https://www.rfc-editor.org/rfc/rfc5510.html
+John Douceur: The Sybil Attack: https://www.microsoft.com/en-us/research/publication/the-sybil-attack/
+
+Glossary
+Term | Meaning here
+Main object | The versioned token state intended for fragmentation.
+Reservation | A temporary record binding a specific in-transit transfer.
+Fragment | One distinct coded piece of a particular object and generation.
+n / k | Total coded fragments / reconstruction threshold.
+Epoch / generation | A defined membership or encoding configuration.
+Accepted state | The uniquely admitted ownership outcome under the protocol; the distributed mechanism remains unresolved.
+Sybil attack | One operator presenting many identities as if they were independent participants.
+Availability | Ability to obtain enough valid data under a specified failure model.
+
+Interactive calculations: https://coin.sun-phi.com/#/probability
+Economic sensitivity: https://coin.sun-phi.com/#/economics
+Documentation: https://coin.sun-phi.com/#/docs
