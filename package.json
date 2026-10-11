@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/build-docs.mjs && vite build",
-    "test": "node --test src/research-math.test.mjs",
+    "test": "node --test src/research-math.test.mjs research/model.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -257,12 +257,13 @@ Publicly distributed token records may expose transaction relationships. No anon
 Losing a signing key may make assets inaccessible. A key-recovery or reversal authority has not been specified. Backups and recovery tests are part of the release requirements, not an available recovery service today.
 
 11. GITHUB & DEVELOPERS
-Status: Repository preparation
+Status: Public source available
 Source code, local models, reproducibility, APIs, and contributions.
 
 Source publication
-A dedicated SunPhi repository is being prepared for the website, technical documentation, and research calculations. The existing private business-platform repository is separate from the intended public crypto-project source.
+The dedicated public repository leges-universum/sunphi contains this website, technical documentation, conditional research calculators, and a sequential reference model. It is separate from the private business-platform repository.
 The production network client does not yet exist. Publishing this website or a sequential reference model must not be presented as publishing a working cryptocurrency implementation.
+SunPhi source code on GitHub: https://github.com/leges-universum/sunphi
 
 Reproducible research
 Availability calculations use a documented binomial model with explicit independent-holder assumptions. Boundary cases and known examples are checked in automated tests. These tests verify the calculator, not network security.

@@ -1,5 +1,5 @@
 export const DOCUMENT_VERSION = '0.1 · 11 October 2026';
-export const REPOSITORY_URL = null;
+export const REPOSITORY_URL = 'https://github.com/leges-universum/sunphi';
 export const documents = [
   {
     id: 'overview', title: 'Project & whitepaper', category: 'Understand', status: 'Working draft',
@@ -99,10 +99,10 @@ export const documents = [
     ]
   },
   {
-    id: 'developers', title: 'GitHub & developers', category: 'Build', status: 'Repository preparation',
+    id: 'developers', title: 'GitHub & developers', category: 'Build', status: 'Public source available',
     summary: 'Source code, local models, reproducibility, APIs, and contributions.',
     sections: [
-      { title: 'Source publication', paragraphs: ['A dedicated SunPhi repository is being prepared for the website, technical documentation, and research calculations. The existing private business-platform repository is separate from the intended public crypto-project source.', 'The production network client does not yet exist. Publishing this website or a sequential reference model must not be presented as publishing a working cryptocurrency implementation.'] },
+      { title: 'Source publication', paragraphs: ['The dedicated public repository leges-universum/sunphi contains this website, technical documentation, conditional research calculators, and a sequential reference model. It is separate from the private business-platform repository.', 'The production network client does not yet exist. Publishing this website or a sequential reference model must not be presented as publishing a working cryptocurrency implementation.'], links: [['SunPhi source code on GitHub', 'https://github.com/leges-universum/sunphi']] },
       { title: 'Reproducible research', paragraphs: ['Availability calculations use a documented binomial model with explicit independent-holder assumptions. Boundary cases and known examples are checked in automated tests. These tests verify the calculator, not network security.', 'Each future network experiment should record its code revision, configuration, number of independent processes, fault schedule, and machine-readable results. A security claim must identify the model and evidence behind it.'] },
       { title: 'API and client interfaces', table: { headers: ['Interface', 'Status'], rows: [['Network message schema', 'To be specified'], ['Wallet API / SDK', 'Not released'], ['Public RPC endpoint', 'Not available'], ['Explorer API', 'Not available'], ['Signed Windows installer', 'Not released']] } },
       { title: 'Contributing', paragraphs: ['Useful early contributions include state-transition reviews, conflicting-transfer test cases, encoding benchmarks, and reproducible failure simulations. Proposal templates, maintainer permissions, and contribution licensing must be published with the repository.', 'Open-source licensing and release-signing policy have not yet been approved. No third-party business-platform code is included in the new publication package.'] }

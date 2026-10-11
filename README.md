@@ -6,6 +6,8 @@ Website: https://coin.sun-phi.com/
 
 Documentation: https://coin.sun-phi.com/#/docs
 
+GitHub: https://github.com/leges-universum/sunphi
+
 This repository is not a production cryptocurrency, wallet, or distributed consensus implementation. No tokens are issued by this code. Network acceptance rules, issuance parameters, and client releases remain under development.
 
 ## Structure
@@ -16,6 +18,8 @@ src/Documentation.jsx        # Documentation pages and calculators
 src/docs-content.js          # Canonical English documentation
 src/research-math.mjs         # Conditional probability calculations
 src/research-math.test.mjs    # Mathematical boundary and reference tests
+research/model.mjs           # Sequential transaction reference model
+research/model.test.mjs      # Seven model tests, not network-security tests
 scripts/build-docs.mjs       # Generates the downloadable working whitepaper
 public/                      # Public project note, favicon, generated whitepaper
 base44/config.jsonc           # Static hosting configuration
@@ -51,6 +55,8 @@ Build before deploying. A Base44 app connection is required; credentials and loc
 
 The availability calculator assumes independent holders of distinct, current, valid fragments. It does not compute the probability of an illicit payment or establish protocol security. Economic inputs are illustrative sensitivity assumptions.
 
+The transaction reference model uses a single in-memory arbiter and its clock. It has no network, signature, or erasure-code implementation. Its legacy emission arithmetic uses an assumed 2,048-byte record; the separate 4,096-byte documentation scenario is another assumption, not a measurement or format change.
+
 The working whitepaper is generated from `src/docs-content.js`, keeping website and download content aligned. Update that source, then build.
 
 ## Security and contributions
@@ -58,3 +64,7 @@ The working whitepaper is generated from `src/docs-content.js`, keeping website 
 Do not submit wallet keys, credentials, private data, or unreviewed exploit details in public issues. A private vulnerability-reporting route, contribution process, release-signing policy, and project license have not yet been established. Dependencies retain their own licenses.
 
 Only the dedicated SunPhi website and research files belong in this publication. The existing business-platform repository is separate.
+
+## Tooling status
+
+The generated Base44/Vite dependency tree currently reports 12 npm audit advisories (1 low, 2 moderate, 9 high). This publication is not a dependency-security audit or production client release. Review and update the tooling before distributing a client or exposing a development server.

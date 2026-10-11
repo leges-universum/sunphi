@@ -16,7 +16,7 @@ export function logFragmentFailure(n, k, q) {
 
 export function fragmentFailureLabel(logP) {
   if (logP === -Infinity) return '0 under the q = 100% assumption';
-  if (logP === 0) return '1 (certain under these assumptions)';
+  if (logP === 0) return '≈ 1 (rounded to displayed precision)';
   if (logP < Math.log(Number.MIN_VALUE)) return `10^(${(logP / Math.LN10).toFixed(2)})`;
   return Math.exp(logP).toExponential(5);
 }
