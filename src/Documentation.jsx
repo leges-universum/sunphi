@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowUpRight, ArrowLeft, ArrowRight, Download, Github } from 'lucide-react';
 import { documents, DOCUMENT_VERSION, REPOSITORY_URL } from './docs-content';
-import { logFragmentFailure, fragmentFailureLabel, reconstructionThreshold, attackEconomics, nodeRewardScenario } from './research-math.mjs';
+import { logFragmentFailure, fragmentFailureLabel, reconstructionThreshold, attackEconomics, nodeRewardScenario, fundedTokenQuantity } from './research-math.mjs';
 
 function DocumentCards({ compact = false }) {
   return <div className="docs-grid">{(compact ? documents.filter(d => ['network', 'specifications', 'issuance', 'rules', 'probability', 'security'].includes(d.id)) : documents).map((doc) => <a className="doc-card" key={doc.id} href={`#/${doc.id}`}><span className="eyebrow">{doc.category}</span><h3>{doc.title}<ArrowUpRight size={17}/></h3><p>{doc.summary}</p><span className="doc-status">{doc.status}</span></a>)}</div>;
@@ -43,25 +43,38 @@ function EconomicsCalculator() {
 }
 
 function NodeRewardCalculator() {
+  const [currency, setCurrency] = useState('USD');
   const [volume, setVolume] = useState('1000000');
+  const [price, setPrice] = useState('1');
   const [nodes, setNodes] = useState('10000');
   const [days, setDays] = useState('30');
   const [hours, setHours] = useState('720');
   const [cost, setCost] = useState('5');
-  const money = value => value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 4 });
-  let result, error;
+  const money = value => currency === 'BTC' ? value.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 }) + ' BTC' : value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  const token = value => value.toLocaleString('en-US', { maximumFractionDigits: 8 }) + ' sun(φ)';
+  let result, poolTokens, rewardTokens, error;
   try {
-    if ([volume, nodes, days, hours, cost].some(x => x.trim() === '')) throw Error('Enter every assumption.');
+    if ([volume, price, nodes, days, hours, cost].some(x => x.trim() === '')) throw Error('Enter every assumption.');
     if (!Number.isFinite(Number(days)) || Number(days) <= 0 || Number(days) > 366 || Number(hours) > Number(days) * 24) throw Error('Use a period of up to 366 days; wallet hours cannot exceed its duration.');
     result = nodeRewardScenario(Number(volume), Number(nodes) * Number(days) * 24, Number(hours), Number(cost));
+    poolTokens = fundedTokenQuantity(result.pool, Number(price));
+    rewardTokens = fundedTokenQuantity(result.reward, Number(price));
   } catch (e) { error = e.message; }
-  return <div className="calculator"><div className="calculator-heading"><span className="eyebrow">INTERACTIVE / WALLET REWARDS</span><h3>Your share of the 1% pool</h3></div><div className="calculator-fields">
-    <NumberField label="Eligible sale volume (USD)" value={volume} onChange={setVolume} min={0} step={1000}/>
+  const changeCurrency = e => {
+    setCurrency(e.target.value);
+    setVolume(e.target.value === 'BTC' ? '0.01' : '1000000');
+    setPrice(e.target.value === 'BTC' ? '0.000001' : '1');
+    setCost(e.target.value === 'BTC' ? '0' : '5');
+  };
+  return <div className="calculator"><div className="calculator-heading"><span className="eyebrow">INTERACTIVE / WALLET REWARDS</span><h3>Your sun(φ) reward</h3></div><div className="calculator-fields">
+    <label className="number-field"><span>Funding currency / example</span><select value={currency} onChange={changeCurrency}><option value="USD">USD scenario</option><option value="BTC">BTC scenario</option></select></label>
+    <NumberField label={`Eligible sale volume (${currency})`} value={volume} onChange={setVolume} min={0} step={currency === 'BTC' ? 0.0001 : 1000}/>
+    <NumberField label={`Effective acquisition cost (${currency} per sun(φ))`} value={price} onChange={setPrice} min={0.00000001} step="any"/>
     <NumberField label="Average authorized wallets, including yours" value={nodes} onChange={setNodes} min={0} step={0.1}/>
     <NumberField label="Accounting period (days)" value={days} onChange={setDays} min={1} max={366}/>
     <NumberField label="Your authorized hours" value={hours} onChange={setHours} min={0} max={Number(days) * 24}/>
-    <NumberField label="Your operating cost for this period (USD)" value={cost} onChange={setCost} min={0} step={0.1}/>
-  </div><div className="calculation-result" aria-live="polite">{error ? <p role="alert">{error}</p> : <><span>Your gross reward for this period</span><strong data-testid="node-reward-result">{money(result.reward)}</strong><p>Seller proceeds: {money(result.seller)} · Platform: {money(result.platform)} · Node pool: {money(result.pool)}</p><p>Your authorization time share: {(result.share * 100).toFixed(6)}% · After the assumed operating cost: {money(result.netReward)}</p><p>{result.breakEvenVolume === null ? 'No authorization time share: operating-cost break-even is undefined.' : `Eligible sale volume needed to cover your assumed cost at this same time share: ${money(result.breakEvenVolume)}.`}</p>{result.unallocatedPool > 0 && <p>No authorized wallet-hours: {money(result.unallocatedPool)} remains unallocated.</p>}</>}</div><p className="subtle">One pool and one currency for the chosen period. Total wallet-hours = time-averaged authorized wallets × days × 24. Include all participants, including yourself. Daily settlements must be calculated separately before adding them. USD is an illustration, not a selected payout asset. This tool estimates revenue sharing; it does not pay rewards.</p></div>;
+    <NumberField label={`Your operating cost for this period (${currency})`} value={cost} onChange={setCost} min={0} step="any"/>
+  </div><div className="calculation-result" aria-live="polite">{error ? <p role="alert">{error}</p> : <><span>Your token reward under these assumptions</span><strong data-testid="node-reward-result">{token(rewardTokens)}</strong><p>Seller proceeds: {money(result.seller)} · Platform: {money(result.platform)} · Reward funding: {money(result.pool)}</p><p>Funded token pool at the assumed cost: {token(poolTokens)} · Your authorization time share: {(result.share * 100).toFixed(6)}%</p><p>Funding equivalent: {money(result.reward)} · Less assumed operating cost: {money(result.netReward)}. These equivalents are not cash payouts or resale quotes.</p><p>{result.breakEvenVolume === null ? 'No authorization time share: cost coverage is undefined.' : `Sale volume for the funding equivalent to cover your assumed cost at this same share: ${money(result.breakEvenVolume)}.`}</p>{result.unallocatedPool > 0 && <p>No authorized wallet-hours: funding of {money(result.unallocatedPool)} remains unallocated.</p>}</>}</div><p className="subtle">Rewards are denominated in sun(φ). The acquisition cost is an assumption, not a live price or peg; it must reflect costs charged to the pool. Changing the currency loads an illustrative scenario, not an FX conversion. One pool per period; calculate daily pools separately before adding them. Total wallet-hours = average authorized wallets × days × 24. Monetary settlement, conversion and reward payments are not implemented.</p></div>;
 }
 
 function ContentSection({ section }) {

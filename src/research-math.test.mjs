@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { logFragmentFailure, fragmentFailureLabel, reconstructionThreshold, attackEconomics, nodeRewardScenario } from './research-math.mjs';
+import { logFragmentFailure, fragmentFailureLabel, reconstructionThreshold, attackEconomics, nodeRewardScenario, fundedTokenQuantity } from './research-math.mjs';
 
 test('binomial tail agrees with exhaustive independent failure states', () => {
   for (let n = 1; n <= 8; n++) for (let k = 1; k <= n; k++) for (const q of [0.1, 0.5, 0.8]) {
@@ -72,4 +72,16 @@ test('multiple permitted wallets receive their aggregate time share', () => {
   // Even a 100% reward share cannot recover the platform's 1% on self-trading.
   const selfTrade = nodeRewardScenario(10000, 720, 720);
   assert.equal(selfTrade.seller + selfTrade.reward - 10000, -100);
+});
+
+test('sun(phi) rewards use funded quantity and preserve proportional allocation', () => {
+  const pool = nodeRewardScenario(1000000, 7200000, 720);
+  assert.equal(fundedTokenQuantity(pool.pool, 0.5), 20000);
+  assert.equal(fundedTokenQuantity(pool.reward, 0.5), 2);
+  assert.equal(fundedTokenQuantity(pool.reward, 2), 0.5);
+  const btcPool = nodeRewardScenario(0.01, 7200000, 720);
+  assert.ok(Math.abs(fundedTokenQuantity(btcPool.pool, 0.000001) - 100) < 1e-12);
+  assert.ok(Math.abs(fundedTokenQuantity(btcPool.reward, 0.000001) - 0.01) < 1e-12);
+  assert.equal(fundedTokenQuantity(0, 1), 0);
+  for (const args of [[1, 0], [1, -1], [-1, 1], [1, NaN], [Infinity, 1], [1e308, 1e-308]]) assert.throws(() => fundedTokenQuantity(...args));
 });

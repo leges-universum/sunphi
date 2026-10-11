@@ -45,3 +45,12 @@ export function nodeRewardScenario(volume, totalNodeHours, walletHours, operatin
     unallocatedPool: totalNodeHours === 0 ? pool : 0,
     netReward: reward - operatingCost, breakEvenVolume };
 }
+
+export function fundedTokenQuantity(funding, acquisitionPrice) {
+  if (!Number.isFinite(funding) || funding < 0 || !Number.isFinite(acquisitionPrice) || acquisitionPrice <= 0) {
+    throw new RangeError('Funding must be non-negative and the acquisition price must be positive.');
+  }
+  const quantity = funding / acquisitionPrice;
+  if (!Number.isFinite(quantity)) throw new RangeError('These assumptions exceed the calculator range.');
+  return quantity;
+}

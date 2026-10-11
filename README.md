@@ -55,7 +55,9 @@ Build before deploying. A Base44 app connection is required; credentials and loc
 
 The availability calculator assumes independent holders of distinct, current, valid fragments. It does not compute the probability of an illicit payment or establish protocol security. Economic inputs are illustrative sensitivity assumptions.
 
-The selected sale fee is 2% included in payment: 98% seller, 1% platform, 1% wallet reward pool. It covers fund sales and platform resales. Rewards are proportional to accepted wallet authorization time; multiple wallets per operator count separately and are intentionally encouraged. The calculator models this rule but does not implement authentication accounting, collect fees, or pay rewards. Settlement period and payout asset remain open decisions.
+The selected sale fee is 2% included in payment: 98% seller, 1% platform, 1% wallet reward funding. It covers fund sales and platform resales. Rewards are paid in sun(φ), proportional to accepted wallet authorization time; multiple wallets per operator count separately and are intentionally encouraged. The proposed funding route acquires existing tokens using the fee allocation. USD and BTC calculator scenarios use assumed acquisition prices, not market data or guaranteed cash values. Settlement period and acquisition execution remain open. The calculator does not authenticate wallets, collect fees, exchange assets, or pay rewards.
+
+The exchange documentation considers a first native sun(φ)/BTC market and onward conversion to other crypto or bank money. No exchange listing, provider partnership, custody service, bridge, or live market is available.
 
 The transaction reference model uses a single in-memory arbiter and its clock. It has no network, signature, or erasure-code implementation. Its legacy emission arithmetic uses an assumed 2,048-byte record; the separate 4,096-byte documentation scenario is another assumption, not a measurement or format change.
 
