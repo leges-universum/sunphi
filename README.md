@@ -10,6 +10,11 @@ GitHub: https://github.com/leges-universum/sunphi
 
 This repository is not a production cryptocurrency, wallet, or distributed consensus implementation. No tokens are issued by this code. The selected cap is 100 million, issued on completed purchases; network admission, custody, legal terms and client releases remain under development.
 
+A local **SunPhi Wallet 0.1 laboratory CLI** is now available in [wallet/README.md](wallet/README.md).
+It creates encrypted local keys, verifies backups and signs both transfer circuits.
+Run `node wallet/cli.mjs demo` for a no-value, in-memory transfer demonstration.
+This does not connect to a live network or change the website into a signing wallet.
+
 ## Structure
 
 ```
@@ -30,6 +35,7 @@ src/research-math.mjs         # Conditional probability calculations
 src/research-math.test.mjs    # Mathematical boundary and reference tests
 research/model.mjs           # Sequential transaction reference model
 research/model.test.mjs      # Seven model tests, not network-security tests
+wallet/                     # Offline encrypted wallet, CLI, signed lab protocol and tests
 scripts/build-docs.mjs       # Generates the downloadable working whitepaper
 public/                      # Public project note, favicon, generated whitepaper
 base44/config.jsonc           # Static hosting configuration

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/build-docs.mjs && vite build",
-    "test": "node --test src/research-math.test.mjs research/model.test.mjs research/issuance-model.test.mjs research/reserve-reader.test.mjs",
+    "test": "node --test src/research-math.test.mjs research/model.test.mjs research/issuance-model.test.mjs research/reserve-reader.test.mjs wallet/wallet.test.mjs",
+    "wallet": "node wallet/cli.mjs",
+    "wallet:demo": "node wallet/cli.mjs demo",
     "preview": "vite preview"
   },
   "dependencies": {

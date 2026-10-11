@@ -18,3 +18,7 @@ dist
 # Base44
 .app.json*
 .types/
+
+# Local encrypted wallets / user backups (never publish)
+*.sunphi-wallet.json
+wallet-data/
