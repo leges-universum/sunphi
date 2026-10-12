@@ -1,0 +1,162 @@
+{
+  "version": "0.3.6",
+  "mode": "isolated procedure integration preview; no live institution",
+  "files": [
+    {
+      "path": "desktop-wallet/PROCEDURE-CONTRACT.txt",
+      "sha256": "da204a00e25064621b5e494631dd3ff68dc41086c5f2e53d169693c82805a4f9"
+    },
+    {
+      "path": "desktop-wallet/README.txt",
+      "sha256": "39829dcb352608ee77fce2fb778e2e3cf44032b592e6424679cdf2aab79f03ac"
+    },
+    {
+      "path": "desktop-wallet/brand/sun-phi-dark.png",
+      "sha256": "592873eade60d91702a0df2b98c2ea7aa778b623147dbfd6b6426f8f07016322"
+    },
+    {
+      "path": "desktop-wallet/brand/sun-phi-light.png",
+      "sha256": "203a041b3f4722a95bd94a04308a1c0d27958e19eb4913377411872f498966b4"
+    },
+    {
+      "path": "desktop-wallet/brand/sunflower.png",
+      "sha256": "197a7d903ddf53c94565c47f65741b4a39ebcbd3cbd2fa146a4f048721b57c80"
+    },
+    {
+      "path": "desktop-wallet/core.mjs",
+      "sha256": "e8f112209d93e9f45b0534e229922e559c103f3ef7b3305c2210d285ea07be76"
+    },
+    {
+      "path": "desktop-wallet/file-selection.mjs",
+      "sha256": "a43752b855ea5bc65cfc4d16be095959adf08e6a8c6afc0441b112fce8f08b0c"
+    },
+    {
+      "path": "desktop-wallet/fonts/IBM-Plex-Mono-OFL.txt",
+      "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da"
+    },
+    {
+      "path": "desktop-wallet/fonts/IBMPlexMono-Medium.ttf",
+      "sha256": "a9b4c49bb299e05b5f6c481e7fb5e78943d2793249a0c8874ab574a2d1ea6755"
+    },
+    {
+      "path": "desktop-wallet/fonts/IBMPlexMono-Regular.ttf",
+      "sha256": "6a3412f058c7d8dfd9170c41e85ade48e5156ecb89356110ca57a0a27734af46"
+    },
+    {
+      "path": "desktop-wallet/fonts/LICENSE",
+      "sha256": "3b0a5fca3d17942cde889069889dedbbbd075e9b599968c82a95f4d944e9b345"
+    },
+    {
+      "path": "desktop-wallet/fonts/inter-greek-wght-normal.woff2",
+      "sha256": "1be3448e292fbf05ffe176fe1e43f135013d50b1e7d324ad1a558f623d3bb6f6"
+    },
+    {
+      "path": "desktop-wallet/fonts/inter-latin-ext-wght-normal.woff2",
+      "sha256": "34b9c504cab7a73e37b746343a449132e56cf7b5481af2cb81dc74dcff25c956"
+    },
+    {
+      "path": "desktop-wallet/fonts/inter-latin-wght-normal.woff2",
+      "sha256": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62"
+    },
+    {
+      "path": "desktop-wallet/index.html",
+      "sha256": "25ab36c00b0d4dde40d444b940813ec8363248ca063920beef9430e615b454df"
+    },
+    {
+      "path": "desktop-wallet/lab-adapter.mjs",
+      "sha256": "0a47319508829c70014046d025fac28310351aa28cfd90064b24a4bcfbda836f"
+    },
+    {
+      "path": "desktop-wallet/last-wallet.mjs",
+      "sha256": "aa54ebd5ae5ced886f098b50f248b5df3b991b64c6a9ae2b1953bffce75bca10"
+    },
+    {
+      "path": "desktop-wallet/main.mjs",
+      "sha256": "f36ab34053ad22f535fd000ab3c1223485e6bfe3e0ece90ba05dface1b0fd353"
+    },
+    {
+      "path": "desktop-wallet/preload.cjs",
+      "sha256": "8356a811ec0dc7917d131f3f6ba358722e38a5ec9fda96f46b424d6e36d60793"
+    },
+    {
+      "path": "desktop-wallet/procedure-contract.mjs",
+      "sha256": "93086261629c21c4b5de976f8a96bf95fb8a5c68456d7ed7ec5e94d1ac524b9b"
+    },
+    {
+      "path": "desktop-wallet/procedure-products.mjs",
+      "sha256": "dd8ffae255a52d0df2071abedaa8c42cab05a9e7346de4dbd7757c425e2c1f31"
+    },
+    {
+      "path": "desktop-wallet/renderer.mjs",
+      "sha256": "6577cae5f84416588142f3e772b9dc0466acda0dbaa21f811ab3b6c8dcc2023a"
+    },
+    {
+      "path": "desktop-wallet/select-control.mjs",
+      "sha256": "6657636c4d65f99d8206e2ff49f1cb4a00681be3267fbc1d5396e5c871a524f1"
+    },
+    {
+      "path": "desktop-wallet/site-controls.css",
+      "sha256": "8c8ab7fb94d0857271c88e1aabdc344c7279a863b395680f73db6b64b7a38129"
+    },
+    {
+      "path": "desktop-wallet/style.css",
+      "sha256": "5032146b7d010b9372f9065ecf0a82f5ffc2f36eeab0642fab972784c92e76b8"
+    },
+    {
+      "path": "desktop-wallet/theme.js",
+      "sha256": "ed104919692aba952820101c256fa899a082e0394b38f656f438812f10e8e578"
+    },
+    {
+      "path": "desktop-wallet/visual-hierarchy.css",
+      "sha256": "2c91c3d65b96f95e4f71b6c288646b533b8d3cfe957dbdbea1e667bbc1c6a050"
+    },
+    {
+      "path": "desktop-wallet/workspace-ui.mjs",
+      "sha256": "980c3c10a2fd729b7d1250b1ef2a19210c68c71efdeafa88baeed06ac0d9bf1d"
+    },
+    {
+      "path": "desktop-wallet/workspace.css",
+      "sha256": "f417beed4938d882b9ff26f833219af7f98713dbcebd706d37dcfdb402af5ba8"
+    },
+    {
+      "path": "sandbox/cases-adapter.mjs",
+      "sha256": "91b6a4e9b965954b793fc53ff4796a602d033f63101c256d1b79c6aac0d05c38"
+    },
+    {
+      "path": "sandbox/cases-contract.mjs",
+      "sha256": "2088a82cf270d058ed9890d0287ebd48fee22eb3b5f0876c347ca73eed0ec4a8"
+    },
+    {
+      "path": "sandbox/consent-package.mjs",
+      "sha256": "e346f0ee0723ccbdff7d7ada373c79eb9952a228502b261bd66656f422b0f168"
+    },
+    {
+      "path": "sandbox/consent.mjs",
+      "sha256": "7c6eb81bcf195a6788ed39137b75076f7596c12102b5f6e42aece872893e8acf"
+    },
+    {
+      "path": "sandbox/key-enrollment.mjs",
+      "sha256": "03c123d12c64a042a1867cd5c3a517590dfc3d9cac7aa6a8dc51b44b9bfa47a1"
+    },
+    {
+      "path": "sandbox/ledger.mjs",
+      "sha256": "43769160c1a062cd49c294a46cd2c45e51c0ed0a9a359248acde2c33c4822a51"
+    },
+    {
+      "path": "sandbox/release-certificate.mjs",
+      "sha256": "eba1d0e6766968841a847f4c82d210d3132b71c44c1b86881bb994b2aeef8586"
+    },
+    {
+      "path": "wallet/crypto.mjs",
+      "sha256": "683a6ff0733b917f5499b6f181961385aec9ab60b1036d822ea9c4a7c768d1ed"
+    },
+    {
+      "path": "wallet/files.mjs",
+      "sha256": "824f565bcaa199a7a13be153339b63ffbfa07da20f6773313bad29d24818a5fb"
+    },
+    {
+      "path": "wallet/vault.mjs",
+      "sha256": "1221ad6d738f7c6ad1fe6d1717640747cce84b2cc09bc77e2026af599d8af50f"
+    }
+  ]
+}
