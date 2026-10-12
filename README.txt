@@ -1,0 +1,114 @@
+SUNPHI WALLET — EXACT PACKAGED APPLICATION SOURCE
+This release tag identifies the application files inside the downloadable Windows preview. It does not modify main.
+The Electron runtime is distributed in the ZIP and is not included in this source tree.
+
+SUNPHI WALLET 0.3.2 — PROCEDURE INTEGRATION PREVIEW
+SPHI STD 001 1.1 RC2 | Windows x64 | English interface
+
+Extract the complete ZIP and open SunPhi Wallet.exe. Keep runtime files beside it.
+No Node.js installation is required. This portable build is unsigned and has not
+passed independent security certification. Use fictional test data only.
+
+NAVIGATION AND UI UPDATE IN 0.3.2
+Routine feedback uses a compact top-right notification and disappears after four
+seconds. Hover/focus pauses dismissal. Errors and recovery states stay visible.
+Back restores the previous section and scroll position. Wallet overview remains
+available from every section. Each screen explains its purpose and next step.
+Open, create and restore are separate entry modes. Reviews return to editing.
+All dropdowns have a dedicated right-hand arrow and keyboard navigation.
+Logo underlines span the complete wordmark in both themes.
+No financial protocol, key format or migration behaviour changed.
+
+FIRST USE
+1. Create a wallet with a NEW filename and a unique password of 12+ characters.
+2. Save an encrypted backup from Security; keep the password separately.
+3. Overview -> Open procedure laboratory.
+4. Holdings shows eight positions across Vi, Pi, Go, Ma, Bl and Gr, attributed to
+   two FICTIONAL institutions. Family codes are not interchangeable legal rights.
+5. Transfers & exchanges -> select a direction -> enter source amount -> review.
+6. Compare source/destination right, obligor, quantity, fees, terms and expiry.
+   Check the explicit consent box and sign this laboratory instruction.
+7. Activity shows institutional acceptance, reservation, execution decision,
+   distinct leg confirmations and completion or recovery under one reference.
+8. Try lost acknowledgement, then Query original outcome. Try interrupted
+   destination, then Test adapter: complete missing leg. Neither submits a
+   second transfer. Export evidence and inspect its public signatures.
+9. Support can save an encrypted LOCAL DRAFT. No request or email is submitted.
+
+IMPLEMENTED IN THE NEW PROCEDURE LABORATORY
+- Exact decimal string/BigInt quantities, 0–12 decimal places; no floating money.
+- Instrument/programme/institution identity, financial-right descriptions and terms.
+- Separate available, reserved, pending, disputed, encumbered, retired and income
+  fields. No total that adds incompatible money, securities and guarantees.
+- Six directional routes: Pi service allocation; Pi issuer replacement; Pi/Go,
+  Vi/Pi, Pi/Bl and Pi/Gr exchanges. Ma is a non-spendable contingent position.
+- Signed time-limited proposal and exact holder authority. Changed proposals
+  require new review. Route status, version and balance checked at execution.
+- Encrypted durable outbox written before dispatch. Unknown outcomes block new
+  instructions. Reconciliation queries original identifiers and signed records.
+- Separate local adapter journal survives wallet restore; older wallet history
+  does not roll back its test institution records. Partial execution retains the
+  source claim/reservation and pending destination until explicit test recovery.
+- Public evidence export, transaction search, institution/route inspection.
+- Site-aligned Inter typography, original wordmarks and sunflower window icon,
+  dark/light surfaces, orange/red accents, custom keyboard-operable dropdowns,
+  thin field focus, transparent dark checkbox and stable scrollbar gutter.
+
+SECURITY AND STORAGE
+AES-256-GCM encrypted wallet; fixed scrypt settings; Ed25519 holder signatures.
+Private holder key stays in the main process, outside the sandboxed renderer.
+Renderer has context isolation, no Node.js, no remote scripts or network access.
+Allowlisted help buttons open public SUN PHI pages in the system browser.
+Automatic lock after five minutes without a wallet operation, sleep/screen lock.
+Lock drops secret references; JavaScript cannot guarantee erasure of every copy.
+
+The test adapter and its FICTIONAL institutional keys live separately in the
+application user-data directory, procedure-laboratory-v1. They never enter the
+holder wallet or public evidence exports. They are locally controlled, not an
+independent production trust service. Do not place real institution keys there.
+Deleting or rolling back that adapter invalidates the test trust/recovery model;
+an encrypted wallet backup alone does not preserve its independent journal.
+Keep the existing application data when moving the portable executable.
+
+UPGRADE / BACKUP
+0.2.0 encrypted files open in 0.3.1. On the first procedure connection, the wallet
+writes an exact encrypted .before-0.3-*.json backup beside the original file.
+Opening alone does not add the procedure extension. After extension, use 0.3.1
+to open the updated file; old 0.2.0 readers are not compatible with that extension.
+Existing files are never overwritten by backup/restore exports. Restore to a new
+filename. A password change affects the active file, not older backups.
+There is no password-reset service. Both backup and password are necessary.
+Institutional entitlement recovery is separate from restoring local credentials.
+
+LEGACY LABORATORY
+The Laboratory section retains historical Rose (now catalogue Pi) issuance,
+sale/funding, transfer, cancellation, redemption, simulated payout and income.
+Its $1 reference, 2% fee and 5% income are historical fixtures, not standard terms.
+Its fictional bank keys remain in the legacy encrypted fixture for compatibility.
+File-signing trust/enrolment/consent flows remain available; no automatic upload.
+Legacy issuance/redemption and the new procedure adapter use separate test
+ledgers. They must not be interpreted as one integrated production lifecycle.
+
+LIMITS AND REMAINING PRODUCTION WORK
+This release is an implementation preview, not a statement of standard compliance.
+Six families are represented; not every product lifecycle is executable. New
+adapter primary issuance, subscriptions, redemption, guarantee claims, corporate
+maker/checker mandates, hardware custody, country admission, sanctions/identity
+checks, revocation, live FX/reserve feeds and real payment/CSD/token rails are NOT
+implemented. Laboratory legal gates are explicit fictional fixtures only.
+Production needs admitted partner institutions, current legal schedules, verified
+API/settlement contracts, trust enrolment, revocation and independent qualification.
+No real funds, deposit insurance, legally effective rights or bank accounts exist
+here. A locally verified signature is not proof of legal ownership or final payment.
+A signed installer, automatic updates and macOS/Linux packages are not provided.
+Windows EXE distribution remains Electron-based; the application window/favicon
+uses the sunflower. No claim of publisher code signing is made.
+4 MiB encrypted wallet; 150 procedure transactions maximum (file bound may be
+reached earlier); 50 local case drafts; legacy limits remain unchanged.
+Large histories need incremental durable storage and paginated institution APIs
+before production. No migration to a production server/database is performed.
+
+DEVELOPMENT
+npm ci; npm test; npm start; npm run package:win.
+PROCEDURE-CONTRACT.txt describes the integration boundary and acceptance gates.
+Preview harness creates disposable loopback-only wallets; it is not packaged.
