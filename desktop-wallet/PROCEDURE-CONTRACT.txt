@@ -1,0 +1,117 @@
+SUNPHI WALLET PROCEDURE CONTRACT — 0.5.0 / EDITION 2.2
+Implementation boundary, not an amendment to SPHI STD 001 2.2.
+
+Current operations bind the edition 2.2 policy/configuration and state precheck.
+getAvailableActions and precheck are read-only; execute revalidates all mandatory
+modules, scoped identity, supported native interface, product/series and quantity.
+Missing checks block execution, including direct adapter and recovery paths.
+Historical signatures retain their original edition; old proposals cannot start
+new work. Earlier pending operations need current institutional review if their
+old configuration cannot be verified; no forced release or auto-completion.
+Pi income uses exact HOLDER_PERIOD ACT/365 simple fixture rates with carried
+remainders. Source reserved principal accrues until completion. Old income stays
+with its holder at zero token balance. Existing journals migrate prospectively.
+External ERC execution, institution-level holder recovery and exceptional disposal
+are unavailable. No technical key grants those powers. Local test identity/keys
+and policy records are not production trust or independent institutional admission.
+
+The following describes the retained local transport and evidence contracts.
+
+Client methods: connect(holder), query(holder), quote(holder, request),
+execute(holder, exactSignedProposal, exactSignedHolderAuthority), recover(holder,id).
+Only LaboratoryAdapter is implemented. Production cannot substitute an arbitrary
+URL or trust bundle into this adapter. A qualified connector must separately bind
+institution, environment, programme, route, law, authorities and finality sources.
+
+Every signed evidence envelope contains keyId, signature and payload with domain,
+kind, holder, transitionId, timestamp and body. Canonical JSON is signed with
+Ed25519. Domain sunphi-procedure-lab-v1 cannot be used as a production domain.
+Trust is pinned on explicit laboratory connection; it is not legal certification.
+
+Proposal binds route ID/version, source and destination identities, exact decimal
+quantities, terms, legal gates, fee/tax, expiry, reservation/escalation deadlines,
+binding event, cancellation, valuation, remedy and authoritative legs. Consent
+binds the digest of that entire proposal and cannot authorise a later version.
+Institutional acceptance, reservation and execution decision bind the same digest.
+Each final leg must identify its separate leg ID, authorised signer and quantity.
+Completion requires both legs and one platform receipt for the exact proposal.
+Partial outcome requires a recovery record and retains a claim against its owner.
+
+Holder states: reviewed (memory only) -> SUBMITTING (encrypted before dispatch)
+-> COMPLETED / RECOVERY_REQUIRED / UNKNOWN. A failed or absent reply never means
+non-execution. UNKNOWN is resolved from a signed original-result snapshot. A
+confirmed absent operation may be REJECTED only once the proposal has expired.
+No automatic repeat, implicit inverse route or unilateral release is available.
+
+Adapter idempotency: original transition ID + original proposal and authority
+digests. Same ID with changed content is rejected. Identical replay returns the
+original result. State is fsynced then atomically renamed before acknowledgement.
+One application instance and one serial adapter instance own the local journal.
+This file adapter is not a distributed consensus, HA or production custody store.
+
+Snapshot binds holder, environment, standard version, monotonic sequence, as-of
+time, expiry, positions, institutions, routes and signed transaction evidence.
+Stale, foreign-holder, tampered or locally rolled-back records are rejected for
+action. Saved stale records may be shown as history. UNKNOWN quantities are
+labelled last confirmed, not currently spendable. Restore requires fresh query.
+
+PRIMARY PRODUCTION GATES (not enabled by this preview)
+1. Legal schedules: applicable country, classification, issue/distribute/accept
+   authority, client eligibility, register/title, tax, redemption and insolvency.
+2. Directional admission: both institutions and each service/product accept the
+   same versioned route; conversion/novation/assignment legal effect is explicit.
+3. Identity/mandate: verified holder and actor, current scope, limits, approvals,
+   revocation and independent recovery; a key is not an identity or legal right.
+4. Institution APIs: fresh signed source state, atomic reservations, original-ID
+   query, qualified settlement/register evidence and participant-owned cases.
+5. Partial completion: contractual survivor claims, case owner, deadlines and
+   permitted remedies; test adapter completion is not a client production power.
+6. Operations: audit, reconciliation, support, immutable checkpoints, paginated
+   history, signed distribution, independent security and country qualification.
+
+Product lifecycle coverage: legacy Pi demonstrates issuance/sale/redemption only
+in its separate fictional ledger. New Vi/Pi/Go/Bl/Gr adapter demonstrates the six
+listed transitions; Ma is informational. No claim of complete family coverage.
+Common statuses do not harmonise national law or create enforceable finality.
+USER INTERFACE BOUNDARY — 0.3.4
+The transfer form always quotes delivery=normal. Failure injection is exercised
+only by developer tests; neither the main form nor the legacy laboratory offers
+lost-reply or partial-execution selectors. The adapter retains those test inputs
+and recovery semantics. Old saved partial demos keep an explicit continuation
+so compatibility does not strand users. No production client recovery power is
+introduced. UNKNOWN still queries the original reference without resubmission.
+RECIPIENT TRANSFERS — 0.3.8
+Recipient is mandatory; purpose is optional and bound to exact consent. Same-host
+registered laboratory wallets only. Same-instrument Vi/Pi/Go/Bl/Gr transfers and
+admitted Asterwell-Pi to Brookfield-Pi replacement are supported; Ma is excluded.
+PENDING_CONFIRMATION reserves sender quantity and records recipient pendingReceipt.
+Available funds exclude that amount. A subsequent status query verifies original
+signatures, matching reservations, instrument/terms identity and route admission.
+Completion requires both institution leg records, a bound laboratory-finality record
+and completion receipt; receiver institution signs its matching incoming receipt.
+There is no mandatory waiting period. Elapsed time never provides proof. Missing
+confirmation remains pending; invalidated terms/routes require controlled recovery.
+Recipient recover() cannot force credit. Five-second client status refresh neither
+extends idle unlock nor resubmits instructions. It is a local demonstration query,
+not a production polling or consensus service.
+Two-stage commits use a checksummed durable pair redo journal under exclusive
+in-process ownership. Crash recovery replays both holders once. The local keys and
+journal share one host and cannot provide independent BFT or host-compromise safety.
+Production remains disabled until an admitted connector, independently controlled
+validator configuration and legal/institutional evidence are actually available.
+
+TOKEN QUANTITIES AND BASKET VALUATION — 0.4.0 / RC3+A1
+All new proposals bind quantityUnit=tokens, per-instrument token unit definitions
+and separate XDR valuation records. Exact integer quantities and existing scales
+are preserved. The known laboratory mapping is one token per original whole
+contractual unit, not a universal production nominal. Unknown fixtures fail closed.
+Old local snapshots acquire a signed unit-definition record and sequence revision;
+historical accepted proposals and incoming records are never rewritten. Newly
+submitted old-unit proposals must be reviewed again. Pending history keeps its
+accepted rights and quantities. Rates cannot mint, debit or change token counts.
+Valuation is a fixed dated DEMONSTRATION record, not a live oracle. All profiles
+use XDR reporting; Gr face value and Ma contingent capacity are identified as such.
+The added TOK requirements and TA cases are qualification targets, not certification.
+
+
+
