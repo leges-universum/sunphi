@@ -1,0 +1,66 @@
+{
+  "protocol": 4,
+  "publishers": [
+    "CY0tGW7NIO7lxEKUM8NyNJtYn-t130Pe8aQpOS55VSs",
+    "CsETvCbimma2PZWqI5od2yRGMyh0dmBf2GhjMJUW1oI",
+    "PUvdpGSwmcck_qCyM6-0SjtpD6umyXyN0FZRuIPvOQs"
+  ],
+  "threshold": 3,
+  "releases": [
+    {
+      "domain": "WANDER_RELEASE_V1",
+      "sequence": 1,
+      "version": "0.12.0",
+      "runtime": [
+        "v24.13.0"
+      ],
+      "files": {
+        "src/coordinator.mjs": "672497a24992e65d2ad2e835e8fb582f0056370e94ecbc67ccfd34487ae6135b",
+        "src/crypto.mjs": "ee2d1f875b1ef1f9e874a2dc9bf09b57da1cc432a185d24ec063a0a5a56326fd",
+        "src/downloads.mjs": "db176105e0d84fc338facb8de22c5c4aa8bab1f6d8c695b22808d83091cc2baa",
+        "src/gateway.mjs": "ed310da1d547e75e36e4a4273e097992376b3712c719633c0b09de0635772b9d",
+        "src/host-assignment.mjs": "8f7af7b83d4aae1646f153914c3b28379c9ac86d3604281a368e824e40b13e65",
+        "src/lab.mjs": "01f5835163a0417f3698192064888a459a502afeed769dbdeeb0b9d2de77d42f",
+        "src/model.mjs": "aebb4636107b64e283873295a0db10fc2043d35f79f73cef12631491970ebb30",
+        "src/node-host.mjs": "8c6ec36a63cda927bef5e91d198630ba61d8798bed7ed711a61fe5d96492fac4",
+        "src/node.mjs": "de4a112e9603d7c58a5d7ee3b8225094b863b65f414144f950c5a8266fee8797",
+        "src/operator-cli.mjs": "912570670f31be187bdacf00fc6091bacf549ea34054abd20cdf6465024ddf7e",
+        "src/operator.mjs": "5377155a2f390a537a60ed3da6c09c9015ba56753c5ff2df1fe5e06ceb102e44",
+        "src/peer-network.mjs": "54f8e4062193d18d3714b78c5ea278ded39892b02d2b0b6a5726071416d590d4",
+        "src/prover-service.mjs": "c16e43a050f667999dcfe7f54e625797be1de40c1e82a4f165c04827ee7d9f1b",
+        "src/release.mjs": "00af0ea8eac41a6490fb656aae9603b226e13b9eb766e77b10827cfb0d872add",
+        "src/remote-access.mjs": "57d31ce3d552f3ed45ca16a191540037a47bbc2a5d2ac9cf064c949e2bcb189b",
+        "src/seal-worker.mjs": "1dc48260ae7abdaf31870fe80e0710fc44af82a63dd981f7ee8eda8b2a97754e",
+        "src/seal.mjs": "b782a438e0525b1089c3f5c97ec0e263feb8bc32d969188e439efc5db48d74b1",
+        "src/signer-guard.mjs": "c77881f4cba7c3abd9589b4fd33a9cb1de9d6cfc7c176549b355f098910d35f3",
+        "src/store.mjs": "5b67255f66d21b7009e4226c8904dfaaa9c678d2ae5c76033f0128064f3c52bf",
+        "src/transport.mjs": "235ab471a25619d376aff2a4cbd594581859b0f12fc559f67e9a4e61d59ae2bf",
+        "src/wal.mjs": "06542b92d9cfec55601acc3632118092c3772dd116cb378b083e771c198505a3",
+        "src/windows-service.mjs": "e75b44ad6dc88665d387fa1417905b0dc33756923eb1f1ae59fe8b25a1e4456c",
+        "src/wire.mjs": "926f902ed4bb5c2aedbe45fba4343c8f8dcee3bb71de320c5cb0df4b41099313",
+        "shared/authority.mjs": "35422b3127700c7dcf8050a26640619d902edf606c6dc2bbefabba0178c7096c",
+        "shared/canonical.mjs": "ce735dbdae55a16719f2ed5f1f811fd63ff91f3d3561c32da7e488d176991923",
+        "shared/core.mjs": "9491c5a611a5be4b50f984e75174e29321d3c3e48db4ad44223392fbe708d7e0",
+        "shared/ed25519-shape.mjs": "239a46f7b621cc0787d0a31002f4fb6d4fa0fc68fed46041a7fa9253af651ce8",
+        "shared/guards.mjs": "38381f259a4abfd12c16b328c9bb6bfaf34a799e456ae279df7d97eb47903824",
+        "shared/membership.mjs": "3b036a9ff96ca4864a0d917b7f9e752e5cb1edb6f59999b00807d2f982df3dd8",
+        "shared/seal.mjs": "91d0cd047c880c003d27078ab421dfa357f1a829001c0edeb5facd6341be74ae",
+        "shared/security.mjs": "e2e1a7e7ab63305df1d71ac545886ebc313eb95a019491f1cf1f0e438b17a7ff"
+      },
+      "signatures": [
+        {
+          "key": "CY0tGW7NIO7lxEKUM8NyNJtYn-t130Pe8aQpOS55VSs",
+          "signature": "wgjTmK7OP8vpFFPRQH_1pF5MSFeuAsgZWSDgDCZB2mQjdP5iKPa2lrDSVRpEBNE38Iq89_V28FK1d_1RoMb_Dw"
+        },
+        {
+          "key": "CsETvCbimma2PZWqI5od2yRGMyh0dmBf2GhjMJUW1oI",
+          "signature": "P8dJeRXvTsO-Z6LZv9XiKpISdtLa-aLYDZxGgThDE3N2qPk2BnM3JP_WU_UdNbTYFpq-bm9xLL20aRR3ZPGkBg"
+        },
+        {
+          "key": "PUvdpGSwmcck_qCyM6-0SjtpD6umyXyN0FZRuIPvOQs",
+          "signature": "3qqb52BfB3KksAZA79_EOTshjToS6aF6pHggYomKO_qm9ZkL9aO1XZ_s0TqzXMXV2ki3_UInENDRkwluYOUKDw"
+        }
+      ]
+    }
+  ]
+}
