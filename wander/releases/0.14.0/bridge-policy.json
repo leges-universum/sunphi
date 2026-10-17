@@ -1,0 +1,133 @@
+{
+  "protocol": 4,
+  "publishers": [
+    "CY0tGW7NIO7lxEKUM8NyNJtYn-t130Pe8aQpOS55VSs",
+    "CsETvCbimma2PZWqI5od2yRGMyh0dmBf2GhjMJUW1oI",
+    "PUvdpGSwmcck_qCyM6-0SjtpD6umyXyN0FZRuIPvOQs"
+  ],
+  "threshold": 3,
+  "releases": [
+    {
+      "domain": "WANDER_RELEASE_V1",
+      "sequence": 2,
+      "version": "0.13.0",
+      "runtime": [
+        "v24.13.0"
+      ],
+      "files": {
+        "src/automatic-recovery.mjs": "f39dac0e904786e015511d574a970f51f3f971b3e80c781c4e9f9d77a48db9de",
+        "src/coordinator.mjs": "86be388c1dfcba5a256fb09006e7dfaabb1d93dd028d2fad1b85ee099084d65c",
+        "src/crypto.mjs": "ee2d1f875b1ef1f9e874a2dc9bf09b57da1cc432a185d24ec063a0a5a56326fd",
+        "src/downloads.mjs": "db176105e0d84fc338facb8de22c5c4aa8bab1f6d8c695b22808d83091cc2baa",
+        "src/gateway.mjs": "a95f5f980ac7f7fee46f6dcb25c3c814e39457677d77e4ecb551f4d68303d9ec",
+        "src/host-assignment.mjs": "8f7af7b83d4aae1646f153914c3b28379c9ac86d3604281a368e824e40b13e65",
+        "src/lab.mjs": "01f5835163a0417f3698192064888a459a502afeed769dbdeeb0b9d2de77d42f",
+        "src/model.mjs": "ed6d87607a811b1efa48332afb2cf3f3f18f33b22da1faf028cb822197636cd4",
+        "src/node-host.mjs": "8c6ec36a63cda927bef5e91d198630ba61d8798bed7ed711a61fe5d96492fac4",
+        "src/node.mjs": "aad289150ee4ce10438db14fa7a1e37c6d7fae5a5b5d89dba28ee59faad5a8d4",
+        "src/operator-cli.mjs": "912570670f31be187bdacf00fc6091bacf549ea34054abd20cdf6465024ddf7e",
+        "src/operator.mjs": "5377155a2f390a537a60ed3da6c09c9015ba56753c5ff2df1fe5e06ceb102e44",
+        "src/peer-network.mjs": "54f8e4062193d18d3714b78c5ea278ded39892b02d2b0b6a5726071416d590d4",
+        "src/prover-service.mjs": "c16e43a050f667999dcfe7f54e625797be1de40c1e82a4f165c04827ee7d9f1b",
+        "src/release.mjs": "00af0ea8eac41a6490fb656aae9603b226e13b9eb766e77b10827cfb0d872add",
+        "src/remote-access.mjs": "57d31ce3d552f3ed45ca16a191540037a47bbc2a5d2ac9cf064c949e2bcb189b",
+        "src/seal-worker.mjs": "1dc48260ae7abdaf31870fe80e0710fc44af82a63dd981f7ee8eda8b2a97754e",
+        "src/seal.mjs": "b782a438e0525b1089c3f5c97ec0e263feb8bc32d969188e439efc5db48d74b1",
+        "src/signer-guard.mjs": "c77881f4cba7c3abd9589b4fd33a9cb1de9d6cfc7c176549b355f098910d35f3",
+        "src/store.mjs": "5b67255f66d21b7009e4226c8904dfaaa9c678d2ae5c76033f0128064f3c52bf",
+        "src/transport.mjs": "235ab471a25619d376aff2a4cbd594581859b0f12fc559f67e9a4e61d59ae2bf",
+        "src/wal.mjs": "06542b92d9cfec55601acc3632118092c3772dd116cb378b083e771c198505a3",
+        "src/windows-service.mjs": "e75b44ad6dc88665d387fa1417905b0dc33756923eb1f1ae59fe8b25a1e4456c",
+        "src/wire.mjs": "926f902ed4bb5c2aedbe45fba4343c8f8dcee3bb71de320c5cb0df4b41099313",
+        "shared/authority.mjs": "35422b3127700c7dcf8050a26640619d902edf606c6dc2bbefabba0178c7096c",
+        "shared/canonical.mjs": "ce735dbdae55a16719f2ed5f1f811fd63ff91f3d3561c32da7e488d176991923",
+        "shared/core.mjs": "9491c5a611a5be4b50f984e75174e29321d3c3e48db4ad44223392fbe708d7e0",
+        "shared/ed25519-shape.mjs": "239a46f7b621cc0787d0a31002f4fb6d4fa0fc68fed46041a7fa9253af651ce8",
+        "shared/guards.mjs": "38381f259a4abfd12c16b328c9bb6bfaf34a799e456ae279df7d97eb47903824",
+        "shared/membership.mjs": "3b036a9ff96ca4864a0d917b7f9e752e5cb1edb6f59999b00807d2f982df3dd8",
+        "shared/seal.mjs": "91d0cd047c880c003d27078ab421dfa357f1a829001c0edeb5facd6341be74ae",
+        "shared/security.mjs": "fde8612ba077e7287dfa585dcad6a255829d41c92b011db41b69da5679a6d186"
+      },
+      "signatures": [
+        {
+          "key": "CY0tGW7NIO7lxEKUM8NyNJtYn-t130Pe8aQpOS55VSs",
+          "signature": "injQ4YOxxt_8n99toqxfh37VlAW6-HqOF69v77YbBlfdAEUJrUypR1yJmziamUjQVfBZRwfco4UD3yF5L3PqCA"
+        },
+        {
+          "key": "CsETvCbimma2PZWqI5od2yRGMyh0dmBf2GhjMJUW1oI",
+          "signature": "w--n3Rm_TngQiZwNvXu5nOgPHAYoyYAjz1S1yo38q91TVEwo-UHbHpG9MpkKsJ25z2zvPKSHYqxSpAnJyvazBA"
+        },
+        {
+          "key": "PUvdpGSwmcck_qCyM6-0SjtpD6umyXyN0FZRuIPvOQs",
+          "signature": "hmNcR_NAkAknr_e3Ria80LzgkONrJF-b8TEi5Bt0P2uLVrmr3T17ZiZ5Jh0sFvQuZhEn_At8St9BmFb-l22NCQ"
+        }
+      ]
+    },
+    {
+      "domain": "WANDER_RELEASE_V1",
+      "sequence": 3,
+      "version": "0.14.0",
+      "runtime": [
+        "v24.13.0"
+      ],
+      "files": {
+        "src/automatic-recovery.mjs": "29ee2bef4e8d16bfd18394cd231d972bd6239057d9b0ba1dc5550821a5a9eb6d",
+        "src/coordinator.mjs": "f85be9b39a79d247b31948360a147e3e27d3a5496345797f0960393f66698b27",
+        "src/crypto.mjs": "ee2d1f875b1ef1f9e874a2dc9bf09b57da1cc432a185d24ec063a0a5a56326fd",
+        "src/downloads.mjs": "db176105e0d84fc338facb8de22c5c4aa8bab1f6d8c695b22808d83091cc2baa",
+        "src/gateway.mjs": "e8b4a9090b68790025c1ba8f6686cb6243d506a3bab1f424efe565946bb7cce9",
+        "src/host-assignment.mjs": "8f7af7b83d4aae1646f153914c3b28379c9ac86d3604281a368e824e40b13e65",
+        "src/lab.mjs": "01f5835163a0417f3698192064888a459a502afeed769dbdeeb0b9d2de77d42f",
+        "src/model.mjs": "ed6d87607a811b1efa48332afb2cf3f3f18f33b22da1faf028cb822197636cd4",
+        "src/node-host.mjs": "8c6ec36a63cda927bef5e91d198630ba61d8798bed7ed711a61fe5d96492fac4",
+        "src/node.mjs": "191fee2395ac26f8712b8c57d6fcdc36cda1f76eba30f308aa010bb88b533706",
+        "src/operator-cli.mjs": "912570670f31be187bdacf00fc6091bacf549ea34054abd20cdf6465024ddf7e",
+        "src/operator.mjs": "5377155a2f390a537a60ed3da6c09c9015ba56753c5ff2df1fe5e06ceb102e44",
+        "src/peer-network.mjs": "54f8e4062193d18d3714b78c5ea278ded39892b02d2b0b6a5726071416d590d4",
+        "src/progress-recovery.mjs": "fc658dd854ea1c79ca6a906a94be5433a6db198f77100c50b72aa8e49cf8d242",
+        "src/prover-service.mjs": "c16e43a050f667999dcfe7f54e625797be1de40c1e82a4f165c04827ee7d9f1b",
+        "src/release.mjs": "00af0ea8eac41a6490fb656aae9603b226e13b9eb766e77b10827cfb0d872add",
+        "src/remote-access.mjs": "57d31ce3d552f3ed45ca16a191540037a47bbc2a5d2ac9cf064c949e2bcb189b",
+        "src/seal-worker.mjs": "1dc48260ae7abdaf31870fe80e0710fc44af82a63dd981f7ee8eda8b2a97754e",
+        "src/seal.mjs": "b782a438e0525b1089c3f5c97ec0e263feb8bc32d969188e439efc5db48d74b1",
+        "src/signer-guard.mjs": "c77881f4cba7c3abd9589b4fd33a9cb1de9d6cfc7c176549b355f098910d35f3",
+        "src/stage-cache.mjs": "3fdbef12eb9ae56d6a89bd791393946c20f5911bd615f8a53fe35865c9c43f63",
+        "src/store.mjs": "5b67255f66d21b7009e4226c8904dfaaa9c678d2ae5c76033f0128064f3c52bf",
+        "src/transport.mjs": "235ab471a25619d376aff2a4cbd594581859b0f12fc559f67e9a4e61d59ae2bf",
+        "src/wal.mjs": "06542b92d9cfec55601acc3632118092c3772dd116cb378b083e771c198505a3",
+        "src/windows-service.mjs": "e75b44ad6dc88665d387fa1417905b0dc33756923eb1f1ae59fe8b25a1e4456c",
+        "src/wire.mjs": "926f902ed4bb5c2aedbe45fba4343c8f8dcee3bb71de320c5cb0df4b41099313",
+        "shared/authority.mjs": "35422b3127700c7dcf8050a26640619d902edf606c6dc2bbefabba0178c7096c",
+        "shared/canonical.mjs": "ce735dbdae55a16719f2ed5f1f811fd63ff91f3d3561c32da7e488d176991923",
+        "shared/core.mjs": "9491c5a611a5be4b50f984e75174e29321d3c3e48db4ad44223392fbe708d7e0",
+        "shared/ed25519-shape.mjs": "239a46f7b621cc0787d0a31002f4fb6d4fa0fc68fed46041a7fa9253af651ce8",
+        "shared/guards.mjs": "38381f259a4abfd12c16b328c9bb6bfaf34a799e456ae279df7d97eb47903824",
+        "shared/membership.mjs": "3b036a9ff96ca4864a0d917b7f9e752e5cb1edb6f59999b00807d2f982df3dd8",
+        "shared/seal.mjs": "91d0cd047c880c003d27078ab421dfa357f1a829001c0edeb5facd6341be74ae",
+        "shared/security.mjs": "bfadb2d3baeb650d7767b89290e71c7eb26905aeee68341a197fa6053fc1a5d6"
+      },
+      "signatures": [
+        {
+          "key": "CY0tGW7NIO7lxEKUM8NyNJtYn-t130Pe8aQpOS55VSs",
+          "signature": "5fML8ChrGFDZdV_KQbwmUYPXjHIOdBZxsbQmCrQv-ah89wTKpnr4Epi7w18nmwNglTg_Lv7ueHm9eS9ZDONVAg"
+        },
+        {
+          "key": "CsETvCbimma2PZWqI5od2yRGMyh0dmBf2GhjMJUW1oI",
+          "signature": "yfSrwMVcgDssW69HleRgwLSUmROAXQI7H-OstHgswSjQ4hbFzGsuYMO25dcay6u9nU9X2EsCR_DYNbgCF_B-CA"
+        },
+        {
+          "key": "PUvdpGSwmcck_qCyM6-0SjtpD6umyXyN0FZRuIPvOQs",
+          "signature": "sDG_Y6ihqlOq7K45t_o-_D0rAXpJhelFXDE8cNvduqOyCyTVA2u5RVKHgCsfu5Qz9mh8Xi_xzt1yMhUnmNQFBw"
+        }
+      ]
+    }
+  ],
+  "automaticRecovery": {
+    "version": 1,
+    "probeIntervalMs": 15000,
+    "timeoutMs": 3000,
+    "stallMs": 45000,
+    "failures": 3,
+    "leaderSlotMs": 45000
+  }
+}
