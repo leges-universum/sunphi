@@ -1,0 +1,16 @@
+/* Shared shell; the established content layouts remain in their own stylesheets. */
+@font-face{font-family:Inter;src:url('inter.woff2') format('woff2');font-weight:100 900;font-display:swap}
+:root{--sunphi-line:#303740;--sunphi-ink:#f3f4f5;--sunphi-bg:#000}
+:root[data-theme=light]{--sunphi-line:#a7a7a7;--sunphi-ink:#171717;--sunphi-bg:#fff;--bg:#f5f5f5;--panel:#fff;--field:#fafafa;--button:#ededed;--line:#aaa;--muted:#555}
+body>header{height:auto;min-height:88px;display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:18px max(24px,4vw);background:var(--sunphi-bg);border-bottom:1px solid var(--sunphi-line);color:var(--sunphi-ink)}
+body>header .brand{display:flex;align-items:center;gap:14px;min-width:185px;margin:0;padding:0;background:none;border:0;text-decoration:none;color:inherit}
+body>header .brand img{width:44px;height:44px;object-fit:contain;display:block}
+body>header .brand-word{font:bold 30px/1.1 Georgia,serif;letter-spacing:0;color:inherit;border:0;padding:0}
+body>header .brand-word small{display:block;font:500 10px/1.8 Inter,sans-serif;letter-spacing:.22em;color:inherit;margin:4px 0 0;padding:0}
+.wallet-directions{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}.wallet-directions button{font:600 13px Inter,sans-serif;min-height:44px;padding:10px 16px;border:1px solid var(--sunphi-line);color:var(--sunphi-ink);background:transparent;border-radius:0}
+.wallet-directions button[aria-pressed=true]{background:#242a32;color:#fff;border-bottom:1px solid #b87945}
+body>header .header-actions{margin-left:0;display:flex;gap:8px;flex-wrap:wrap}body>header .badge{display:none}
+.wallet-directions button:hover{background:#161b22;color:#fff}
+.access,.balance{border-width:1px}.access .primary{margin:16px 0}.access>details{margin-top:18px}.access>details p{margin-top:12px}#selected-file{margin:12px 0}.balance-number{font-size:clamp(30px,4.8vw,64px);overflow-wrap:anywhere}#payments .payment{border-bottom:1px solid var(--line);padding:22px 0}#payments h2{font-size:22px}.note{padding:16px 0;border-bottom:1px solid var(--line)}.note label{display:flex;gap:12px;align-items:center}.note input{width:auto;margin:0}.note p{overflow-wrap:anywhere;margin:6px 0}#review-summary p{overflow-wrap:anywhere}#notice{border-left-width:1px}#access-back{margin:16px 0}#file-choice button{width:100%}
+header{app-region:no-drag;-webkit-app-region:no-drag}button{white-space:normal}main{min-width:0}dialog{max-width:calc(100vw - 24px);max-height:85vh;overflow:auto}
+@media(max-width:650px){body>header{padding:16px;gap:12px}body>header .brand{min-width:0;flex:1}.wallet-directions{order:3;width:100%;margin:0}.wallet-directions button{flex:1}body>header .brand-word{font-size:25px}.welcome{padding-top:12px}.insight-metrics{grid-template-columns:1fr}.insight-slide{min-height:0}.facts>div{flex-wrap:wrap}.facts dt{flex-shrink:1}input,textarea{max-width:100%}}
