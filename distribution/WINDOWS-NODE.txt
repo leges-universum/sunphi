@@ -1,0 +1,75 @@
+SUNPHI NATIVE NODE + WALLET 0.12.1 — WINDOWS x64
+
+1. Extract the complete ZIP into a writable folder.
+2. Open SunPhi Native Node.exe (or double-click sunphi-node.cmd).
+3. Select Verify history to build/check a local historical replica.
+4. Select Open wallet to enter the integrated native wallet in the same window.
+   Create a new encrypted file or open an existing NATIVE wallet file.
+   Back to node locks the wallet. The node keeps working during navigation.
+
+No Node.js, WSL, administrator privileges or service installation is required.
+Windows executable is unsigned. This is an isolated preview, not a public
+production network. Do not use real funds. Existing Coin and older SunPhi
+wallet files are separate; this package does not migrate them.
+
+WHAT IS INCLUDED
+Windows Node.js 24.13.0, CometBFT 0.38.26, native ABCI/header verifier,
+o1js 3.1.0 WASM proof verification, Electron 44.7.0 and a public recorded profile.
+No wallet seed, validator key, witness key or other operator secret is supplied.
+The wallet uses the existing real zero-knowledge payment and receipt engine.
+This release adds a Windows node console and bidirectional internal navigation.
+
+VERIFY HISTORY
+This verifies the recorded 56-block archive, including real ZK transactions,
+quorum signatures, witness checkpoints and recovered application hashes.
+It is a nonvoting role and does not generate tokens or income. A successful
+historical verification does not establish a live, spendable balance.
+State: %APPDATA%\SunPhi Native Node Preview\node\replica
+Let verification finish before closing. Restarting verification rechecks the
+retained replica. Logs remain bounded in memory; do not remove database files
+while a node operation is running.
+
+PREPARED FULL NODE
+Choose folder & start requires an operator-prepared isolated node home with:
+  app-config.json, verification-key.json,
+  config/config.toml, config/genesis.json,
+  the node's own config/node_key.json and config/priv_validator_key.json,
+  data/priv_validator_state.json.
+Supply the matching base port. P2P=base, RPC=base+1, ABCI=base+2, app=base+3.
+Only loopback interfaces and local peers are accepted. Remote signers, public
+RPC/gRPC, metrics and production configurations are refused. Do not copy a
+running validator's signing home, keys or old signing state to another node.
+Admission/voting power is governed by the laboratory's authenticated committee,
+not by the presence of this package or the amount of computing hardware.
+Stop node shuts down this application's owned processes. Closing the window
+also stops its full node. There is no Windows service, auto-start or firewall
+change. An operator must arrange matching services; the recorded services
+included in the default profile are stopped. No auto-registration is offered.
+
+COMMAND LINE (from the extracted package)
+  sunphi-node.cmd verify "C:\SunPhi\historical-replica"
+  sunphi-node.cmd start "C:\SunPhi\prepared-node" 32220
+With no arguments, the script opens the graphical node console.
+The script requires the complete ZIP, not just this one file.
+Ctrl+C asks the launcher to stop its owned processes. Do not run an old
+unguarded launcher on the same signing home alongside this one.
+
+WALLET
+Open wallet is internal navigation, not an external website. Wallet keys remain
+encrypted and are distinct from node signing keys. Wallet files are chosen by
+native dialogs; no password is passed through command-line arguments.
+Node selection does not silently change the wallet's independently obtained
+trust profile. Select a matching public laboratory profile in the locked wallet
+when necessary. New spending requires matching running services, fresh verified
+history, valid notes and a ZK proof. Starting a node never funds the wallet.
+Keep an encrypted wallet backup and its password separately. There is no
+password reset. See the wallet guide in resources/app/START-HERE.txt.
+
+REQUIREMENTS AND LIMITS
+Windows 10/11 x64. Suggested 8 GB RAM, 16 GB for proof generation; at least
+2 GB free disk space plus room for history/proving caches. No measured production
+capacity is claimed. Viewport testing is not a physical-phone proving test.
+Independent audit, independent operators/archives, hardware-protected signing
+and approved production economics remain required. Downloads are not evidence
+of public-network readiness or Bitcoin-equivalent security.
+SHA256SUMS.txt covers the ZIP; SOURCE-MANIFEST.json covers its individual files.

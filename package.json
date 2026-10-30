@@ -1,0 +1,16 @@
+{
+  "name": "sunphi-network-next",
+  "version": "0.12.1",
+  "private": true,
+  "type": "module",
+  "description": "Isolated native SUN P1 candidate; real mandatory ZK proofs; not production",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {},
+  "dependencies": {
+    "o1js": "3.1.0",
+    "@noble/curves": "2.4.0"
+  },
+  "main": "desktop/node-main.mjs"
+}

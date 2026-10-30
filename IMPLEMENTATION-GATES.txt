@@ -1,0 +1,87 @@
+SUNPHI — PROGRAMME STATUS, 30 OCTOBER 2026
+
+0.12 update: owner explicitly authorizes publishing downloadable wallet UI and
+node packages on the existing Network site. This authorizes PREVIEW distribution,
+not migrating the live ledger or enabling real-money/public-network operations.
+Windows graphical wallet and self-contained Linux archive verifier/prepared-node
+launcher are implemented. The recorded profile is offline; live send still needs
+matching running isolated services. Publication/verification evidence belongs in
+evidence/NATIVE-DOWNLOADS-REPORT-RU.txt.
+
+Owner authorizes continuing implementation without intermediate confirmations.
+This file distinguishes completed local work from requirements that cannot be
+honestly substituted by ten processes on one developer's computer.
+The design reference remains ../token-payment-model-20261029/
+NETWORK-INTEGRATED-DESIGN-RU.txt. No live Network/Coin migration is authorized by
+the existence of these local changes. Laboratory mode rejects production.
+
+G0 — monetary/privacy contract: PARTIAL
+Executable strict laboratory domain, synthetic1SUN/epoch/max100, conservation,
+range, fees, bounded expiry and public spend graph/hidden values. The production
+supply, allocation, emission schedule, reward function, stake, slashing, minimum
+fees and chain-specific monetary domain are NOT approved parameters. They cannot
+be invented or inherited from Coin's collateral model. Fees currently accumulate;
+node income is not implemented as a promised economic return.
+
+G1 — proof reference implementation: LOCAL EVIDENCE
+Actual mandatory o1js ZK ownership/ranges/conservation/encryption, pinned key,
+negative vectors and Windows/Linux proving/verification exist. No independent
+circuit/primitive audit; no claim of production cryptographic certification.
+Mobile proving cost, side-channel exposure and private-state UX remain unqualified.
+
+G2 — consensus/history: LOCAL EVIDENCE, EXTERNAL GATES OPEN
+Standalone CometBFT + independent checking application,10fixed laboratory seats,
+7/10 approval and witness seals, normal/lost-key rotation, root renewal, linked
+bootstrap, three verified archives/repair, controller ownership/failover,
+freshness and alternate RPC verification. Fault evidence exists for partitions,
+collusion/equivocation, restarts, archives and transitions; it assumes threshold
+honesty and availability, not absolute Byzantine immunity.
+Independent operators, separate administrative/failure domains, external retained
+checkpoints, audited hardware monotonic signing/erasure and real disaster exercises
+are absent. Software epoch fences do not prove protection against rolling back
+an entire machine plus its fence. Open membership and governance are not deployed.
+
+G3 — wallet: EXTENDED, NOT PRODUCTION COMPLETE
+Encrypted local backup helpers, persistent proving session, authenticated note
+reads/freshness/RPC fallback, exact durable submissions, receipts/reconciliation,
+offline status, witness-seal upgrade, bounded payment pages, local receipt UI,
+atomic pending-input reservations and conservative recovery of earlier outboxes.
+0.11 adds encrypted private receipt inventory, receipt/wire-driven incoming
+discovery, signed invoice/recipient/amount binding, private real-ZK payment
+preparation, durable encrypted drafts, exact submission, final evidence restored
+into the public outbox, and encrypted backup/recovery through independent trust.
+Next client work: exhaustive bounded private discovery, aggregate balance and
+coin selection, scalable private storage/draft archival,
+automatic later-seal upgrades of outgoing private drafts,
+physical-phone proving and device qualification.
+The 0.12 graphical client remains a preview, not a complete production wallet.
+Query index reuse and streamed archive replay
+reduce repeated work but do not solve O(N) state mutation or O(H) bootstrap.
+
+G4 — independent assessment: NOT PERFORMED
+Prepare the source manifest, pinned dependencies/circuit key, threat model,
+protocol formats, replay/crash/fault evidence and explicit limitations for an
+external reviewer. Required disciplines: circuit/cryptography, consensus and key
+lifecycle, storage/recovery, client privacy, deployment/operations. Self-tests
+and this agent's review are not an independent audit. Findings must be corrected
+and retested before any regulated/payment production claim.
+
+G5 — separate limited pilot: NOT ACTIVATED
+Requires named independent operators/hosts, hardware capability tests, accepted
+monetary policy and risk/incident process, release signatures, deployment/funding
+decisions and independently witnessed recovery drills. Use separate pilot genesis;
+no automatic conversion of production balances, no implicit migration of Coin.
+Current endpoint whitelist permits loopback only; it is not an Internet transport
+security implementation. Remote authentication/rate limits/DDoS and host hardening
+need a concrete deployment design and its audit.
+
+G6 — expansion: NOT STARTED
+Depends on measured sustained pilot operation, actual incident recovery, independent
+control, approved economics and real demand. No Bitcoin-superiority claim follows
+from the present local tests. Real host cost, legal setup and operational staffing
+must be budgeted independently of zero-cost local laboratory process counts.
+
+Continuation order after0.11: complete private discovery/balance/visual lifecycle;
+persistent incremental state and restart cost limits; production
+monetary/domain specification; independent review and operators/hardware; separately
+authorized pilot, then expansion. Do not bypass these by publishing current code.
