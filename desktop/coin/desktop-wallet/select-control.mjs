@@ -1,0 +1,21 @@
+let openControl,sequence=0;
+export function closeSelects(){openControl?.close(false);}
+document.addEventListener('pointerdown',e=>{if(openControl&&!openControl.root.contains(e.target))openControl.close(false);});
+export function enhanceSelect(select){
+  if(select.dataset.enhanced)return;select.dataset.enhanced='true';if(!select.id)select.id='wallet-choice-'+(++sequence);
+  const root=document.createElement('div');root.className='wallet-select';select.after(root);select.hidden=true;
+  const button=document.createElement('button');button.type='button';button.setAttribute('role','combobox');button.setAttribute('aria-haspopup','listbox');button.setAttribute('aria-expanded','false');button.setAttribute('aria-label',select.getAttribute('aria-label')||select.closest('label')?.firstChild?.textContent?.trim()||'Choose an option');
+  const popup=document.createElement('div');popup.className='wallet-select-popup';popup.hidden=true;
+  const search=document.createElement('input');search.type='search';search.placeholder='Search options…';search.setAttribute('aria-label','Search options');
+  const list=document.createElement('div');list.setAttribute('role','listbox');list.id='options-'+select.id;button.setAttribute('aria-controls',list.id);search.setAttribute('aria-controls',list.id);list.className='wallet-select-options';popup.append(search,list);root.append(button,popup);
+  let active=0,filtered=[];
+  function close(focus=true){popup.hidden=true;button.setAttribute('aria-expanded','false');search.removeAttribute('aria-activedescendant');if(openControl?.root===root)openControl=null;if(focus)button.focus();}
+  function choose(i){const o=filtered[i];if(!o||o.disabled)return;select.value=o.value;select.dispatchEvent(new Event('change',{bubbles:true}));update();close();}
+  function draw(){filtered=[...select.options].filter(o=>o.text.toLowerCase().includes(search.value.toLowerCase()));active=Math.max(0,Math.min(active,filtered.length-1));list.replaceChildren();filtered.forEach((o,i)=>{const item=document.createElement('div');item.id=list.id+'-'+i;item.className='wallet-option';item.setAttribute('role','option');item.setAttribute('aria-selected',String(o.value===select.value));item.setAttribute('aria-disabled',String(o.disabled));item.dataset.active=String(i===active);const label=document.createElement('span');label.textContent=o.text;item.append(label);if(o.value===select.value){const check=document.createElement('span');check.className='option-check';check.textContent='✓';check.setAttribute('aria-hidden','true');item.append(check);}item.addEventListener('click',()=>choose(i));list.append(item);});if(!filtered.length){const empty=document.createElement('p');empty.textContent='No matching options';list.append(empty);}else search.setAttribute('aria-activedescendant',list.id+'-'+active);}
+  function show(){openControl?.close(false);openControl={root,close};popup.hidden=false;button.setAttribute('aria-expanded','true');search.value='';active=Math.max(0,[...select.options].findIndex(o=>o.value===select.value));draw();search.focus();}
+  function keys(e){if(e.key==='Escape'){e.preventDefault();close();}else if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();if(popup.hidden){show();return;}active=e.key==='Home'?0:e.key==='End'?filtered.length-1:Math.max(0,Math.min(filtered.length-1,active+(e.key==='ArrowDown'?1:-1)));draw();list.children[active]?.scrollIntoView({block:'nearest'});}else if(e.key==='Enter'&&!popup.hidden){e.preventDefault();choose(active);}else if(e.key==='Tab')close(false);}
+  button.onclick=()=>popup.hidden?show():close();button.onkeydown=keys;search.onkeydown=keys;search.oninput=()=>{active=0;draw();};
+  function update(){const text=document.createElement('span');text.className='select-value';text.textContent=select.selectedOptions[0]?.text||'Choose an option';const arrow=document.createElement('span');arrow.className='select-chevron';arrow.setAttribute('aria-hidden','true');button.replaceChildren(text,arrow);button.disabled=select.disabled;}
+  new MutationObserver(()=>{update();if(select.disabled)close(false);}).observe(select,{attributes:true,attributeFilter:['disabled']});
+  update();return {update,close};
+}

@@ -1,0 +1,56 @@
+/* Same bundled Inter face and control palette as the SunPhi website. */
+/* Keep the viewport width stable when sections gain or lose vertical overflow. */
+html{scrollbar-gutter:stable}
+@supports not (scrollbar-gutter:stable){html{overflow-y:scroll}}
+@font-face{font-family:'Inter Variable';font-style:normal;font-display:swap;font-weight:100 900;src:url('./fonts/inter-latin-wght-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Inter Variable';font-style:normal;font-display:swap;font-weight:100 900;src:url('./fonts/inter-latin-ext-wght-normal.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0300-0303,U+0305-0307,U+0309-0328,U+032A-036F,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Inter Variable';font-style:normal;font-display:swap;font-weight:100 900;src:url('./fonts/inter-greek-wght-normal.woff2') format('woff2');unicode-range:U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF}
+:root{font-family:'Inter Variable',Inter,system-ui,-apple-system,'Segoe UI',sans-serif;font-synthesis:none;font-size:16px;--button-bg:#161b22;--button-text:#f0f6fc;--button-border:#3d444d;--button-hover:#30363d;--button-hover-text:#f0f6fc;--button-hover-border:#8b949e;--nav-bg:transparent;--nav-text:#fff;--nav-hover:#171b20;--nav-line:#dfe3e8}
+:root[data-theme=light]{--button-bg:#fff;--button-text:#111317;--button-border:#afc1d7;--button-hover:#111317;--button-hover-text:#fff;--button-hover-border:#111317;--nav-bg:#111820;--nav-text:#fff;--nav-hover:#111820;--nav-line:#e60012}
+h1,h2,h3{font-weight:650;letter-spacing:-.035em}
+.brand{letter-spacing:-.055em}.brand small{letter-spacing:normal}
+.eyebrow{font-family:Consolas,'Liberation Mono',monospace;font-weight:500;letter-spacing:.09em}
+:root button{font-family:inherit;font-size:14px;font-weight:700;line-height:1.5;min-height:44px;padding:12px 18px;background:var(--button-bg);color:var(--button-text);border-color:var(--button-border);transition:background-color .15s,border-color .15s,color .15s,box-shadow .15s}
+:root button:not(:disabled):is(:hover,:focus-visible,:active){background:var(--button-hover);color:var(--button-hover-text);border-color:var(--button-hover-border)}
+:root button:disabled{opacity:.6;cursor:not-allowed}
+:root button:disabled:hover{background:var(--button-bg);color:var(--button-text);border-color:var(--button-border)}
+:root nav button{background:transparent;border-color:transparent;font-weight:550;color:var(--muted)}
+:root nav button[aria-current=page]{background:var(--nav-bg);color:var(--nav-text);border-color:transparent;box-shadow:inset 0 -.5px var(--nav-line)}
+:root nav button:not(:disabled):is(:hover,:focus-visible,:active){background:var(--nav-hover);color:var(--nav-text);border-color:transparent}
+:root nav button[aria-current=page]:focus-visible{box-shadow:inset 0 -.5px var(--nav-line),0 0 0 .5px var(--accent)}
+:root .close{padding:3px 10px;font-size:22px;min-height:36px}
+@media(prefers-reduced-motion:reduce){:root button{transition:none}}
+
+/* Compact desktop typography: keep the site's Inter hierarchy at wallet scale. */
+:root{font-size:14px}
+h1{font-size:clamp(28px,3.2vw,36px);line-height:1.18;margin-bottom:18px}
+.workspace-head h1{font-size:26px}
+h2{font-size:18px;margin-bottom:14px}h3{font-size:15px}
+p{line-height:1.6;margin-bottom:16px}
+.brand{font-size:22px}.brand span{font-size:32px}.brand small{font-size:12px}
+.eyebrow{font-size:10px}.badge{font-size:10px}.muted{font-size:11px}
+label{font-size:12px;margin-bottom:14px}
+input,select,textarea{font-size:13px;padding:11px 12px;margin-top:7px}
+#public-key,#address{font:12px/1.6 Consolas,'Liberation Mono',monospace}
+:root button{font-size:12px;min-height:40px;padding:10px 15px}
+:root .close{font-size:18px;min-height:32px}
+.callout{font-size:12px}.callout small{font-size:11px}
+.panel{padding:22px}.metric{padding:16px}
+.metric strong{font-size:24px}.metric small{font-size:11px}.metric span{font-size:10px}
+.record code{font-size:10px}.status{font-size:11px}
+pre{font-size:11px}footer{font-size:10px}
+header{height:68px}.header-actions .badge{font-size:10px}
+nav{margin:18px 0}.actions{gap:8px}
+@media(max-width:800px){.panel{padding:18px}.workspace-head h1{font-size:24px}}
+
+/* Profile-style section navigation: steady geometry, restrained labels,
+   coloured icons and a thin selected-section line in both themes. */
+:root{--nav-line:#ffb454}
+:root[data-theme=light]{--nav-line:#ff001b;--nav-bg:#111317;--nav-hover:#111317}
+:root nav{gap:8px;border-bottom:1px solid var(--line);padding-bottom:14px}
+:root nav button{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-weight:400;min-height:44px;padding:10px 16px;border-width:0;white-space:nowrap}
+.button-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;flex:0 0 26px;border-radius:50%;color:var(--muted);transition:color .15s,background-color .15s}
+.button-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+:root button:not(:disabled):is(:hover,:focus-visible,:active,[aria-current=page],[aria-pressed=true]) .button-icon{color:#ffb454}
+:root[data-theme=light] button:not(:disabled):is(:hover,:focus-visible,:active,[aria-current=page],[aria-pressed=true]) .button-icon{color:#fff;background:#ff001b}
+@media(prefers-reduced-motion:reduce){.button-icon{transition:none}}

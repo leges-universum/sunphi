@@ -1,0 +1,16 @@
+/* Desktop navigation has explicit normal/visited colours in both themes. */
+.sunphi-wordmark{font:600 25px/1.05 Georgia,serif;letter-spacing:.01em;color:var(--text,var(--ink,#f0f6fc))}.sunphi-wordmark small{display:block;font:500 9px/1.4 Inter,sans-serif;letter-spacing:.22em;margin-top:4px;color:var(--muted,#a5abb3)}
+a,a:visited{color:var(--text,var(--ink,#f2f2f2));text-underline-offset:4px}
+a:hover{color:var(--accent,#ff8b22)}
+a:focus-visible{outline:2px solid var(--accent,#ff8b22);outline-offset:4px}
+header a:not(.brand):not(.app-brand){display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border:1px solid var(--line,var(--border,#383838));background:transparent;font:600 13px/1.5 Inter,'Segoe UI',Arial,sans-serif;text-decoration:none;white-space:nowrap}
+header a:not(.brand):not(.app-brand):hover{background:#242a32;color:#fff;border-color:#68737f}
+header .desktop-actions{display:flex;align-items:center;gap:12px;margin-left:auto}
+.desktop-pair-header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 4vw;min-height:86px}
+.desktop-pair-header .app-brand{display:flex;align-items:center;gap:14px;text-decoration:none}
+.desktop-pair-header img{width:44px;height:44px}
+:root{scrollbar-width:thin;scrollbar-color:#68737f transparent}
+header{app-region:drag;-webkit-app-region:drag;min-height:max(85px,env(titlebar-area-height,32px));padding-right:max(32px,calc(100vw - env(titlebar-area-width,100vw) + 16px))}
+header a,header button,header input,header select{app-region:no-drag;-webkit-app-region:no-drag}
+footer{min-height:40px;padding:6px 32px;align-items:center;font-size:11px}
+@media(max-width:650px){header .desktop-actions{gap:8px}header a:not(.brand):not(.app-brand){padding:8px 10px;font-size:12px}.desktop-pair-header{flex-wrap:wrap}.desktop-pair-header .desktop-actions{margin-left:0}}
