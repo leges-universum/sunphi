@@ -1,0 +1,162 @@
+SUNPHI — PROGRAMME STATUS, 30 OCTOBER 2026
+
+0.18 owner-authorized FIRST WAN TRIAL DEPLOYED on existing3VPS+laptop.
+Old SERVER Wander nodes/gateways stopped with current state retained and verified
+root-only rollback archives; other services preserved. Separate synthetic chain
+sunphi-lab-wan-20261030-a,10validators/10witnesses placement3/3/1/3,3VPSarchives.
+Pinned restricted SSH mesh; laptop disconnect leaves7 server votes and progress.
+Six-vote halt, restore/catchup, actualZK mint/transfer and negative replay/tamper,
+controller hardcrash and independent wallet recovery PASS. One owner, not10
+independent operators; noHSM. Windows logon task keeps WSL trial running.
+32 locally provisioned witness generations, fixed public root allowlist; old
+quorums/inclusion/head/freshness unchanged. About7.5days at10s commit; provision
+more BEFORE exhaustion. No monetary policy change or real balances migrated.
+Read evidence/WAN-DEPLOYMENT-REPORT-RU.txt and evidence/wan-0.18/acceptance.json.
+Published installers/site/Coin/oldWindows client unchanged; no public new RPC.
+Two further computers,2000epoch WAN/load/full-host recovery/audit remain.
+
+0.17 local progress: durable authenticated long-offline header pages integrated
+with RpcPool/controller/witness/wallet. Historical verified:false/fresh:false;
+unchanged final fresh verifier,7/10 nonce heads, exact caller pins and fences.
+126 pages/16001 signed synthetic headers/2000 epoch intervals/two committee
+changes PASS Windows/Linux, hard process loss and corrupt journal/source tests.
+Separate real fenced-witness test recovers2000 epochs through7 selected root
+changes with restart1024; synthetic archive metadata, not2000 live Comet epochs.
+Missing selected secret and late reimport fail closed, no signer/fence reset.
+Explicit wallet recover2epochs/batch and optional node preflight; genesis-bound.
+Real retained10-validator/10-witness/3-archive lab PASS:3 losses continue,4 stop,
+partial-signature crash and cold restart recover. Empty wallet book independently
+recovers to epoch154 in78calls; node preflight ready only after fresh1253 tip.
+One physical host; no new monetary operations, publication or live changes.
+Read LONG-OFFLINE-RECOVERY.txt and evidence/LONG-RECOVERY-REPORT-RU.txt.
+Cold proof replay still O(history);512MiB/8192page budget, available old sources
+and correctly provisioned roots required. HSM/independent operators/audit remain.
+
+0.16 local progress: the0.15 controller catch-up issue is resolved for the tested
+retained-history window. Two concurrent expensive witness requests; signer-local
+bounded volatile memo of anchors emitted by actual adjacent-header verification;
+NEW fresh RPC verification on every seal, unchanged7/10, deadlines/lag and fences.
+Controller resamples live chain AFTER maintenance instead of extending stale TTL.
+Actual retained network: epoch96→138 healthy in172.399s excluding cold opening;
+three witness losses preserve7, four yield6/no checkpoint; partial-seal controller
+death and cold restart recover to epoch146/tip1181/10heads/healthy. One host only.
+Windows42+1 and Linux42+1 checks PASS; Go PASS; real Windows live verifier PASS.
+Read CATCHUP-OPERATIONS.txt and evidence/CATCHUP-REPORT-RU.txt. No deployment,
+download replacement, monetary changes or production gate clearance. Cold replay
+and gaps beyond5000 headers still require further work, not relaxed freshness.
+
+0.15 local progress: certified snapshot anchor now comes from a new independently
+verified RenewalBook (7/10 distinct signatures, linked signed consensus archives,
+root transitions and trusted genesis). Actual CometBFT State Sync integrated into
+the prepared non-voting node launcher; fresh keys, pinned consensus height/hash,
+atomic prefix import, crash-gap recovery and tail ZK execution. Windows/Linux
+negative/durability tests PASS; actual Linux network bootstrap688 -> authenticated
+application height887 and restart PASS. No public release or live migration.
+IMPORTANT: retained laboratory controller ended with checkpoint-progress-blocked
+and sealed-history-lag after long offline catch-up. Bootstrap PASS is NOT overall
+network health or fresh wallet authorization. This was open at0.15; the0.16 entry
+above records its tested local resolution without weakening freshness.
+Read CERTIFIED-BOOTSTRAP.txt and evidence/BOOTSTRAP-REPORT-RU.txt. Independent
+operators/HSM/audit, remote transport and production economic gates stay open.
+
+0.14 local progress: authenticated retained inventory and bounded incremental
+discovery, SQLite wire-location index,64-block delta cache and compressed encrypted
+private container implemented. Actual consensus/ZK incoming transfer, no duplicate
+credit, all-RPC corruption/outage and recovery PASS in the isolated single-host
+WSL lab. Windows/Linux snapshot/delta and private storage tests PASS. Explicit
+application snapshot restore verifies a separately supplied trusted anchor and
+replays the tail; normal node startup STILL uses full replay. Independent quorum
+anchor acquisition plus full CometBFT bootstrap integration remain open, as do
+long-gap pagination, logical private archive growth and O(N) state costs.
+See SCALING-OPERATIONS.txt and evidence/SCALING-REPORT-RU.txt. No publication or
+live migration; G4/G5 production gates below are not closed by these local tests.
+
+0.12 update: owner explicitly authorizes publishing downloadable wallet UI and
+node packages on the existing Network site. This authorizes PREVIEW distribution,
+not migrating the live ledger or enabling real-money/public-network operations.
+Windows graphical wallet and self-contained Linux archive verifier/prepared-node
+launcher are implemented. The recorded profile is offline; live send still needs
+matching running isolated services. Publication/verification evidence belongs in
+evidence/NATIVE-DOWNLOADS-REPORT-RU.txt.
+
+Owner authorizes continuing implementation without intermediate confirmations.
+This file distinguishes completed local work from requirements that cannot be
+honestly substituted by ten processes on one developer's computer.
+The design reference remains ../token-payment-model-20261029/
+NETWORK-INTEGRATED-DESIGN-RU.txt. No live Network/Coin migration is authorized by
+the existence of these local changes. Laboratory mode rejects production.
+
+G0 — monetary/privacy contract: PARTIAL
+Executable strict laboratory domain, synthetic1SUN/epoch/max100, conservation,
+range, fees, bounded expiry and public spend graph/hidden values. The production
+supply, allocation, emission schedule, reward function, stake, slashing, minimum
+fees and chain-specific monetary domain are NOT approved parameters. They cannot
+be invented or inherited from Coin's collateral model. Fees currently accumulate;
+node income is not implemented as a promised economic return.
+
+G1 — proof reference implementation: LOCAL EVIDENCE
+Actual mandatory o1js ZK ownership/ranges/conservation/encryption, pinned key,
+negative vectors and Windows/Linux proving/verification exist. No independent
+circuit/primitive audit; no claim of production cryptographic certification.
+Mobile proving cost, side-channel exposure and private-state UX remain unqualified.
+
+G2 — consensus/history: LOCAL EVIDENCE, EXTERNAL GATES OPEN
+Standalone CometBFT + independent checking application,10fixed laboratory seats,
+7/10 approval and witness seals, normal/lost-key rotation, root renewal, linked
+bootstrap, three verified archives/repair, controller ownership/failover,
+freshness and alternate RPC verification. Fault evidence exists for partitions,
+collusion/equivocation, restarts, archives and transitions; it assumes threshold
+honesty and availability, not absolute Byzantine immunity.
+Independent operators, separate administrative/failure domains, external retained
+checkpoints, audited hardware monotonic signing/erasure and real disaster exercises
+are absent. Software epoch fences do not prove protection against rolling back
+an entire machine plus its fence. Open membership and governance are not deployed.
+
+G3 — wallet: EXTENDED, NOT PRODUCTION COMPLETE
+Encrypted local backup helpers, persistent proving session, authenticated note
+reads/freshness/RPC fallback, exact durable submissions, receipts/reconciliation,
+offline status, witness-seal upgrade, bounded payment pages, local receipt UI,
+atomic pending-input reservations and conservative recovery of earlier outboxes.
+0.11 adds encrypted private receipt inventory, receipt/wire-driven incoming
+discovery, signed invoice/recipient/amount binding, private real-ZK payment
+preparation, durable encrypted drafts, exact submission, final evidence restored
+into the public outbox, and encrypted backup/recovery through independent trust.
+0.13 isolated candidate implements complete authenticated note-map discovery,
+fresh aggregate/held balance, automatic one/two-input selection, read-only
+witness checkpoint discovery and desktop reconnect/status recovery. These do
+not change the circuit, economic state roots or production admission policy.
+Read evidence/DISCOVERY-REPORT-RU.txt for actual acceptance evidence and limits.
+Next client work: scalable private discovery/storage/draft archival,
+automatic later-seal upgrades of outgoing private drafts,
+physical-phone proving and device qualification.
+The 0.12 graphical client remains a preview, not a complete production wallet.
+Query index reuse and streamed archive replay
+reduce repeated work but do not solve O(N) state mutation or O(H) bootstrap.
+
+G4 — independent assessment: NOT PERFORMED
+Prepare the source manifest, pinned dependencies/circuit key, threat model,
+protocol formats, replay/crash/fault evidence and explicit limitations for an
+external reviewer. Required disciplines: circuit/cryptography, consensus and key
+lifecycle, storage/recovery, client privacy, deployment/operations. Self-tests
+and this agent's review are not an independent audit. Findings must be corrected
+and retested before any regulated/payment production claim.
+
+G5 — separate limited pilot: NOT ACTIVATED
+Requires named independent operators/hosts, hardware capability tests, accepted
+monetary policy and risk/incident process, release signatures, deployment/funding
+decisions and independently witnessed recovery drills. Use separate pilot genesis;
+no automatic conversion of production balances, no implicit migration of Coin.
+Current endpoint whitelist permits loopback only; it is not an Internet transport
+security implementation. Remote authentication/rate limits/DDoS and host hardening
+need a concrete deployment design and its audit.
+
+G6 — expansion: NOT STARTED
+Depends on measured sustained pilot operation, actual incident recovery, independent
+control, approved economics and real demand. No Bitcoin-superiority claim follows
+from the present local tests. Real host cost, legal setup and operational staffing
+must be budgeted independently of zero-cost local laboratory process counts.
+
+Continuation order after0.11: complete private discovery/balance/visual lifecycle;
+persistent incremental state and restart cost limits; production
+monetary/domain specification; independent review and operators/hardware; separately
+authorized pilot, then expansion. Do not bypass these by publishing current code.
