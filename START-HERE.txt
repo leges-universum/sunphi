@@ -1,0 +1,58 @@
+SUNPHI TRIAL 0.18.1 — WINDOWS NODE + WALLET / LINUX NODE
+Current chain: sunphi-lab-wan-20261030-a. Test tokens only.
+
+WINDOWS (this laptop and each remote computer)
+1. Download and extract the COMPLETE ZIP into a new folder. Do not overwrite a
+   running installation or an existing wallet. Open SunPhi Native Node.exe.
+2. Select Create connection request. Save the JSON and send it to your SunPhi
+   operator. This is a PUBLIC key request; do not send transport-key, wallet files,
+   passwords or private keys. Every computer creates its OWN request.
+3. Once the operator approves the request, click Connect to trial. Keep this
+   application open. If approval has not arrived, the client retries safely.
+4. The local height should grow, synchronization should complete, voting power
+   stays zero. Open wallet enters the integrated wallet. Back to node locks it.
+5. Create a new encrypted wallet for this trial, save a backup, and allow the
+   initial history check to finish. It can take several minutes. Unverified or
+   unavailable balance is never presented as spendable. Starting a node does
+   not grant tokens, validator votes, issuance rights or income.
+
+Windows 10/11 x64; OpenSSH Client (ssh.exe and ssh-keygen.exe) must be installed.
+Other runtimes are included; no Node.js or WSL installation required.
+Suggested: 8 GB RAM, 16 GB for local ZK proving; 3 GB free plus growing history.
+The executable is unsigned. Verify SHA256SUMS.txt. No automatic startup/service
+or firewall rule is installed. Laptop sleep/disconnection suspends participation.
+
+Windows device state: %APPDATA%\SunPhi Native Trial\node\trial
+Wallet files: the location YOU choose. Retain them and their encrypted backups.
+An update uses the same Windows account and retains device state. Close the old
+client before starting the new one. Do not copy the device state to another PC.
+This client uses local ports 34000/34001,34030/34031,34060/34061,34100–34109,
+34200–34202 and 34400–34403. It does NOT replace the existing laptop WSL validators.
+Only outbound pinned SSH on TCP22 to the three approved VPS is needed.
+
+LINUX x86_64
+Extract the complete tar.gz. OpenSSH client is required. From its directory:
+  ./sunphi-trial.sh request "$HOME/.sunphi-trial" > connection-request.json
+Send that public JSON to the operator. After approval:
+  ./sunphi-trial.sh connect "$HOME/.sunphi-trial"
+Keep running; Ctrl+C stops only this client. Reuse the same state directory.
+
+SECURITY / LIMITS
+The public package includes genesis, verifier, transport host pins and public
+witness roots. It includes NO node private key, bank credential or wallet secret.
+Device transport and non-voting node keys are generated locally. Admission does
+not alter the 7-of-10 committee. All local services remain loopback-only.
+Public source tags and checksums establish release consistency, not an independent
+security audit. Trial network has four execution hosts under one administrator.
+32 provisioned witness generations are finite (~7.5 days from chain launch at
+the nominal rate); operators must extend them before exhaustion. Failure to renew
+blocks new financial readiness, never bypasses verification. No real-money use.
+Old Coin/browser wallet balances and older laboratory files are separate chains.
+
+РУССКИЙ КРАТКИЙ ПОРЯДОК
+Распакуйте ZIP целиком, запустите SunPhi Native Node.exe. Нажмите Create connection
+request и пришлите сохранённый JSON. На каждом компьютере создаётся отдельный
+запрос. После допуска нажмите Connect to trial. Кнопка Open wallet открывает
+кошелёк внутри приложения. Оставляйте приложение открытым. При обновлении не
+удаляйте данные и не копируйте ключи узла на другие компьютеры. Реальные деньги
+в этой сети не используются; подключение само по себе не начисляет токены.
