@@ -1,0 +1,166 @@
+SUNPHI NETWORK NEXT — PRIVATE WALLET, ISOLATED ONLY
+
+0.14 current isolated candidate: see SCALING-OPERATIONS.txt and
+evidence/SCALING-REPORT-RU.txt. After one complete authenticated inventory, warm
+updates verify bounded hash-linked deltas and decrypt only new outputs. Retained
+inventory pages can be completed against the first authenticated height/appHash;
+fresh delta verification is required before a balance becomes usable. This
+supersedes the 0.13 mutation-restarts-scan behaviour described below. Restart,
+eviction, a gap over64 blocks or failure discards the cursor and requires rescan.
+Actual new ZK payment and repeat/no-double-credit verified in the running lab.
+Encrypted backup writer now uses compressed authenticated v2; reader acceptsv1.
+Old clients cannot readv2. Logical limits remain unchanged. Nothing published.
+
+Boundary
+PrivateWallet requires an actual WalletNetwork instance and pins the chain ID /
+genesis identity. It does not accept an RPC's verified flag or a caller-supplied
+fake verifier. No production/browser wallet, domains, economics or balances are
+changed. Mandatory real ZK circuit and verification-key pin are unchanged.
+
+Receipt → private funds
+Import a receipt or the public wire of an incoming payment. For a wire, receiptFor
+obtains authenticated transaction membership from the current application and
+linked quorum headers. It neither broadcasts nor creates an outgoing submission.
+The receiver verifies real ZK and signed history, then decrypts both outputs with
+its local key and checks the actual commitment. Zero padding is omitted. The
+derived output ID is retained, and repeated imports cannot add a second copy.
+A later witness-sealed receipt upgrades a retained consensus-tail receipt.
+Manual receipt/wire import remains available. The 0.13 candidate additionally
+supports complete, authenticated private discovery; see below.
+
+Complete discovery and available balance (0.13 isolated candidate)
+synchronize scans four consecutive positions per signed notes-root page, with
+at most eight pages per ordinary call. Counts, positions, ordering, note identity
+and the original transaction outputs are authenticated; omission is an error.
+The root and count stay fixed throughout a scan. A final fresh read reauthenticates
+that same root after receipt/proof work. Mutation restarts the scan, never reports
+a partial balance. Decryption is local; newly owned positive outputs require
+actual ZK verification and a consensus-authenticated receipt before encrypted save.
+Repeated imports are idempotent. Spent notes remain historical and are excluded.
+
+balance is verified-at-snapshot only while the network's bounded freshness lease
+remains valid. Unknown/stale is null, NEVER zero. Available excludes inputs held
+by unresolved prepared payments; total and held are separate exact integers.
+No aggregate balance or progress cursor is trusted after restoration/restart.
+An old empty encrypted backup can rediscover later receipts with its original key.
+prepareAutomatic selects one or two sufficient inputs, minimizing input count
+then change. Exact integer arithmetic and the existing real ZK proof are used.
+If no supported pair is sufficient, fragmented funds require explicit future
+consolidation; no hidden additional transaction or fee is generated.
+
+The desktop checks after open/restore and every30 seconds while visible and idle.
+Each cycle recovers at most two unresolved drafts WITHOUT broadcasting, discovers
+bounded checkpoint batches and scans bounded pages. Local one-second status reads
+expire the visible balance without network traffic. Native send confirmation
+remains mandatory. A reconnect does not regenerate or automatically send drafts.
+Checkpoint discovery combines seven distinct valid retained witness signatures;
+archive/header/root-transition verification and retained high-water continuity
+still apply. The new publicSeal capability reads public history, never signs.
+
+Limits: this reference scans the GLOBAL note map, including spent/zero outputs;
+it is not yet a scalable selective encrypted index. Current map limit1,000,000;
+bounded scans may restart under continuous state changes and cannot promise
+liveness on a busy production chain. Existing private-vault capacities remain.
+Public response contains encrypted outputs and the existing public spend graph;
+ZK hides values/owner keys, not connection metadata or public lineage.
+See evidence/discovery-0.13/ and evidence/DISCOVERY-REPORT-RU.txt for test status.
+
+Signed invoices
+Invoice v1 strictly binds laboratory network, recipient public key, positive
+integer base-unit amount, random nonce and expiresAt milliseconds. Recipient
+signs these fields. Their domain-separated Poseidon hash is the output note's
+salt. Consequently a different invoice, even for the same address and amount,
+has a different expected commitment. The payer validates the signature; the
+receiver checks the exact expected output commitment after decryption. A payment
+cannot be relabelled as another invoice merely by changing a UI reference.
+No new circuit or verification key is required: the existing ZK circuit already
+binds output encryption, owner, salt and amount to this commitment.
+The signature proves control of an address, NOT a merchant's legal identity.
+Invoice files contain the agreed amount/address; share with the counterparty,
+not with public validators. Amounts remain hidden in network transactions.
+The wallet refuses new preparation/submission after local invoice expiry.
+Receipt confirmation alone does NOT establish on-time commercial performance;
+consensus does not enforce wall-clock invoice deadlines. Late receipts remain
+recoverable. A repeated invoice paid twice is marked duplicate-payments-review
+on discovery; importing against an already settled invoice explicitly fails.
+
+Preparation → submission → recovery
+preparePayment takes one/two known positive private inputs, an invoice, an explicit
+integer fee and a private ProverSession. Fresh signed passports must match local
+commitments and unspent state. It constructs exact receiver output and own change,
+proves ownership/conservation/encryption, verifies actual ZK and unchanged public
+terms, then atomically stores the complete draft in the encrypted vault BEFORE
+any send. Another draft cannot reuse those inputs without verified final evidence.
+sendPrepared submits the exact retained wire through WalletNetwork: independent
+freshness/state checks, public durable outbox/reservations, then network delivery.
+Neither a successful send nor a prepared proof establishes final confirmation.
+Use recoverPrepared / CLI recover after loss of a reply. Repeated send of a
+confirmed payment returns reverified final evidence without rebroadcast.
+Prepared drafts are reverified on open/restore; new proofs are not regenerated.
+Verified final receipts are retained with the encrypted draft, including payments
+with no change. Restoring them also repairs an existing public unknown outbox and
+releases its reservation atomically, only after re-verifying the exact wire and
+actual receipt. Offline historical confirmation does not grant fresh spending.
+Change is imported from the confirmed receipt just like any other incoming note.
+Input holds and prepared drafts are local protection. Across independent devices,
+consensus's authenticated unspent state remains the double-spend boundary.
+
+At-rest storage and restore
+PrivateVault uses AES-256-GCM with fresh random 96-bit IV per write and a fixed,
+domain-bound AAD; password key derivation is scrypt N32768/r8/p1 with random 128-bit
+salt, 64MiB maximum memory. SQLite WAL/FULL commits one ciphertext atomically.
+The file, WAL and public outbox do not contain the plaintext owner key, note
+openings or invoices. Kernel SQLite ownership locks and data_version checks reject
+two writers / concurrent external changes. A crash releases ownership normally.
+Backups are independently salted/encrypted; wrong password/alteration fails closed.
+Restore creates a NEW file only, validates the network identity and re-verifies
+every receipt/proof against a separately initialized authenticated trust book.
+It does not trust a stored balance or import a checkpoint from the backup.
+Keys exist in process/prover memory while unlocked. JS strings and crash dumps
+are not protected hardware and cannot be claimed securely erased; buffer clearing
+is best effort. No password reset or loss-of-key recovery is implied.
+An entire old encrypted vault can be restored: local encryption is NOT a hardware
+anti-rollback mechanism. Its contents remain historical; fresh network state is
+required to spend. An old/incomplete backup does not prove a zero balance or that
+all incoming funds were discovered. Retain a current encrypted backup and the
+independently established trust/bootstrap material separately.
+
+Bounds and user-facing meanings
+Max128 incoming receipts,256 issued invoices,64 prepared payments and16MiB decrypted
+vault payload. A call checks at most2 live note passports. Inventory deliberately
+returns spendableBalance:null and fresh-check-required; inspectNotes returns a
+bounded unspent-at-snapshot/spent observation, never an unconditional aggregate
+spendable balance. Freshness expires; submit checks again after long proving.
+Opening re-verifies receipts/proofs (linear bounded work), and whole vault writes
+are not a scalable per-note database. Limits are explicit failures, not eviction.
+Coin selection, complete private discovery and fresh aggregate balances have local
+0.13/0.14 evidence within the stated bounds. Scalable draft archival, password
+rotation, mobile application and physical-phone proving remain follow-on work.
+Public P1 spend graph is still linkable; this is not full anonymity.
+
+Interactive CLI
+Desktop distribution 0.12 adds the visual payment/backup lifecycle using this
+same PrivateWallet core. Renderer has no Node/filesystem/network access; native
+dialogs select files, an IPC-only Node worker holds private state and actual ZK
+verification/proving. Full private wallet objects are not served over HTTP.
+Payment review includes signed recipient, exact amount and fee. paymentReceipt()
+exports a retained final receipt only after verification, including after restoring
+into a fresh public journal. Independently supplied public profiles cannot select
+executables or arbitrary mutable database paths. Included profile is recorded,
+not a running public chain. See distribution/START-HERE.txt for installation.
+
+node tools/private-wallet.mjs NETWORK_CONFIG.json PRIVATE.db COMMAND [arguments]
+Passwords are requested in a non-echoing terminal; never put them in argv, an
+environment variable or public configuration. Commands:
+  create / address / history / prepared
+  invoice AMOUNT_BASE_UNITS OUTPUT.json
+  import RECEIPT.json [INVOICE_ID]
+  import-transaction WIRE.json [INVOICE_ID]
+  inspect NOTE_ID [NOTE_ID]
+  prepare INVOICE.json FEE_BASE_UNITS NOTE_ID [NOTE_ID]
+  send TXID / recover TXID
+  backup OUTPUT.json / restore BACKUP.json
+Files are created without overwriting; config is the separate public WalletNetwork
+config. Optional proverCache selects the local circuit cache. Invoice, incoming
+history and spending are explicit actions, with no mailbox scan/background poll.
+This terminal interface is not a completed visual wallet or a public service.

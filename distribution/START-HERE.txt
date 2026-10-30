@@ -1,0 +1,63 @@
+SUNPHI NATIVE 0.12 — WALLET AND NODE PREVIEW
+
+This release is for the new independent Network implementation. It does not
+replace SunPhi Coin, the existing browser wallet or the installed SunPhi Node.
+No real funds, redemption, live public network or node income is provided.
+
+WINDOWS WALLET (Windows 10/11 x64, 8 GB RAM minimum; 16 GB recommended for proving)
+1. Extract the complete ZIP into a writable local folder. Keep all files together.
+2. Open SunPhi Native Wallet.exe. No separate Node.js installation is required.
+3. Create a new encrypted wallet or open a previously created NATIVE .db wallet.
+   Use at least 12 password characters; there is no password-reset service.
+4. Save an encrypted backup through Backup. Keep its password separately.
+5. Receive creates signed invoice files and imports independently verified
+   payment receipts. Activity retains prepared payments and recovers outcomes.
+6. The included public profile is a RECORDED laboratory chain. Its services are
+   stopped. You can create wallets/invoices/backups and verify historical receipts;
+   new payments require a running, matching isolated laboratory network.
+   No balance is invented when that network is unavailable.
+7. Your operator may provide another independently authenticated PUBLIC profile
+   directory: genesis.json, certificates.json (policy and certificates), matching
+   epoch-N.json archives, optional endpoints.json containing only rpcs, witnesses,
+   archives. Choose laboratory profile while locked. Only 127.0.0.1 HTTP endpoints
+   are supported in this release. Never accept a trust root from an unknown sender.
+
+Payment preparation and sending are separate. Verify recipient, exact SUN amount
+and fee. Fees are entered in base units (100,000,000 units = 1 SUN). The first
+proof compiles locally and may take several minutes. After a lost reply recover
+the saved payment; do not create a replacement. A historical receipt is not a
+fresh spendable balance. Incoming discovery requires receipt import in this build.
+Never copy a live .db file alone: use encrypted Backup for portable recovery.
+
+LINUX NODE (x86_64, Ubuntu 22.04+, 4 GB RAM minimum; 8 GB recommended)
+Extract the tar.gz into a dedicated directory. No root account, system service,
+firewall change, existing key replacement or automatic startup is used.
+  ./sunphi-node.sh help
+  ./sunphi-node.sh verify "$HOME/sunphi-native-verification"
+This creates a local verifying replica of the included public archive. It checks
+quorum signatures, checkpoint continuity and actual zero-knowledge transactions,
+then prints the resulting state root. Run again to verify recovery from disk.
+It does not vote, issue tokens or contact a public network.
+
+For an operator-prepared isolated full node:
+  ./sunphi-node.sh start /absolute/path/to/prepared-node-home 31000
+The home must contain config/config.toml, config/genesis.json, appropriate own
+Comet keys/state, app-config.json and verification-key.json for an approved lab.
+Its four service ports must be loopback-bound and dedicated to that instance.
+Never clone a validator signing key/state, delete signing history or restore an
+old signer backup. No validator private keys or preallocated balances are shipped.
+Creating a new committee and admission of new validators are operator procedures,
+not an automatic consequence of installing this script. See NETWORK-OPERATIONS.txt
+and OPERATIONS-AND-SIGNER.txt in the package for the underlying lab procedures.
+
+SECURITY AND LIMITS
+The Windows executable is not Authenticode-signed. Compare package SHA-256 to the
+release checksum before use. Hashes detect changed bytes, not independent audits.
+No telemetry, remote proving service, public key-management HTTP API or auto-update.
+Your unlocked keys exist in local process memory; this is not hardware custody.
+Ten processes on one host do not establish independent operators. Public spend
+links are visible; encrypted amounts/owners are not a promise of full anonymity.
+Current limits: 128 received receipts, 256 issued invoices, 64 prepared payments;
+at most two inputs per payment. No exhaustive discovery or aggregate live balance.
+Independent audits, production economics, operator separation, hardware-backed
+signing and Internet transport remain prerequisites for real-money deployment.

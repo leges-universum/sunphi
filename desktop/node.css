@@ -1,0 +1,37 @@
+@font-face{font-family:Inter;src:url('inter.woff2');font-weight:100 900}*{box-sizing:border-box}body{margin:0;background:#090c0f;color:#f0f6fc;font:14px/1.6 Inter,'Segoe UI',sans-serif}header,footer{padding:20px 32px;border-bottom:1px solid #303740;display:flex;align-items:center;justify-content:space-between;gap:20px}header>span{font:10px Consolas,monospace;letter-spacing:1px;color:#a5abb3}.brand{font-family:Georgia,serif;color:#a5abb3}.brand strong{font:500 18px Inter,sans-serif;letter-spacing:4px;margin-left:18px;color:#f0f6fc}main{max-width:800px;margin:auto;padding:30px 36px}.eyebrow{font:10px Consolas,monospace;letter-spacing:2px;color:#f47b20}h1{font-size:36px;line-height:1.12;letter-spacing:-1px;margin:18px 0}h2{font-size:18px;margin:0}.lead{color:#a5abb3;max-width:660px;margin-bottom:28px}.steps{display:flex;list-style:none;padding:0;margin:0 0 20px;border-bottom:1px solid #303740}.steps li{flex:1;padding:12px;color:#a5abb3;border-bottom:2px solid transparent}.steps li span{margin-left:8px}.steps li.active{border-color:#f47b20;color:#fff}.panel{padding:26px;border:1px solid #3d444d;background:#10151a}.status-heading{display:flex;gap:12px;align-items:center}#indicator{width:9px;height:9px;background:#a5abb3;border-radius:50%;flex:none}#indicator.working{background:#f47b20}#indicator.connected{background:#6cc69d}#message{color:#b9c1ca;margin:14px 0 20px}button{position:relative;font:600 13px Inter,sans-serif;padding:12px 16px;min-height:44px;background:transparent;border:1px solid #59636f;color:#fff;border-radius:0;cursor:pointer}button:hover{background:#1d252e}button:focus-visible{outline:2px solid #f47b20;outline-offset:3px}button:disabled{opacity:.45;cursor:default}.actions{display:flex;gap:12px;flex-wrap:wrap}.actions button:first-child{border-bottom:2px solid #f47b20}.check{display:flex;gap:12px;align-items:flex-start;font-size:13px;color:#b9c1ca;margin:20px 0}.check input{flex:0 0 17px;width:17px;height:17px;margin-top:3px;accent-color:#f47b20}.auto{margin-bottom:10px}.fine{font-size:12px;line-height:1.65;color:#96a0ac}.reference-row{display:flex;gap:10px;margin-top:8px}.reference-row input{flex:1;min-width:0;padding:12px;font:13px Consolas,monospace;color:#fff;background:#090c0f;border:1px solid #59636f}#reference-box{margin:22px 0}#reference-box label{font-size:12px}details{margin-top:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:#b9c1ca}footer{border-top:1px solid #303740;border-bottom:0;font-size:11px;color:#96a0ac}footer button{border:0;padding:8px} [hidden]{display:none!important}@media(max-width:650px){main{padding:26px 22px}header,footer{padding:18px 22px}.reference-row{flex-direction:column}h1{font-size:30px}.panel{padding:20px}}
+
+.brand{display:flex;align-items:center;gap:14px}.brand img{display:block;flex:none}
+.sunphi-wordmark{font:600 25px/1.05 Georgia,serif;letter-spacing:.01em;color:#f0f6fc}.sunphi-wordmark small{display:block;font:500 9px/1.4 Inter,sans-serif;letter-spacing:.22em;margin-top:4px;color:#a5abb3}
+/* Keep the rail transparent against the app surface. */
+:root{color-scheme:dark;scrollbar-width:thin;scrollbar-color:#68737f transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:#68737f;border:3px solid transparent;background-clip:padding-box;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background-color:#9aa5b1}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+/* Compact utility footer; keep keyboard targets usable without a tall band. */
+body:has(>footer){display:flex;flex-direction:column;min-height:100vh}
+body:has(>footer)>main{width:100%;margin:0 auto;flex:1}
+footer{padding:2px 32px;min-height:36px;flex-shrink:0;gap:12px;flex-wrap:wrap}
+footer button{min-height:30px;padding:4px 8px;font-size:12px}
+@media(max-width:650px){footer{padding:2px 16px;gap:6px}footer button{font-size:11px}}
+/* Reserve native Windows caption controls in the single branded header. */
+header{app-region:drag;-webkit-app-region:drag;min-height:max(85px,env(titlebar-area-height,32px));padding-right:max(32px,calc(100vw - env(titlebar-area-width,100vw) + 16px))}
+header a,header button,header input,header select{app-region:no-drag;-webkit-app-region:no-drag}
+
+/* Native trial additions preserve the established connection screen. */
+.steps li.active,.actions button:first-child{border-bottom-width:1px}
+#log{max-height:240px;overflow:auto}#technical,#notice{overflow-wrap:anywhere}
+#notice{padding:12px;border:1px solid #59636f}
+summary{cursor:pointer}input:focus-visible,summary:focus-visible{outline:2px solid #f47b20;outline-offset:3px}
+:root[data-theme=light]{color-scheme:light}
+[data-theme=light] body{background:#f5f5f5;color:#17191b}
+[data-theme=light] .panel{background:#fff;border-color:#aaa}
+[data-theme=light] header,[data-theme=light] footer,[data-theme=light] .steps{border-color:#b8b8b8}
+[data-theme=light] .sunphi-wordmark,[data-theme=light] .steps li.active{color:#17191b}
+[data-theme=light] .sunphi-wordmark small,[data-theme=light] .lead,[data-theme=light] .fine,[data-theme=light] .check,[data-theme=light] #message,[data-theme=light] pre,[data-theme=light] header>span,[data-theme=light] footer,[data-theme=light] .steps li{color:#51565b}
+[data-theme=light] button{color:#17191b;border-color:#777}
+[data-theme=light] button:hover{background:#e8e8e8}
+[data-theme=light] .reference-row input{background:#f5f5f5;color:#17191b;border-color:#777}
+[data-theme=light] .eyebrow{color:#9b4a0b}
+@media(max-width:650px){header{padding-top:40px}.steps li{padding:10px 4px}.steps li span{margin-left:4px}}
