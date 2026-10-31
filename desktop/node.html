@@ -1,0 +1,13 @@
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><title>SunPhi Node</title><link rel="stylesheet" href="node.css"><script type="module" src="node-ui.js"></script></head><body>
+<header><div class="brand"><img src="node-brand.png" width="44" height="44" alt=""><span class="sunphi-wordmark">SunPhi<small>NETWORK</small></span></div><span>NODE · WINDOWS</span></header>
+<main><p class="eyebrow">CONNECT YOUR COMPUTER</p><h1>Your computer<br>Part of SunPhi</h1><p class="lead">Connect this computer once. SunPhi approves the connection, then your computer verifies the network history.</p>
+<ol class="steps" aria-label="Connection progress"><li id="step-setup">1 <span>Setup</span></li><li id="step-review">2 <span>Approval</span></li><li id="step-connect">3 <span>Connection</span></li></ol>
+<section class="panel" aria-labelledby="status"><div class="status-heading"><span id="indicator"></span><h2 id="status" role="status" aria-live="polite">Checking this computer</h2></div><p id="message">Reading your saved connection settings…</p>
+<p id="notice" role="alert" hidden></p>
+<div id="reference-box" hidden><label for="reference">Request number for approval</label><div class="reference-row"><input id="reference" readonly><button id="copy">Copy</button></div><p class="fine">Send the saved public request file to SunPhi and identify this computer. The number helps the operator find your request.</p></div>
+<p id="rpc" class="fine" hidden></p>
+<div class="actions"><button id="connect" disabled>Connect this computer →</button><button id="connection-request" hidden>Save connection request</button><button id="stop" hidden>Disconnect</button><button id="wallet">Open wallet →</button></div>
+<details id="details"><summary>Connection details</summary><p id="technical" class="fine"></p><pre id="log" aria-label="Node operation log"></pre></details></section>
+<label class="check auto"><input id="auto" type="checkbox"><span>Start after signing in to Windows</span></label>
+<p class="fine">Trial network · Test tokens only. Keep the app running and the computer online. The wallet separately verifies whether payments are available.</p>
+</main><footer><span>SunPhi Node · 0.18.13 Trial</span><button id="theme">Light theme</button></footer></body></html>

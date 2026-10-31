@@ -1,0 +1,202 @@
+import {tokenUnit,basketEstimate,quoteTokenValue} from './token-units.mjs';
+import {families,formatUnits} from './procedure-products.mjs';
+import {installRecipientTransfer} from './recipient-ui.mjs';
+import {enhanceSelect} from './select-control.mjs';
+import {walletRestriction,assetRestriction,policyRestriction,availableRoutes,ownProductRestriction} from './operation-guidance.mjs';
+import {developerToolsEnabled} from './developer-tools.mjs';
+const $=id=>document.getElementById(id);
+const node=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
+const stamp=t=>new Date(t).toLocaleString('en-GB');
+const paths={overview:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',portfolio:'M3 6h18v14H3zM8 6V3h8v3M3 11h18',transitions:'M3 7h16l-4-4M21 17H5l4 4',activitynew:'M3 12h4l3-8 4 16 3-8h4',support:'M4 13v-2a8 8 0 0 1 16 0v2M4 12H2v7h4v-7M20 12h2v7h-4v-7M18 21h-6',security:'M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7zM9 12l2 2 4-4',legacy:'M8 3h8M10 3v7L4 20h16l-6-10V3'};
+function icon(id){const span=node('span',undefined,'button-icon'),svg=document.createElementNS('http://www.w3.org/2000/svg','svg'),path=document.createElementNS(svg.namespaceURI,'path');svg.setAttribute('viewBox','0 0 24 24');path.setAttribute('d',paths[id]||paths.overview);svg.append(path);span.setAttribute('aria-hidden','true');span.append(svg);return span;}
+function brand(){const wrap=node('div',undefined,'wallet-brand'),network=node('button','sun(φ)','network-brand');network.type='button';network.dataset.help='home';network.setAttribute('aria-label','Open sun(phi) website');const art=node('span',undefined,'wallet-wordmark');for(const theme of ['light','dark']){const image=node('img');image.src=`brand/sun-phi-${theme}.png`;image.alt='';image.className='wordmark-'+theme;art.append(image);}const title=node('button',undefined,'brand-title');title.type='button';title.dataset.tab='overview';title.setAttribute('aria-label','Return to wallet overview');title.append(art,node('small','Wallet'));wrap.append(network,title);return wrap;}
+function panel(title,description){const p=node('section',undefined,'panel');p.append(node('h2',title));if(description)p.append(node('p',description));return p;}
+function fact(label,value){const p=node('div',undefined,'fact');p.append(node('small',label),node('strong',value));return p;}
+function family(position){const f=families[position.profile],p=node('span',undefined,'family-label'),dot=node('span',undefined,'colour-dot');dot.style.backgroundColor=f?.hex||'#999';p.append(dot,node('strong',`sun(φ) ${position.profile}`),node('span',f?.name||'Instrument'));return p;}
+const transferActions={
+ 'pi-service':{title:'Move to my payment-service deposit',detail:'The same deposit claim stays with the same bank and holder, but becomes available through its payment service.'},
+ 'pi-a-b':{title:'Move to my deposit at another institution',detail:'Your original deposit claim is replaced by a new claim against the receiving institution. Review its terms before confirming.'},
+ 'pi-go':{title:'Move funds to my payment account',detail:'The deposit claim is exchanged for a payment-account claim. The product terms and protection may differ.'},
+ 'vi-pi':{title:'Exchange Vi for Pi tokens',detail:'Exchange basket-linked Vi tokens for deposit-backed Pi tokens. Review the token quantities, issuers and separate basket estimates.'},
+ 'pi-bl':{title:'Buy fund units',detail:'Use the deposit claim to acquire units in the named fund. The resulting asset is an investment, with its own risks and terms.'},
+ 'pi-gr':{title:'Buy a receivable',detail:'Use the deposit claim to acquire the named receivable. Its face value is not the same as cash available for withdrawal.'}
+};
+function instrumentIdentity(position,title){
+ const box=node('div',undefined,'transfer-instrument'),mark=node('span','φ','token-mark');
+ mark.style.color=families[position.profile]?.hex||'var(--muted)';mark.setAttribute('aria-hidden','true');
+ const details=node('div',undefined,'instrument-details');
+ details.append(node('small',title),node('strong',`sun(φ) ${position.profile} · ${position.title}`),node('span',`Issuer / obligor: ${position.obligor}`),node('small',`Transfer unit: ${tokenUnit(position)}`));
+ if(position.token)details.append(node('small',`Underlying right per token: 1 ${position.token.underlyingUnit} · Basket valuation: XDR`));box.append(mark,details);return box;
+}
+function amountDisplay(value,unit){const h=node('h3',undefined,'amount-display');h.append(node('span',value,'amount-value'),node('span',unit,'amount-unit'));return h;}
+function basketNote(position,quantity){
+ const value=basketEstimate(position,quantity),wrap=node('div',undefined,'basket-valuation');
+ wrap.append(node('small','Basket valuation'),node('strong',value===null?'Unavailable':'≈ '+value+' XDR','numeric'));
+ if(value!==null){const v=position.basketValuation;wrap.append(node('small',v.basis),node('small','USD · EUR · CNY · JPY · GBP'),node('small',v.source+' · '+stamp(v.asOf)+' · Not a live rate'));}
+ return wrap;
+}
+function transferBalance(position,proc){
+ const card=node('div',undefined,'transfer-balance');card.setAttribute('role','group');card.setAttribute('aria-label','Selected asset balance');
+ if(!position){card.append(node('p','Choose an asset to see its available balance.'));return card;}
+ const uncertain=proc.stale||proc.outbox.some(q=>['SUBMITTING','UNKNOWN'].includes(q.state));
+ const available=node('div',undefined,'transfer-balance-main');
+ available.append(node('span',position.profile==='Ma'?'Guarantee capacity — not transferable':uncertain?'Last confirmed available — refresh required':'Available to transfer','transfer-balance-label'),amountDisplay(formatUnits(position.available,position.precision),tokenUnit(position)));
+ const other=node('div',undefined,'transfer-balance-other');
+ for(const [label,key] of [['Reserved','reserved'],['Incoming pending','pendingReceipt']]){const row=node('div');row.append(node('span',label),node('strong',formatUnits(position[key],position.precision)+' '+tokenUnit(position),'numeric'));other.append(row);}
+ available.append(basketNote(position,position.available));card.append(available,other,node('small','Reserved and pending amounts are excluded from the available balance. · Updated '+stamp(proc.snapshot.asOf)));
+ return card;
+}
+function table(headers,rows){const wrap=node('div',undefined,'table-scroll'),t=node('table'),head=node('thead'),tr=node('tr');headers.forEach(h=>{const cell=node('th',h);if(h.startsWith('Quantity'))cell.className='numeric';tr.append(cell);});head.append(tr);const body=node('tbody');rows.forEach(row=>{const r=node('tr');row.forEach((value,index)=>{const cell=node('td',String(value));if(headers[index].startsWith('Quantity')){cell.className='numeric';if(/^0(?:\.0+)?$/.test(String(value)))cell.classList.add('zero-value');}r.append(cell);});body.append(r);});t.append(head,body);wrap.append(t);return wrap;}
+export function installWorkspace({call,run,message,selectTab,refresh}){
+  let state={locked:true},proc=null,proposalId=null,lastReviewButton=null,renderedIdentity='';
+  document.querySelector('header .brand').replaceWith(brand());document.querySelector('header .badge').textContent='Demo preview';
+  const footer=document.querySelector('footer');footer.replaceChildren(brand(),node('span','Standard & technology · Obligations remain with identified obligors.'));const resources=node('button','Resources ↗','footer-link');resources.dataset.help='resources';footer.append(resources);
+  $('overview').id='legacy';$('payments').id='legacy-payments';$('signing').id='legacy-signing';$('activity').id='legacy-activity';
+  const legacybar=node('div',undefined,'actions legacy-nav');for(const [id,label] of [['legacy','1. Create test units'],['legacy-payments','2. Test a payment'],['legacy-signing','File signing'],['legacy-activity','Test history']]){const b=node('button',label);b.type='button';b.dataset.tab=id;legacybar.append(b);}
+  for(const id of ['legacy','legacy-payments','legacy-signing','legacy-activity']){const clone=legacybar.cloneNode(true);$(id).prepend(clone);$(id).hidden=true;}
+  const nav=document.querySelector('#workspace > nav');nav.replaceChildren();
+  for(const [id,label] of [['overview','Overview'],['portfolio','Holdings'],['transitions','Transfers & exchanges'],['activitynew','History'],['support','Support'],['security','Security']]){const b=node('button');b.type='button';b.dataset.tab=id;b.append(icon(id),node('span',label));if(id==='overview')b.setAttribute('aria-current','page');nav.append(b);if(!$(id)){const section=node('section',undefined,'tab');section.id=id;section.hidden=id!=='overview';nav.after(section);}}
+  if(developerToolsEnabled){const technical=node('details');technical.id='technical-tools';
+  technical.append(node('summary','Technical tools'),node('p','Optional integration tests with separate test balances. These tools are not needed to send or receive assets in your wallet.'));
+  const openTests=node('button','Open test scenarios');openTests.type='button';openTests.dataset.tab='legacy';technical.append(openTests);$('security').append(technical);}
+  const paymentGate=panel('Start the deposit test first','Create a separate test programme, then create test units. These balances are only used in these technical tests.');
+  paymentGate.id='legacy-payment-gate';const startTest=node('button','Set up test programme');startTest.type='button';startTest.dataset.action='start';
+  const createUnits=node('button','Go to Create test units');createUnits.type='button';createUnits.dataset.tab='legacy';createUnits.id='legacy-create-units';paymentGate.append(startTest,createUnits);
+  $('legacy-payments').querySelector('.legacy-nav').after(paymentGate);
+  const balances=node('p');balances.id='legacy-payment-balances';paymentGate.after(balances);
+  const clockButton=document.querySelector('[data-action="advance"]');if(clockButton)$('legacy').append(clockButton);
+  document.querySelector('.workspace-head .callout').id='connection-summary';
+  const about=node('details');about.append(node('summary','About this preview'),node('p','SunPhi Wallet 0.5.0 · SPHI STD 001 2.2'),node('p','This preview uses a local test adapter and fictional institutions. Live institutional connections and production admission are not enabled.'),node('p','Earlier laboratory records use the name Rose for the deposit test product. Their original signed contents are preserved so that signatures remain verifiable.'));$('security').append(about);
+  const flow=panel('Move or exchange your assets','Between your own products, including products at different institutions. To pay someone else, choose Send to a recipient.');
+  const form=node('form');form.id='procedure-form';
+  const assetLabel=node('label','Asset to transfer'),assetSelect=node('select');assetSelect.id='procedure-asset';assetLabel.append(assetSelect);
+  const label=node('label','What would you like to do with this asset?'),select=node('select');select.id='procedure-route';select.name='routeId';label.append(select);
+  const amountLabel=node('label'),amountTitle=node('span','Tokens to transfer'),amount=node('input'),amountField=node('span',undefined,'transfer-amount-field'),amountUnit=node('span',undefined,'transfer-amount-unit'),amountHint=node('small',undefined,'transfer-amount-hint');
+  amountLabel.htmlFor='procedure-amount';amountTitle.id='procedure-amount-label';amountUnit.id='procedure-amount-unit';amountHint.id='procedure-amount-hint';
+  amount.id='procedure-amount';amount.name='amount';amount.inputMode='decimal';amount.required=true;amount.autocomplete='off';
+  amount.setAttribute('aria-labelledby','procedure-amount-label procedure-amount-unit');amount.setAttribute('aria-describedby','route-description procedure-amount-hint');
+  amountField.append(amount,amountUnit);const amountEstimate=node('small',undefined,'transfer-amount-hint');amountEstimate.id='procedure-valuation';amountLabel.append(amountTitle,amountField,amountHint,amountEstimate);amount.oninput=()=>{const p=proc?.snapshot?.positions.find(p=>p.id===assetSelect.value),value=p?quoteTokenValue(p,amount.value):null;amountEstimate.textContent=value===null?'':'Basket estimate: ≈ '+value+' XDR · Fixed demonstration rate';};let describedRoute='';
+  const balanceSummary=node('div');balanceSummary.id='procedure-balance-summary';
+  const guidance=node('div');guidance.id='transfer-guidance';flow.append(guidance);const desc=node('div');desc.id='route-description';const submit=node('button','Review rights & instruction');submit.type='submit';submit.id='procedure-submit';form.append(assetLabel,balanceSummary,label,desc,amountLabel,submit);flow.append(form);$('transitions').append(flow);const assetControl=enhanceSelect(assetSelect),routeSelect=enhanceSelect(select);
+  assetSelect.onchange=()=>updateRoutes('');
+  select.onchange=()=>describeRoute();
+  form.onsubmit=e=>{e.preventDefault();run(async()=>{const review=await call('procedure',{action:'quote',input:{routeId:select.value,amount:amount.value,delivery:'normal'}});proposalId=review.id;lastReviewButton=submit;showReview(review.details);});};
+  const dialog=node('dialog');dialog.id='procedure-review';dialog.setAttribute('aria-labelledby','procedure-review-title');const close=node('button','×','close');close.type='button';close.setAttribute('aria-label','Close proposal review');close.onclick=()=>dialog.close();const heading=node('h2','Review and authorise');heading.id='procedure-review-title';const content=node('div');content.id='procedure-review-content';const checkLabel=node('label',undefined,'consent-check');const check=node('input');check.type='checkbox';check.id='procedure-consent';checkLabel.append(check,node('span','I have reviewed the exact rights, parties, amounts and conditions shown above.'));const confirm=node('button','Confirm demo transfer');confirm.id='procedure-confirm';confirm.disabled=true;check.onchange=()=>confirm.disabled=!check.checked;dialog.append(close,heading,content,checkLabel,confirm);document.body.append(dialog);dialog.addEventListener('close',()=>{proposalId=null;check.checked=false;confirm.disabled=true;lastReviewButton?.focus();});
+  confirm.onclick=()=>run(async()=>{if(!check.checked||!proposalId)return;confirm.disabled=true;try{await call('procedure',{action:'confirm',input:{id:proposalId}});dialog.close();await refresh();selectTab('activitynew');message('Instruction retained with its original reference. Review the verified outcome below.');}finally{confirm.disabled=!check.checked;}});
+  function action(label,fn){const b=node('button',label);b.type='button';b.onclick=()=>run(fn);return b;}
+  async function refreshProcedure(){await call('procedure',{action:'refresh',input:{}});await refresh();message('Balances and transfer status updated.');}
+  function toolbar(parent){const a=node('div',undefined,'actions');a.append(action('Refresh balances & status',refreshProcedure),action('Export evidence package',async()=>{const r=await call('procedure-export');message(r?.saved?'Public evidence package saved. No private keys exported.':'Use the desktop application to save the evidence package.');}));parent.append(a);}
+  function updateRoutes(preferred=select.value){
+    select.replaceChildren();
+    for(const r of proc?.snapshot?.routes??[]){
+      if(r.source!==assetSelect.value||r.status!=='ACTIVE')continue;
+      const dest=proc.snapshot.positions.find(p=>p.id===r.destination);
+      if(!dest)continue;
+      const o=node('option',`${transferActions[r.id]?.title||r.title} · ${dest.obligor}`);
+      o.value=r.id;o.disabled=r.status!=='ACTIVE';select.append(o);
+    }
+    if([...select.options].some(o=>o.value===preferred&&!o.disabled))select.value=preferred;
+    else select.value=[...select.options].find(o=>!o.disabled)?.value||'';
+    select.disabled=!select.value;routeSelect.update();describeRoute();
+  }
+  function describeRoute(){
+    balanceSummary.replaceChildren(transferBalance(proc?.snapshot?.positions.find(p=>p.id===assetSelect.value),proc));
+    const r=proc?.snapshot?.routes.find(r=>r.id===select.value),p=$('route-description');p.replaceChildren();
+    if(describedRoute!==(r?.id||''))amount.value='';describedRoute=r?.id||'';
+    amount.disabled=!r;amountUnit.textContent='';amountHint.textContent='';amountTitle.textContent='Amount to transfer';
+    updateTransferGuidance();
+    if(!r){amount.placeholder='No operation available';return;}
+    const source=proc.snapshot.positions.find(p=>p.id===r.source),dest=proc.snapshot.positions.find(p=>p.id===r.destination);
+    p.append(instrumentIdentity(source,'From'),instrumentIdentity(dest,'To'));
+    const explanation=node('p',transferActions[r.id]?.detail||`Move from ${source.title} to ${dest.title}. Review the exact terms before confirming.`,'transfer-explanation');p.append(explanation);
+    amountTitle.textContent='Tokens to transfer';amount.oninput();
+    amountUnit.textContent=tokenUnit(source);
+    amount.placeholder=source.precision?'0.'+'0'.repeat(source.precision):'0';
+    const availability=proc.stale?'Last confirmed available':'Available';
+    amountHint.textContent=`${availability}: ${formatUnits(source.available,source.precision)} ${tokenUnit(source)} · Up to ${source.precision} decimal places. Enter token quantity; XDR is the separate basket valuation.`;
+  }
+  function showReview(p){content.replaceChildren();if(p.recipient){const recipient=panel('Recipient',p.recipient.label);recipient.append(node('code',p.recipient.address),node('small','Self-provided test-wallet label; not verified legal identity.'),node('p','Payment purpose: '+(p.purpose||'Not specified')));content.append(recipient);}content.append(node('p','LOCAL PROCEDURE LABORATORY · No real funds or legal effect','eyebrow'));const compare=node('div',undefined,'rights-comparison');for(const [title,position,quantity] of [['You authorise from',p.source,p.sourceUnits],[p.recipient?'Recipient receives':'You receive',p.destination,p.destinationUnits]]){const c=panel(title);c.append(instrumentIdentity(position,position===p.destination?'Destination instrument':'Source instrument'),amountDisplay(formatUnits(quantity,position.precision),tokenUnit(position)),basketNote(position,quantity),node('p',position.right),node('small',position.protection));compare.append(c);}content.append(compare,table(['Term','Exact proposal'],[['Operation',p.recipient?'Send to a recipient':transferActions[p.routeId]?.title||p.type],['Fees / taxes',`${formatUnits(p.feeUnits,p.source.precision)} / ${formatUnits(p.taxUnits,p.source.precision)} ${tokenUnit(p.source)}`],['Quote',p.valuation],['Valid until',stamp(p.expiresAt)],['Binding event',p.bindingEvent],['Cancellation',p.cancellation],['If a leg is missing',p.recovery],['Terms / route',`${p.termsVersion} · ${p.routeId} v${p.routeVersion}`]]));if(p.source.profile==='Pi'||p.destination.profile==='Pi')content.append(node('p','Previously earned interest remains a separate claim of the holder who earned it. Only principal tokens move; the receiving holder starts new accrual at confirmed completion.'));if(p.precheck)content.append(node('p','Eligibility and available quantity checked '+stamp(p.precheck.checked_at)+'. Checks run again at execution. This review does not reserve funds or confirm payment.'));const detail=node('details');detail.append(node('summary','Legal conditions and technical proposal'),node('pre',JSON.stringify(p,null,2)));content.append(detail);check.checked=false;confirm.disabled=true;dialog.showModal();close.focus();}
+  function overview(){const root=$('overview');root.replaceChildren();if(!proc?.connected){const p=panel('Your institutions. Your financial rights','Start the demonstration to explore six product families and transfers between two fictional institutions. No real money is used.');p.append(action('Start demonstration',async()=>{await call('procedure',{action:'connect',input:{}});await refresh();message('Demonstration ready. An encrypted backup was saved beside your wallet.');}),node('p','A production connection requires an admitted institution, verified authority and qualified adapters. None is active in this release.','muted'));root.append(p);return;}
+    const s=proc.snapshot,p=panel('One workspace. Distinct obligations','Balances remain attributable to each instrument and institution. Product codes do not combine different legal rights into one spendable balance.');
+    const metrics=node('div',undefined,'metrics');for(const [name,value,hint] of [['Institutions',s.institutions.length,'Asset issuers'],['Product families',new Set(s.positions.map(p=>p.profile)).size,'Identified rights, no universal balance'],['Needs attention',new Set([...proc.outbox.filter(q=>['UNKNOWN','SUBMITTING','RECOVERY_REQUIRED'].includes(q.state)).map(q=>q.id),...s.transactions.filter(t=>t.state==='RECOVERY_REQUIRED').map(t=>t.id)]).size,'Original instructions retained']]){const c=node('div',undefined,'metric');c.append(node('small',name),node('strong',String(value)),node('span',hint));metrics.append(c);}p.append(metrics);toolbar(p);root.append(p);
+    if(proc.outbox.some(q=>['UNKNOWN','SUBMITTING'].includes(q.state)))root.append(node('div','An instruction has no verified outcome. Balances show the last confirmed snapshot; new instructions are blocked. Check its status in History. Do not submit the transfer again.','callout'));
+    if(proc.stale)root.append(node('div','Saved records are stale. Refresh before preparing another instruction.','callout'));
+    const grid=node('div',undefined,'product-grid');for(const [id,title,copy] of [['portfolio','See your financial rights','Issuer, unit, availability, restrictions and authoritative source.'],['transitions','Move between products','Review the old and new rights, institutions, price and legal conditions.'],['activitynew','Transaction history','See sent and received assets, exchanges, dates and confirmation status.']]){const b=action('',async()=>selectTab(id));b.className='feature-card';b.append(icon(id),node('h3',title),node('p',copy));grid.append(b);}root.append(grid);
+  }
+  function holdings(){const root=$('portfolio'),expanded=new Set([...root.querySelectorAll('details[open][id]')].map(d=>d.id));root.replaceChildren();if(!proc?.connected){root.append(node('p','Start the demonstration from Overview to inspect its instrument records.'));return;}const uncertain=proc.outbox.some(q=>['UNKNOWN','SUBMITTING'].includes(q.state));if(uncertain)root.append(node('div','Outcome pending reconciliation. Quantities below are the last confirmed snapshot, not current spendable balances. New instructions are blocked until the original outcome is verified.','callout'));root.append(node('h2','Holdings by instrument'),node('p',`Balances updated: ${stamp(proc.snapshot.asOf)}${proc.stale?' · Refresh required':''}`),action('Refresh balances',refreshProcedure));const grid=node('div',undefined,'product-grid');for(const p of proc.snapshot.positions){const card=panel(p.title);card.classList.add('holding-card');card.append(family(p),node('p',p.obligor,'institution-name'));const balance=node('div',undefined,'balance-surface');balance.append(node('small',p.profile==='Ma'?'Available guarantee capacity':'Available tokens'),amountDisplay(formatUnits(p.available,p.precision),tokenUnit(p)));balance.append(basketNote(p,p.available));card.append(balance);if(p.profile==='Ma')card.append(node('small','Contingent maximum · not spendable money'));card.append(table(['Position state','Quantity ('+tokenUnit(p)+')'],[['Reserved',formatUnits(p.reserved,p.precision)],['Pending receipt',formatUnits(p.pendingReceipt,p.precision)],['Disputed',formatUnits(p.disputed,p.precision)],['Encumbered',formatUnits(p.encumbered,p.precision)],['Retired (history)',formatUnits(p.retired,p.precision)],['Frozen',formatUnits(p.frozen||'0',p.precision)]]));if(p.incomeAccrual){card.append(node('strong','Accrued interest: '+formatUnits(p.income,p.incomeAccrual.precision)+' '+p.incomeAccrual.currency),node('p',`Separate from tokens · ${p.incomeAccrual.rateBps/100}% p.a. · Simple ACT/365 demonstration rate`),node('small','Interest earned before a transfer stays with you, including when your token balance reaches zero. The recipient earns new interest from confirmed receipt. Accrual starts at '+stamp(p.incomeAccrual.startedAt)+'.'));}const d=node('details');d.id='holding-issuer-'+p.id;const institution=proc.snapshot.institutions.find(i=>i.id===p.institutionId);d.append(node('summary','Issuer & terms'),node('strong',p.obligor),node('p','Role: '+(institution?.role?.replace(/^Test /,'')||'Issuer / obligor')),node('p',p.right),node('p',p.protection),node('code',`${p.instrumentId} / ${p.programmeId} / ${p.termsVersion}`),node('p',`Authoritative source: ${p.authoritativeRegister}`));const operations=holdingOperations(p);if(operations)card.append(operations);card.append(d);grid.append(card);}root.append(grid);for(const id of expanded){const detail=$(id);if(detail)detail.open=true;}}
+  function activity(){const root=$('activitynew'),query=root.querySelector('[type="search"]')?.value||'';root.replaceChildren();const p=panel('Transaction history','Your sent and received assets and exchanges, newest first. Open an entry’s evidence timeline for confirmation details.');if(proc?.connected)toolbar(p);root.append(p);if(developerToolsEnabled&&state.demo?.history?.length)p.append(action('View technical test history ('+state.demo.history.length+')',async()=>selectTab('legacy-activity')));if(!proc?.connected){p.append(node('p','No wallet transfers yet. Your sent and received assets and exchanges will appear here.'));return;}
+    const search=node('input');search.type='search';search.id='activity-search';search.value=query;search.placeholder='Search recipient, token, reference or status…';search.setAttribute('aria-label','Search transaction history');const list=node('div');root.append(search,list);
+    function rows(){list.replaceChildren();const txs=proc.snapshot.transactions;const ids=[...new Set([...proc.outbox.map(q=>q.id),...txs.map(t=>t.id)])].reverse();for(const id of ids){const q=proc.outbox.find(q=>q.id===id),t=txs.find(t=>t.id===id),state=q?.state||t.state,proposal=q?.proposal||t.proposal.payload.body;if(!`${id} ${state} ${proposal.source.profile} ${proposal.destination.profile} ${proposal.source.obligor} ${proposal.destination.obligor} ${proposal.recipient?.label||''} ${proposal.recipient?.address||''} ${proposal.purpose||''}`.toLowerCase().includes(search.value.toLowerCase()))continue;const c=panel(`${formatUnits(proposal.sourceUnits,proposal.source.precision)} ${tokenUnit(proposal.source)} → ${formatUnits(proposal.destinationUnits,proposal.destination.precision)} ${tokenUnit(proposal.destination)}`);c.querySelector('h2').classList.add('transaction-amount');c.dataset.historyTime=String(q?.createdAt||proposal.createdAt||0);c.append(node('small',proposal.recipient?'Outgoing transfer':'Between my products'),node('small','Created '+stamp(q?.createdAt||proposal.createdAt)));if(proposal.recipient)c.classList.add('recipient-record');if(proposal.recipient)c.append(node('strong','Sent to '+proposal.recipient.label),node('code',proposal.recipient.address),node('p','Payment purpose: '+(proposal.purpose||'Not specified')));c.append(node('p',`${proposal.source.obligor} → ${proposal.destination.obligor}`),node('p',state.replaceAll('_',' '),'status'),node('code',id));if(state==='PENDING_CONFIRMATION')c.append(node('p','Pending confirmation. The recipient can see this amount but cannot spend it yet. Status updates automatically; no need to send again.'),action('Check status',refreshProcedure));if(['UNKNOWN','SUBMITTING'].includes(state)){c.append(node('p','Confirmation has not arrived. The transfer may already have completed. Check its status; do not send it again.'),action('Check status',refreshProcedure));}if(t){const completed=t.records.find(r=>r.payload.kind==='completion-receipt');if(completed)c.append(node('small','Completed '+stamp(completed.payload.at)));c.append(node('p',t.claim));if(t.state==='RECOVERY_REQUIRED'&&proposal.recipient){c.append(node('p','Confirmation checks require attention. The amount stays reserved. Contact the responsible institution using this operation reference; do not repeat the transfer.'),action('Check status',refreshProcedure));}if(t.state==='RECOVERY_REQUIRED'&&!proposal.recipient){c.append(node('p',`The receiving part of this demo transfer is unfinished. Responsible institution: ${t.caseOwner}. Continue the saved test operation to complete it; this does not create another transfer.`),action('Continue saved demo transfer',async()=>{await call('procedure',{action:'recover',input:{id}});await refresh();message('The saved demo transfer has completed.');}));}const d=node('details');d.append(node('summary',`Evidence timeline · ${t.records.length+2} signed records`));d.append(node('p','Proposal → holder authority → institutional acceptance → reservations → execution decision → leg confirmations → completion or recovery'));for(const r of [t.proposal,t.authority,...t.records])d.append(node('p',`${r.payload.kind} · ${r.keyId} · ${stamp(r.payload.at)}`));d.append(node('pre',JSON.stringify(t,null,2)));c.append(d);}list.append(c);}for(const record of proc.snapshot.incoming||[]){const t=record.payload.body;if(!`${t.id} ${t.profile} ${t.state} ${t.senderLabel} ${t.senderAddress} ${t.purpose}`.toLowerCase().includes(search.value.toLowerCase()))continue;const c=panel(`${t.state==='COMPLETED'?'Received':'Incoming'} ${formatUnits(t.quantity,t.precision)} ${tokenUnit(t)}`);c.dataset.historyTime=String(t.receivedAt||0);c.classList.add('recipient-record');c.querySelector('h2').classList.add('transaction-amount');c.append(node('strong','From '+t.senderLabel),node('code',t.senderAddress),node('p','Payment purpose: '+(t.purpose||'Not specified')),node('p',t.state==='PENDING_CONFIRMATION'?'PENDING — awaiting confirmation':t.state==='RECOVERY_REQUIRED'?'ON HOLD — confirmation requires attention':'COMPLETED','status'),node('small',stamp(t.receivedAt)),node('code',t.id));if(t.state!=='COMPLETED')c.append(node('p','This amount is not included in your available balance. It becomes spendable only after verified confirmation.'),action('Check status',refreshProcedure));else c.append(node('small','Confirmed '+stamp(t.confirmedAt)));list.append(c);}for(const card of [...list.children].sort((a,b)=>Number(b.dataset.historyTime||0)-Number(a.dataset.historyTime||0)))list.append(card);if(!list.children.length){const hasHistory=ids.length||(proc.snapshot.incoming||[]).length;list.append(node('p',hasHistory?'No matching transactions. Clear the search to see your full history.':'No transactions yet. Your sent and received assets and exchanges will appear here.'));if(!hasHistory)list.append(action('Prepare a transfer',async()=>selectTab('transitions')));}}search.oninput=rows;rows();
+  }
+  function openOwnOperation(positionId,routeId){
+    assetSelect.value=positionId;assetControl.update();updateRoutes(routeId);recipientUI.showOwn();selectTab('transitions');
+  }
+  function updateTransferGuidance(){
+    const position=proc?.snapshot?.positions.find(p=>p.id===assetSelect.value),restriction=walletRestriction(proc);
+    const reason=restriction?.message||ownProductRestriction(proc?.snapshot,position);
+    guidance.replaceChildren();guidance.className=reason?'callout':'';
+    amount.disabled=!!reason||!select.value;submit.disabled=!!reason||!select.value;
+    if(!reason)return;
+    guidance.append(node('p',reason));
+    if(restriction?.action==='overview')guidance.append(action('Open Overview',async()=>selectTab('overview')));
+    else if(restriction?.action==='refresh')guidance.append(action('Refresh balances',refreshProcedure));
+    else if(restriction?.action==='history')guidance.append(action('Open History',async()=>selectTab('activitynew')));
+    else if(position&&!assetRestriction(position,true)&&!select.value)guidance.append(action('Send to a recipient',async()=>recipientUI.openSend(position.id)));
+  }
+  function holdingOperations(position){
+    if(position.profile==='Ma')return null;
+    const details=node('details',undefined,'holding-operations');details.id='holding-operations-'+position.id;
+    details.append(node('summary','Available operations'));
+    const restriction=walletRestriction(proc);
+    if(restriction){details.append(node('p',restriction.message));details.append(action(restriction.action==='refresh'?'Refresh balances':'Open History',restriction.action==='refresh'?refreshProcedure:async()=>selectTab('activitynew')));}
+        const limit=policyRestriction(proc.snapshot,position)||assetRestriction(position,true);
+        if(limit)details.append(node('p',limit,'muted'));
+        const actions=node('div',undefined,'actions');
+        const routes=availableRoutes(proc.snapshot,position.id);
+        for(const route of routes){
+          const destination=proc.snapshot.positions.find(p=>p.id===route.destination);
+          const b=action((transferActions[route.id]?.title||route.title)+' · '+destination.obligor,async()=>openOwnOperation(position.id,route.id));
+          b.disabled=!!restriction||!!limit;actions.append(b);
+        }
+        const incomingActions=node('div',undefined,'actions');
+        for(const route of proc.snapshot.routes.filter(r=>r.destination===position.id&&r.status==='ACTIVE')){
+          const source=proc.snapshot.positions.find(p=>p.id===route.source);if(!source)continue;
+          const limit=policyRestriction(proc.snapshot,source)||assetRestriction(source);
+          const b=action((transferActions[route.id]?.title||route.title)+' · From '+source.title,async()=>openOwnOperation(source.id,route.id));
+          b.disabled=!!restriction||!!limit;incomingActions.append(b);
+          if(limit)details.append(node('small',source.title+': '+limit));
+        }
+        if(position.profile!=='Ma'){
+          const b=action('Send to a recipient',async()=>{recipientUI.openSend(position.id);selectTab('transitions');});
+          b.disabled=!!restriction||!!limit;actions.append(b);
+        }
+        if(!routes.length&&position.profile!=='Ma')details.append(node('small','These tokens cannot currently be exchanged for another product in this wallet.'));
+        if(actions.children.length)details.append(node('small','Use these tokens'),actions);
+        if(incomingActions.children.length)details.append(node('small','Add tokens to this product'),incomingActions);
+
+    return details;
+  }
+  function support(){const root=$('support');root.replaceChildren();const p=panel('Support & recovery','Keep the transaction reference and identify the responsible party. A technical incident, financial-right dispute and lost access follow different procedures.');p.append(node('p','Restore encrypted backup recovers your local file. Recovery of institutional access or a financial claim requires the institution’s verified process; loss of a key does not automatically extinguish the underlying right.'));root.append(p);if(!proc?.connected)return;
+    const form=node('form');for(const [labelText,name,tag] of [['Operation reference (optional)','operationId','input'],['Category','category','select'],['Description — no passwords, private keys or client records','description','textarea']]){const label=node('label',labelText),field=node(tag);field.name=name;field.id='case-'+name;if(tag==='select')for(const text of ['Technical issue','Financial-right dispute','Access recovery']){const o=node('option',text);field.append(o);}if(name==='description'){field.required=true;field.minLength=10;field.maxLength=2000;field.rows=4;}label.append(field);form.append(label);}const b=node('button','Save local support draft');form.append(b,node('p','Stored in your encrypted wallet only. No support request or email is sent from this preview.','muted'));form.onsubmit=e=>{e.preventDefault();const input=Object.fromEntries(new FormData(form));run(async()=>{await call('procedure',{action:'case',input});await refresh();message('Local support draft saved. It has not been submitted.');});};p.append(form);enhanceSelect($('case-category'));for(const c of proc.cases){const card=panel(`${c.category} · ${c.id}`,c.description);card.append(node('p',c.status,'status'),node('small',stamp(c.createdAt)));root.append(card);}
+  }
+  document.querySelectorAll('[data-help]').forEach(b=>b.onclick=()=>run(()=>call('help-link',{id:b.dataset.help})));
+  const recipientUI=installRecipientTransfer({root:$('transitions'),ownFlow:flow,call,run,message,instrumentIdentity,transferBalance,openOverview:()=>selectTab('overview'),openHistory:()=>selectTab('activitynew'),refreshBalances:refreshProcedure,review:async(input,button)=>{const result=await call('procedure',{action:'quote-recipient',input});proposalId=result.id;lastReviewButton=button;showReview(result.details);}});
+  return {render(next){state=next;proc=next?.procedural;recipientUI.render(next,proc);if(next.locked){renderedIdentity='';dialog.close();content.replaceChildren();for(const id of ['overview','portfolio','activitynew','support'])$(id).replaceChildren();assetSelect.replaceChildren();assetControl.update();select.replaceChildren();routeSelect.update();describeRoute();amount.value='';return;}const identity=JSON.stringify([proc,state.demo?.sequence??0]);if(identity===renderedIdentity)return;renderedIdentity=identity;
+    $('connection-summary').replaceChildren(node('strong','Demonstration mode'),node('small','Test data. No real money is used.'));
+    const supportDraft=Object.fromEntries([...$('support').querySelectorAll('[name]')].map(e=>[e.name,e.value]));
+    const focused=document.activeElement,focusedId=focused?.id,selection=focused?.tagName==='INPUT'||focused?.tagName==='TEXTAREA'?[focused.selectionStart,focused.selectionEnd]:null;
+    overview();holdings();activity();support();
+    for(const field of $('support').querySelectorAll('[name]'))if(Object.hasOwn(supportDraft,field.name)){field.value=supportDraft[field.name];field.dispatchEvent(new Event('change'));}
+    const restored=focusedId&&$(focusedId);if(restored&&restored!==focused){restored.focus({preventScroll:true});if(selection&&selection[0]!==null)restored.setSelectionRange(...selection);}
+    for(const id of ['portfolio','activitynew','support'])if(!proc?.connected)$(id).append(action('Go to Overview to start the demonstration',async()=>selectTab('overview')));
+    const previousAsset=assetSelect.value,previousRoute=select.value;assetSelect.replaceChildren();
+    for(const p of proc?.snapshot?.positions??[]){
+      const eligible=availableRoutes(proc.snapshot,p.id).length>0;
+      const o=node('option',`sun(φ) ${p.profile} · ${p.title} · ${p.obligor}${eligible?'':' — No own-product exchange'}`);
+      o.value=p.id;assetSelect.append(o);
+    }
+    assetSelect.value=[...assetSelect.options].some(o=>o.value===previousAsset&&!o.disabled)?previousAsset:[...assetSelect.options].find(o=>!o.disabled)?.value||'';
+    assetSelect.disabled=!assetSelect.value;assetControl.update();updateRoutes(previousRoute);
+    updateTransferGuidance();
+  }};
+}

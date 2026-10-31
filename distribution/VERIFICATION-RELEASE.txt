@@ -1,0 +1,32 @@
+SunPhi 0.18.13 — verified replay and restart recovery
+
+Prepared nodes now keep starting while authenticated replay makes progress. The
+previous fixed 90-second startup limit could stop a valid restart after the payment
+history grew. The launcher now uses a 90-second stall limit and a 15-minute total
+limit. Consensus starts only after full verified replay; progress alone grants no
+readiness. Existing chain data, signing identities and wallet files are retained.
+
+The wallet now displays its last verified epoch in a compact animated verification
+panel. Incoming-transfer checking and routine updates share a stable layout.
+Technical quorum and historical receipt details are expandable. Both themes and
+reduced-motion preferences are supported; all application text is English.
+
+Initial Network verification can extend idle waiting for up to twenty minutes while
+verified progress advances. A warning appears before automatic lock. The normal
+five-minute idle lock resumes after the first verified balance. Manual lock, changing
+direction, Windows lock and suspend retain their security behavior. Public history
+checking continues while the application runs, including after private wallet lock.
+
+The common wallet is identical in both downloads. The Network node edition includes
+its matching node component; the wallet-only edition includes no node. Coin retains
+its original local demonstration and files. Keys, file formats and balances remain
+separate; no conversion or migration of previous balances is performed.
+
+Existing signature, discovery, freshness and seven-of-ten quorum checks are unchanged.
+Unsigned preview with test data only; no real funds or node-income promise. No live
+institutional Coin node is included. Independent audit and production qualification
+remain open. Main Git branch is unchanged; the source tag records this release.
+
+Close the previous application and extract the complete archive into a separate short
+folder. Open your existing wallet. Preserve wallet files, .network folders, encrypted
+backups and AppData. Verify the SHA256SUMS file before installing.

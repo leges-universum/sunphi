@@ -1,0 +1,37 @@
+{
+  "name": "sunphi-network-next",
+  "version": "0.18.13",
+  "private": true,
+  "type": "module",
+  "description": "Isolated native SUN P1 candidate; real mandatory ZK proofs; not production",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 tests/core.test.mjs",
+    "test:zk": "node tests/zk-integration.mjs",
+    "demo": "node tools/demo.mjs",
+    "passport": "node tools/passport-server.mjs",
+    "test:replication": "node --test --test-concurrency=1 tests/core.test.mjs tests/replicated.test.mjs",
+    "test:prover-session": "node tests/prover-session.mjs",
+    "test:rotation": "node --test --test-concurrency=1 tests/rotation.test.mjs",
+    "test:history": "node --test --test-concurrency=1 tests/history.test.mjs tests/canonical-history.test.mjs",
+    "test:renewal": "node --test --test-concurrency=1 tests/renewal.test.mjs",
+    "test:operations": "node --test --test-concurrency=1 tests/operations.test.mjs",
+    "test:availability": "node --test --test-concurrency=1 tests/availability.test.mjs",
+    "test:wallet-network": "node --test --test-concurrency=1 tests/wallet-network.test.mjs",
+    "wallet:network": "node tools/wallet-network.mjs",
+    "test:receipts": "node --test --test-concurrency=1 tests/payment-receipt.test.mjs tests/receipt-crash.test.mjs tests/payment-viewer.test.mjs",
+    "wallet:payments": "node tools/payment-viewer.mjs",
+    "wallet:private": "node tools/private-wallet.mjs",
+    "test:private-wallet": "node --test --test-concurrency=1 tests/private-wallet.test.mjs",
+    "benchmark": "node tools/benchmark.mjs",
+    "cluster:test": "node tools/cluster-test.mjs",
+    "node:start": "node tools/run-node.mjs"
+  },
+  "dependencies": {
+    "o1js": "3.1.0",
+    "@noble/curves": "2.4.0"
+  },
+  "main": "desktop/node-main.mjs"
+}
