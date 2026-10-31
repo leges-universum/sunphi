@@ -1,0 +1,31 @@
+SunPhi 0.18.14 — clear verification and compact network activity
+
+Opening, creating and restoring a Network wallet now show a calm animated status
+in the reserved notification lane, with a short explanation instead of Checking.
+Errors and cancellation replace the animation; no percentage or completion time
+is invented. The sign-in form does not move when this status changes.
+
+The verified epoch remains visible beside a flowing activity indicator rather than
+a rotating spinner. Initial history checking and ongoing background updates use
+different pacing and clear descriptions. Reduced-motion preferences are respected.
+
+Network uses compact tabs, metrics and a short chart of up to 60 successful fresh
+checks observed during this open session. Gaps are not evidence of an outage.
+History height means the last checked position in network history, not a balance,
+transfer count or percentage. More technical details remain expandable.
+
+The wallet and node editions share identical UI and verification code. Cryptographic
+verification, fresh evidence, seven-of-ten quorum, idle locking, private-key handling
+and the progress-aware replay launcher are unchanged. Previous qualified payment
+and restart results remain applicable to the unchanged engine; this is a UI release.
+
+A visible WSL console on the operator laptop was traced to its Windows keepalive
+task and corrected locally. The portable Windows wallet itself does not require WSL.
+
+Unsigned preview with test data only; no real funds or node-income promise.
+Coin and Network retain separate keys, files and balances. No live institutional
+Coin node is included. Independent audit and production qualification remain open.
+
+Close the old app, extract the complete archive into a separate short folder and
+select your existing wallet. Preserve wallet files, encrypted backups, .network
+folders and AppData. Verify SHA256SUMS before installation.

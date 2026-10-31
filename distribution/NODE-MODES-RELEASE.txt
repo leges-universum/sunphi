@@ -1,0 +1,27 @@
+SunPhi 0.18.15 — automatic Network node connection
+
+The Node entry screen now has separate Coin and Network modes. Network connects
+automatically using a device-generated key, without an operator approval request.
+Existing device keys and saved history are retained. The device identifier is
+available in Connection details rather than on the primary screen.
+
+Public follower transport uses pinned SSH on TCP2244 to the three Network servers.
+It is separated from operator access: no shell, file session, reverse forwarding,
+arbitrary destination, password login or administrative account is available.
+Connection and service resource limits apply. Existing operator transport on TCP22
+is unchanged. A public follower receives no validator or witness membership.
+The chain, ten voting identities, seven-of-ten quorum and payment proofs are unchanged.
+
+Coin has a separate institutional connection screen and opens the Coin wallet.
+No live institutional node profile or admission service is included: the screen
+states this explicitly. SunPhi does not impersonate an institution or grant its
+access permissions. Coin and Network keep distinct trust and financial rules.
+
+Compact layout, fixed transparent notification space and visible footer in both
+themes. Switching modes does not stop a running Network node. Opening either
+wallet locks private sessions and preserves the existing navigation guards.
+
+Close the old app, extract the complete archive into a new folder and select
+Network / Connect to Network. Keep your wallet files, backups and AppData.
+Windows OpenSSH Client is required. No WSL or local administrator setup is needed.
+Unsigned preview; test data only. No production or independent-audit claim.
