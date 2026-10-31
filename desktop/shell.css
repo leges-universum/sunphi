@@ -1,0 +1,176 @@
+/* Shared shell; the established content layouts remain in their own stylesheets. */
+html,body{min-height:100%}
+body{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+:root body>main{flex:1 1 auto;min-height:0;margin:0 auto;overflow:auto;scrollbar-gutter:stable;scrollbar-width:thin}
+:root body>header,:root body>footer{flex-shrink:0}
+html[data-view-pending=true] body{visibility:hidden}
+/* A permanently reserved status region sits between header and main. */
+:root body:has(:is(#welcome,#locked):not([hidden]))>footer{box-sizing:border-box;min-height:40px;padding:8px 24px;background:var(--bg);font:11px/1.5 Inter,sans-serif}
+:root body>header{box-sizing:border-box;width:100%;padding-left:max(24px,4vw)}
+@font-face{font-family:Inter;src:url('inter.woff2') format('woff2');font-weight:100 900;font-display:swap}
+:root{--sunphi-line:#303740;--sunphi-ink:#f3f4f5;--sunphi-bg:#000}
+#epoch,#notice.history-check{color:#72c7a5}
+:root[data-theme=light] #epoch,:root[data-theme=light] #notice.history-check{color:#b42318}
+:root[data-theme=light]{--sunphi-line:#a7a7a7;--sunphi-ink:#171717;--sunphi-bg:#fff;--bg:#f5f5f5;--panel:#fff;--field:#fafafa;--button:#ededed;--line:#aaa;--muted:#555}
+body>header{height:auto;min-height:88px;display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:18px max(24px,4vw);background:var(--sunphi-bg);border-bottom:1px solid var(--sunphi-line);color:var(--sunphi-ink)}
+body>header .brand{display:flex;align-items:center;gap:14px;min-width:185px;margin:0;padding:0;background:none;border:0;text-decoration:none;color:inherit}
+body>header .brand img{width:44px;height:44px;object-fit:contain;display:block}
+body>header .brand-word{font:bold 30px/1.1 Georgia,serif;letter-spacing:0;color:inherit;border:0;padding:0}
+body>header .brand-word small{display:block;font:500 10px/1.8 Inter,sans-serif;letter-spacing:.22em;color:inherit;margin:4px 0 0;padding:0}
+.wallet-directions{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}.wallet-directions button{font:600 13px Inter,sans-serif;min-height:44px;padding:10px 16px;border:1px solid var(--sunphi-line);color:var(--sunphi-ink);background:transparent;border-radius:0}
+.wallet-directions button[aria-pressed=true]{background:#242a32;color:#fff;border-bottom:1px solid #b87945}
+body>header .header-actions{margin-left:0;display:flex;gap:8px;flex-wrap:wrap}body>header .badge{display:none}
+.wallet-directions button:hover{background:#161b22;color:#fff}
+.access,.balance{border-width:1px}.access .primary{margin:16px 0}.access>details{margin-top:18px}.access>details p{margin-top:12px}#selected-file{margin:12px 0}.balance-number{font-size:clamp(30px,4.8vw,64px);overflow-wrap:anywhere}#payments .payment{border-bottom:1px solid var(--line);padding:22px 0}#payments h2{font-size:22px}.note{padding:16px 0;border-bottom:1px solid var(--line)}.note label{display:flex;gap:12px;align-items:center}.note input{width:auto;margin:0}.note p{overflow-wrap:anywhere;margin:6px 0}#review-summary p{overflow-wrap:anywhere}#notice{border-left-width:1px}#access-back{margin:16px 0}#file-choice button{width:100%}
+header{app-region:no-drag;-webkit-app-region:no-drag}button{white-space:normal}main{min-width:0}dialog{max-width:calc(100vw - 24px);max-height:85vh;overflow:auto}
+/* Compact the working wallet without changing its established layout or controls. */
+/* Both entry screens use Coin's hierarchy and the same bundled font metrics. */
+@font-face{font-family:WalletEntry;src:url('coin/desktop-wallet/fonts/inter-latin-wght-normal.woff2') format('woff2');font-weight:100 900;font-display:swap}
+html:has(#locked),html:has(#welcome){scrollbar-gutter:auto;scrollbar-width:thin}
+main:has(>#locked),main:has(>#welcome){max-width:1320px;width:100%;margin:auto;padding:16px 24px 24px;min-height:calc(100vh - 116px)}
+:is(#locked,#welcome){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start;padding:8px 0 0;font:14px/1.5 WalletEntry,Inter,sans-serif}
+:is(#locked,#welcome) .intro{padding:24px 0 0;margin:0;min-width:0}
+:is(#locked,#welcome) .intro h1{font:650 30px/1.16 WalletEntry,Inter,sans-serif;letter-spacing:-1px;margin:12px 0 20px}
+:is(#locked,#welcome) .intro>p:not(.eyebrow){font:14px/1.65 WalletEntry,Inter,sans-serif;margin:0 0 18px}
+:is(#locked,#welcome) .eyebrow{font:11px/1.5 monospace;letter-spacing:1.8px;margin:0 0 12px}
+:is(#locked,#welcome) .callout{font:13px/1.6 WalletEntry,Inter,sans-serif;padding:12px 16px;margin:18px 0 0}
+:is(#locked,#welcome)>.panel{padding:20px;margin:0;border:1px solid var(--line);align-self:start}
+:is(#locked,#welcome) h2{font:650 20px/1.3 WalletEntry,Inter,sans-serif;letter-spacing:-.025em;margin:0 0 16px}
+:is(#locked,#welcome) .access-modes{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+:is(#locked,#welcome) button{font:600 13px/1.4 WalletEntry,Inter,sans-serif;min-height:40px;padding:10px 14px;border-radius:0}
+:is(#locked,#welcome) .access-modes button{background:transparent;color:var(--text);border:1px solid transparent;box-shadow:none;padding:10px 12px}
+:is(#locked,#welcome) .access-modes button[aria-pressed=true]{box-shadow:inset 0 -1px var(--accent)}
+:is(#locked,#welcome) .access-modes+p{font:12px/1.6 WalletEntry,Inter,sans-serif;margin:0 0 16px;min-height:32px}
+:is(#locked,#welcome) .selected-wallet{display:grid;gap:8px;padding:14px;margin:0 0 16px;background:var(--panel);border:1px solid var(--line);min-width:0}
+:is(#locked,#welcome) .selected-wallet strong{display:block;font:600 14px/1.5 WalletEntry,Inter,sans-serif;overflow-wrap:anywhere}
+:is(#locked,#welcome) .selected-wallet small{display:block;font:12px/1.5 WalletEntry,Inter,sans-serif;color:var(--muted);overflow-wrap:anywhere}
+:is(#locked,#welcome) .selected-wallet button{justify-self:start;width:auto}
+#welcome #selected-file{display:contents}
+:is(#locked,#welcome) label{display:block;font:13px/1.5 WalletEntry,Inter,sans-serif;margin:0 0 12px}
+#welcome label[for]{margin-bottom:6px}
+:is(#locked,#welcome) input{font:13px/1.5 WalletEntry,Inter,sans-serif;min-height:42px;padding:10px 12px;margin-top:6px;border-radius:3px}
+:is(#locked,#welcome) .password-field{display:block;position:relative;min-height:0;border:0;background:none;margin:6px 0 0}
+#welcome .password-field{margin:0 0 12px}
+:is(#locked,#welcome) .password-field input{width:100%;margin:0;border:1px solid var(--line);background:var(--field);padding-right:48px}
+:is(#locked,#welcome) .password-field button{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:38px;height:38px;min-height:38px;padding:8px;margin:0;border:0;background:transparent;color:var(--muted)}
+:is(#locked,#welcome) .actions:not(.access-modes){display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px}
+#welcome #access-back{margin:0}
+:is(#locked,#welcome) :is(.entry-recovery,#access>p.muted){font:11px/1.6 WalletEntry,Inter,sans-serif;margin:12px 0 16px;color:var(--muted)}
+:is(#locked,#welcome) details{padding:10px 12px;margin:8px 0 0;border:1px solid var(--line)}
+:is(#locked,#welcome) summary{font:500 12px/1.5 WalletEntry,Inter,sans-serif}
+:is(#locked,#welcome) details p{font:12px/1.6 WalletEntry,Inter,sans-serif;margin:10px 0}
+:root :is(#locked,#welcome) summary{padding:0;margin:0;min-height:0}
+:root :is(#locked,#welcome) .access-modes button{border-bottom-color:transparent}
+:root :is(#locked,#welcome) .access-modes button[aria-pressed=true]{box-shadow:inset 0 -1px var(--accent)}
+:root :is(#locked,#welcome) .access-modes button::after{display:none}
+:root :is(#locked,#welcome) .password-field:focus-within{outline:0;box-shadow:none}
+:root :is(#locked,#welcome) input:is(:focus,:focus-visible){outline:0;border-color:var(--line);box-shadow:inset 0 0 0 .5px var(--accent)}
+:root .wallet-directions button[aria-pressed=true]{border-bottom-color:transparent;box-shadow:inset 0 -1px var(--accent)}
+.entry-password-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+body>header #theme{display:grid;place-items:center;width:44px;height:44px;min-height:44px;padding:8px;font:24px/1 Inter,sans-serif}
+@media(max-width:500px){.entry-password-pair{grid-template-columns:1fr;gap:0}}
+@media(max-width:800px){:is(#locked,#welcome){grid-template-columns:1fr;gap:20px;padding-top:0}:is(#locked,#welcome) .intro{padding:0}:is(#locked,#welcome) .intro h1{font-size:26px}:is(#locked,#welcome)>.panel{padding:18px}main:has(>#locked),main:has(>#welcome){padding:16px}:is(#locked,#welcome) .actions button{flex:none}}
+body:has(#workspace)>header{min-height:76px;padding-block:12px;padding-right:max(24px,4vw,calc(100vw - env(titlebar-area-width,100vw) + 16px))}
+main:has(>#workspace){padding-top:20px;padding-bottom:24px}
+main:has(>#workspace)>#notice{padding:12px 16px;margin-bottom:16px;font-size:13px}
+#workspace .workspace-heading{gap:18px}
+#workspace .workspace-heading h1{font-size:28px;margin:6px 0 8px;letter-spacing:-.035em}
+#workspace .workspace-heading .eyebrow{margin-bottom:8px}
+#workspace #short-address{margin-bottom:8px}
+#workspace nav[aria-label="Wallet sections"]{gap:8px;margin:16px 0 20px}
+#workspace nav[aria-label="Wallet sections"] button{padding:8px 12px;font-size:14px;min-height:44px}
+#workspace .panel{padding:20px;margin-bottom:16px}
+#workspace h2{font-size:20px;margin-bottom:12px}
+#workspace .balance-grid,#workspace .two-column{gap:16px}
+#workspace .balance-number{font-size:clamp(30px,3.6vw,44px);letter-spacing:-.045em;margin-top:12px}
+#workspace .balance .eyebrow{margin-bottom:8px}
+#workspace .actions{margin-top:18px}
+#workspace .facts>div{padding:10px 0}
+#workspace .hint{margin-top:14px}
+@media(max-width:650px){#workspace .workspace-heading{align-items:flex-start;gap:12px}#workspace .workspace-heading h1{font-size:25px}#workspace .panel{padding:16px}#workspace nav[aria-label="Wallet sections"]{gap:2px}main:has(>#workspace){padding:16px}#workspace .network-indicator{flex-wrap:wrap}}
+@media(max-width:650px){body>header{padding:16px;gap:12px}body>header .brand{min-width:0;flex:1}.wallet-directions{order:3;width:100%;margin:0}.wallet-directions button{flex:1}body>header .brand-word{font-size:25px}.welcome{padding-top:12px}.insight-metrics{grid-template-columns:1fr}.insight-slide{min-height:0}.facts>div{flex-wrap:wrap}.facts dt{flex-shrink:1}input,textarea{max-width:100%}}
+/* One compact geometry for both directions, including short laptop windows. */
+:root body{font-size:13px}
+:root body>header{min-height:64px;padding-block:8px;gap:12px}
+:root body>header .brand img{width:38px;height:38px}
+:root body>header .brand-word{font-size:27px}
+:root body>header .brand-word small{font-size:9px;margin-top:2px}
+:root .wallet-directions button{font-size:12px;min-height:38px;padding:8px 12px}
+:root body>header #theme{width:38px;height:38px;min-height:38px;font-size:22px}
+:root body>main{padding:14px 24px 16px}
+:root :is(#locked,#welcome){gap:28px;padding-top:4px;font-size:13px}
+:root :is(#locked,#welcome) .intro{padding-top:20px}
+:root :is(#locked,#welcome) .intro h1{font-size:26px;margin:10px 0 16px}
+:root :is(#locked,#welcome) .intro>p:not(.eyebrow){font-size:13px;line-height:1.55}
+:root :is(#locked,#welcome)>.panel{padding:16px}
+:root :is(#locked,#welcome) h2{font-size:18px;margin-bottom:12px}
+:root :is(#locked,#welcome) button{font-size:12px;min-height:36px;padding:8px 12px}
+:root :is(#locked,#welcome) .access-modes{margin-bottom:12px}
+:root :is(#locked,#welcome) .access-modes+p{font-size:11px;margin-bottom:12px;min-height:28px}
+:root :is(#locked,#welcome) .selected-wallet{padding:12px;gap:6px;margin-bottom:12px}
+:root :is(#locked,#welcome) .selected-wallet strong{font-size:13px}
+:root :is(#locked,#welcome) .selected-wallet small{font-size:11px;line-height:1.5}
+:root :is(#locked,#welcome) label{font-size:12px;margin-bottom:10px}
+:root :is(#locked,#welcome) input{font-size:12px;min-height:38px;padding:9px 12px}
+:root :is(#locked,#welcome) .password-field input{padding-right:42px}
+:root :is(#locked,#welcome) .password-field button{width:34px;height:34px;min-height:34px;padding:7px}
+:root :is(#locked,#welcome) .actions:not(.access-modes){margin:10px 0 12px}
+:root :is(#locked,#welcome) :is(.entry-recovery,#access>p.muted){font-size:10px;line-height:1.5;margin:10px 0 12px}
+:root :is(#locked,#welcome) summary{font-size:11px}
+:root :is(#locked,#welcome) details{padding:8px 10px;margin-top:6px}
+:root #workspace .workspace-heading h1,:root #workspace .workspace-head h1{font-size:25px}
+:root #workspace h2{font-size:18px}
+:root #workspace .balance-number{font-size:clamp(28px,3.2vw,38px)}
+:root #workspace nav button{font-size:13px;min-height:38px;padding:7px 10px}
+:root #workspace .panel{padding:16px;margin-bottom:12px}
+:root #workspace .facts>div{padding:8px 0}
+:root #workspace .facts dt{font-size:12px}
+:root #workspace .facts dd{font-size:14px}
+:root #workspace .hint{font-size:11px}
+:root body>footer{padding:8px 24px;min-height:36px;font-size:10px}
+:root body:has(#workspace)>header{min-height:64px;height:64px}
+:root body>main:has(>#workspace){padding-top:14px;min-height:0;flex:1 1 0}
+:root #welcome label[for]{margin-bottom:6px}
+:root #welcome .password-field{margin-bottom:10px}
+:root #workspace{font:13px/1.5 WalletEntry,Inter,sans-serif}
+:root #workspace button,:root dialog button{font:550 12px/1.4 WalletEntry,Inter,sans-serif;padding:9px 13px;min-height:36px}
+:root #workspace input,:root #workspace select,:root #workspace textarea{font:12px/1.5 WalletEntry,Inter,sans-serif;padding:9px 11px}
+:root #workspace label{font-size:12px;margin-bottom:12px}
+:root #workspace p{font-size:12px;line-height:1.55;margin-bottom:12px}
+:root #workspace h3{font-size:15px}
+:root #workspace .navigation-bar{min-height:44px;padding:6px 0;margin-bottom:8px;position:static}
+:root #workspace .screen-help{font-size:12px;margin:8px 0 16px;min-height:0!important}
+:root #workspace .feature-card{min-height:118px;padding:16px}
+:root #workspace .feature-card h3{margin:10px 0 8px}
+:root #workspace .amount-value{font-size:26px}
+:root #workspace .metrics{margin:14px 0;gap:12px}
+:root #workspace .metric{padding:14px}
+:root #workspace .metric strong{font-size:24px}
+:root #workspace .network-indicator{min-width:280px;justify-content:flex-end}
+:root #workspace .network-indicator strong{font-size:12px}
+:root #workspace .network-indicator small{font-size:11px}
+:root #workspace #connection-summary{display:none}
+:root #workspace .insight-slide{min-height:0}
+:root #workspace .insight-metric strong{font-size:28px}
+:root body>footer .wallet-brand{gap:10px}
+:root body>footer .wallet-wordmark{width:76px}
+:root body>footer .brand-title small{display:none}
+:root body>footer .brand-title,:root body>footer .network-brand{min-height:20px}
+:root body>footer .footer-link{min-height:24px}
+:root body>header .header-actions button{font:550 12px/1.4 WalletEntry,Inter,sans-serif;min-height:38px;padding:8px 12px}
+:root body>header .header-actions #theme{font:22px/1 Inter,sans-serif;padding:8px}
+:root #workspace .receive-panel{max-width:none}
+:root #workspace .receive-panel textarea{min-height:58px;height:58px;resize:vertical}
+:root #workspace .insight-metrics strong{font-size:28px}
+@media(max-width:650px){:root body:has(#workspace)>header{height:auto;min-height:64px}:root #workspace .network-indicator{min-width:0;justify-content:flex-start}}
+@media(max-width:800px){:root body>main{padding:12px 16px 16px}:root :is(#locked,#welcome){gap:16px}:root :is(#locked,#welcome) .intro{padding-top:0}:root :is(#locked,#welcome) .intro h1{font-size:24px}}
+
+:root body>#wallet-status{flex:0 0 56px;height:56px;min-height:56px;box-sizing:border-box;background:var(--bg);padding:8px 24px;overflow:hidden}
+:root #wallet-status .status-content{max-width:1272px;height:40px;margin:0 auto;min-width:0}
+:root #wallet-status #notice,:root #wallet-status #navigation-notice{position:static;box-sizing:border-box;width:100%;height:40px;max-width:none;max-height:none;margin:0;padding:4px 12px;overflow:auto;overflow-wrap:anywhere;box-shadow:none;border:0;border-left:2px solid var(--accent);background:transparent;font:12px/16px WalletEntry,Inter,sans-serif;border-radius:0}
+:root #wallet-status #notice:empty,:root #wallet-status [hidden],:root #wallet-status[data-navigation=true] #notice{display:none!important}
+:root #wallet-status #navigation-notice{display:flex;align-items:center;gap:12px;color:var(--text)}
+:root #navigation-message{flex:1;min-width:0;max-height:100%;overflow:auto}
+:root #wallet-status #cancel-navigation{flex:0 0 auto;min-height:28px;margin:0;padding:4px 8px;font:11px/16px WalletEntry,Inter,sans-serif}
+:root body>footer{box-sizing:border-box;height:40px;min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+@media(max-width:650px){:root body>#wallet-status{flex-basis:80px;height:80px;min-height:80px;padding:8px 16px}:root #wallet-status .status-content,:root #wallet-status #notice,:root #wallet-status #navigation-notice{height:64px}:root #wallet-status #notice{font-size:12px;line-height:18px}:root body>footer{padding-inline:16px}}
