@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "walletVersion": "0.18.14",
+  "nodeComponent": "native-trial",
+  "nodeNetwork": "sunphi-lab-wan-20261030-a",
+  "defaultDirection": "network"
+}

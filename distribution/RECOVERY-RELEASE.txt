@@ -1,0 +1,15 @@
+SunPhi 0.18.11 — background verification and node recovery
+
+The wallet now verifies public network history in its own worker while the application is running, including while the wallet page is hidden, Coin or Node is open, or the private wallet is locked. Locking clears private wallet material. Closing the application stops its worker; the next launch resumes saved public progress and reauthenticates it.
+
+Initial verification no longer waits for slow extra witnesses after seven valid signatures have arrived. Duplicate archive verification and duplicate history replay on opening have been removed. Cryptographic verification, pinned genesis, root transitions, fresh nonce confirmations and the 7-of-10 threshold remain mandatory. Historical balances never authorize spending.
+
+Background progress does not disable navigation or reset unfinished forms. Normal catch-up remains a steady progress notice. Sustained failures remain visible. The common Coin/Network interface, original icon and separate network components are retained.
+
+Node recovery uses bounded catch-up work for lagging witnesses. Retained application history replay now releases each SQLite read before asynchronous validation and index writes; concurrent journal changes are rejected explicitly.
+
+Existing chain and wallet files are preserved. Close the older application, extract the full archive into a separate short directory, then select your existing wallet. Keep wallet files, backups, their .network directories and application data. A new wallet or a genesis reset is not required.
+
+The common wallet-only ZIP runs no node. The Network node package includes the same wallet and remains bound to sunphi-lab-wan-20261030-a. Initial verification still takes time. Windows requires OpenSSH Client; no WSL installation is required for the distributed Windows application.
+
+Test tokens only. Unsigned Windows executable. Coin institutional nodes, independent operators, hardware signing, external audit and production qualification remain outside this release. A local isolated funded test stand is not a multi-host capacity benchmark. No test private keys, passwords or funded test databases are included in downloads.
