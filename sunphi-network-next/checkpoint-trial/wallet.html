@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en" data-theme="graphite"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DueByte — Wallet</title><link rel="stylesheet" href="/brand/duebyte-brand.css"><link rel="icon" href="/brand/duebyte-app.png">
+<style>
+:root{
+ --page:#f8f9fa;--surface:#fff;--section:#f0f1f3;--ink:#111317;--muted:#525862;
+ --border:#b8bec6;--strong:#7d858f;--accent:#e60012;--success:#21834a;--warning:#a94d00;
+ --check-number:#e60012;--space:8px;--panel-space:16px;--control-height:34px;
+ color-scheme:light;font:13px/1.5 Inter,system-ui,sans-serif;background:var(--page);color:var(--ink)
+}
+:root[data-theme=graphite]{
+ --page:#050609;--surface:#090c0f;--section:#161b22;--ink:#f3f4f5;--muted:#a5abb3;
+ --border:#303740;--strong:#3d444d;--accent:#f47b20;--success:#53c985;--warning:#f6a04d;
+ --check-number:#53c985;color-scheme:dark
+}
+*{box-sizing:border-box}
+html{scrollbar-gutter:stable}
+body{margin:0}
+[hidden]{display:none!important}
+header{padding:10px 24px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface)}
+:root[data-theme=graphite] header{background:#000}
+/* Show only the supplied wordmark and ticker in the wallet header. */
+header .duebyte-logo{width:104px!important;height:44px!important}
+header .duebyte-mark{width:104px;height:44px;background-size:208px auto;background-position:-80px -13px}
+header .tag{margin-left:auto;color:var(--muted);font-size:12px}
+main,footer{max-width:1100px;margin:auto;padding:20px 24px}
+footer{font-size:11px;color:var(--muted);padding-top:0}
+h1,h2{letter-spacing:-.015em;line-height:1.4;font-weight:600;margin:0 0 8px}
+h1{font-size:18px}
+h2{font-size:13px}
+p{margin:8px 0;color:var(--muted)}
+small,.hint{font-size:12px;color:var(--muted)}
+section{padding:var(--panel-space);margin:0 0 16px;border:1px solid var(--border);background:var(--surface);min-width:0}
+section>:first-child{margin-top:0}
+section>:last-child{margin-bottom:0}
+button,input{font:inherit;color:var(--ink);border:1px solid var(--strong);border-radius:2px;background:var(--surface);min-height:var(--control-height)}
+button{padding:6px 12px;font-size:12px;font-weight:550;cursor:pointer;line-height:20px}
+button:hover{background:var(--section)}
+button.primary{border-bottom-color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,summary:focus-visible,input[type=checkbox]:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+input{width:100%;min-width:0;margin:5px 0 12px;padding:6px 10px;line-height:20px}
+input:not([type=checkbox]):focus{outline:0;box-shadow:0 0 0 .4px var(--accent);border-color:var(--strong)}
+input[type=checkbox]{width:15px;height:15px;min-height:15px;margin:0;accent-color:var(--accent);flex-shrink:0}
+input[type=file]{font-size:12px;padding:5px 6px}
+input::file-selector-button{font:inherit;color:var(--ink);background:var(--section);border:0;border-right:1px solid var(--border);margin:-5px 8px -5px -6px;padding:7px 10px}
+label{display:block;font-size:12px;font-weight:500}
+.check{display:flex;gap:8px;align-items:flex-start;font-weight:400}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+form>.primary{margin-top:12px}
+#payment{max-width:600px}
+#recipient-help{margin:-4px 0 16px;font-size:11px}
+#password-help{margin:-4px 0 12px;font-size:11px}
+#fee-help{margin:8px 0;font-size:11px}
+.password-control{position:relative}
+.password-control input{padding-right:42px}
+.password-toggle{position:absolute;right:2px;top:7px;width:30px;height:30px;min-height:30px;padding:6px;border:0;color:var(--muted)}
+.password-toggle svg{display:block;width:18px;height:18px}
+#entry{max-width:560px;margin:24px auto;padding:var(--panel-space)}
+#entry-copy{margin-bottom:16px;font-size:12px}
+#entry details{margin-top:16px}
+#form-message,#restore-message,#review-error,#message{color:var(--warning);font-size:12px;overflow-wrap:anywhere}
+#form-message:empty,#restore-message:empty,#review-error:empty,#message:empty,#notice:empty{display:none}
+#form-message,#restore-message,#review-error{margin:8px 0}
+#message{margin:8px 0 0}
+#notice{font-size:12px;border-left:2px solid var(--accent);padding:6px 10px;margin:0 0 16px;background:var(--surface)}
+.connection-status{padding:10px 16px}
+.sync{display:flex;gap:10px;align-items:center;min-height:36px}
+.sync strong{display:block;font-size:12px;font-weight:550;color:var(--warning)}
+.sync[data-health=verified] strong{color:var(--success)}
+.sync:not([data-health=verified]) .duebyte-coin-body{animation-play-state:paused}
+.connection-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:7px;vertical-align:1px}
+#connection-help{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+#explain{display:block;font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink)}
+#explain .check-value{color:var(--check-number)}
+nav{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--border);margin:0 0 16px}
+nav button{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:500;border-radius:0;padding:7px 10px;min-height:36px}
+nav button[aria-current=page]{background:var(--section);color:var(--ink);box-shadow:inset 0 -1px var(--accent)}
+.nav-icon{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted)}
+.nav-icon svg{width:16px;height:16px}
+nav button[aria-current=page] .nav-icon{color:var(--accent)}
+.workspace-head{margin:0 0 16px}
+.workspace-head p{margin:4px 0 0;font-size:12px;max-width:80ch}
+.screen{margin-bottom:16px}
+.screen>section:last-child{margin-bottom:0}
+.screen-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.screen-grid>section{margin-bottom:0}
+.value{font-size:22px;font-weight:550;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;margin:4px 0;line-height:1.4}
+.eyebrow{font-size:11px;font-weight:500;color:var(--muted)}
+.address,#owner,.record-id{font:12px/1.6 ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
+#owner,#receive-address{padding:10px 12px;background:var(--page);border:1px solid var(--border);margin:12px 0}
+#receive-address{max-width:600px}
+#held{font-size:12px;font-variant-numeric:tabular-nums}
+.section-help{border-top:1px solid var(--border);padding-top:12px;margin-top:16px;font-size:11px}
+details{border-top:1px solid var(--border);padding-top:12px;font-size:12px}
+details p{max-width:90ch;overflow-wrap:anywhere}
+summary{cursor:pointer;font-size:12px;font-weight:500;min-height:24px;line-height:24px}
+.verification-details{margin-top:16px}
+.verification-details[open]{padding:12px 16px;border:1px solid var(--border);background:var(--surface)}
+#network,#verified-hash{overflow-wrap:anywhere}
+#verified-hash{white-space:pre-line;font-size:11px}
+ul{list-style:none;padding:0;margin:12px 0 0}
+li{padding:10px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+li:last-child{border-bottom:0}
+.record-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:12px}
+.record-heading strong{font-weight:550;font-variant-numeric:tabular-nums}
+.record-status{font-size:11px;color:var(--muted)}
+.record-status[data-state=SETTLED]{color:var(--success)}
+.record-status[data-state=QUEUED],.record-status[data-state=RESERVED]{color:var(--warning)}
+.record-id{font-size:11px;margin:4px 0}
+li small{font-size:11px}
+#empty-payments{padding:16px 0;margin:12px 0 0;border-top:1px solid var(--border);font-size:12px}
+.analytics-table{width:100%;border-collapse:collapse;border:1px solid var(--border);background:var(--surface);font-size:12px;line-height:1.5;margin-bottom:16px}
+.analytics-table th,.analytics-table td{padding:7px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:400;vertical-align:top}
+.analytics-table thead{background:var(--section);color:var(--muted)}
+.analytics-table thead th{font-size:11px;font-weight:500}
+.analytics-table tbody th{width:28%;font-weight:500}
+.analytics-table .numeric{width:18%;text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+.analytics-table thead th:nth-child(2){text-align:right}
+.analytics-table .description{font-size:11px;color:var(--muted)}
+.analytics-table tbody tr:hover{background:var(--section)}
+#history-chart{display:block;width:100%;height:60px;color:var(--accent);margin:12px 0}
+#history-chart polyline{fill:none;stroke:currentColor;stroke-width:2;vector-effect:non-scaling-stroke}
+dialog{color:var(--ink);background:var(--surface);border:1px solid var(--strong);border-radius:2px;width:calc(100% - 32px);max-width:520px;padding:var(--panel-space)}
+dialog::backdrop{background:#0009}
+dialog p{overflow-wrap:anywhere;font-size:12px}
+dialog h2{font-size:14px}
+#review-amount{padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;color:var(--ink)}
+@media(max-width:700px){
+ main,footer{padding:16px}
+ footer{padding-top:0}
+ header{padding:10px 16px;gap:8px}
+ header .tag{display:none}
+ header button{padding:6px 9px}
+ .screen-grid{grid-template-columns:1fr}
+ nav{gap:0}nav button{padding:7px 8px}
+ #entry{margin:16px auto}
+ .analytics-table th,.analytics-table td{padding:7px 8px}
+ .analytics-table tbody th{width:35%}
+ .analytics-table .numeric{width:22%}
+ .analytics-table .description{font-size:11px}
+ .record-heading{flex-wrap:wrap;gap:4px}
+}
+</style></head><body>
+<header><span class="duebyte-logo" role="img" aria-label="DueByte DUBYT"><span class="duebyte-mark"></span></span><span class="tag">DueByte network</span><button id="theme" type="button">Light theme</button></header>
+<main><section class="connection-status"><div id="sync" class="sync" data-health="connecting"><span class="duebyte-coin duebyte-coin-solid" aria-hidden="true"><span class="duebyte-coin-body"><i class="duebyte-coin-rim" style="--facet:0"></i><i class="duebyte-coin-rim" style="--facet:1"></i><i class="duebyte-coin-rim" style="--facet:2"></i><i class="duebyte-coin-rim" style="--facet:3"></i><i class="duebyte-coin-rim" style="--facet:4"></i><i class="duebyte-coin-rim" style="--facet:5"></i><i class="duebyte-coin-rim" style="--facet:6"></i><i class="duebyte-coin-rim" style="--facet:7"></i><i class="duebyte-coin-rim" style="--facet:8"></i><i class="duebyte-coin-rim" style="--facet:9"></i><i class="duebyte-coin-rim" style="--facet:10"></i><i class="duebyte-coin-rim" style="--facet:11"></i><i class="duebyte-coin-rim" style="--facet:12"></i><i class="duebyte-coin-rim" style="--facet:13"></i><i class="duebyte-coin-rim" style="--facet:14"></i><i class="duebyte-coin-rim" style="--facet:15"></i><i class="duebyte-coin-rim" style="--facet:16"></i><i class="duebyte-coin-rim" style="--facet:17"></i><i class="duebyte-coin-rim" style="--facet:18"></i><i class="duebyte-coin-rim" style="--facet:19"></i><i class="duebyte-coin-rim" style="--facet:20"></i><i class="duebyte-coin-rim" style="--facet:21"></i><i class="duebyte-coin-rim" style="--facet:22"></i><i class="duebyte-coin-rim" style="--facet:23"></i><i class="duebyte-coin-rim" style="--facet:24"></i><i class="duebyte-coin-rim" style="--facet:25"></i><i class="duebyte-coin-rim" style="--facet:26"></i><i class="duebyte-coin-rim" style="--facet:27"></i><i class="duebyte-coin-rim" style="--facet:28"></i><i class="duebyte-coin-rim" style="--facet:29"></i><i class="duebyte-coin-rim" style="--facet:30"></i><i class="duebyte-coin-rim" style="--facet:31"></i></span></span><div><strong role="status"><span class="connection-dot" aria-hidden="true"></span><span id="phase">Verifying data</span></strong><small id="connection-help">Please wait for the first verification to finish.</small><small id="explain" hidden>Last successful check: <span id="check-time" class="check-value"></span> · block <span id="check-height" class="check-value"></span></small></div></div><p id="message" role="status"></p></section>
+<section id="entry"><h1 id="entry-title">Your wallet</h1><p id="entry-copy">Create a wallet on this computer. Choose a password to protect its private key.</p><form id="login" novalidate><div id="password-fields" hidden><label id="password-label" for="password">Choose a password</label><input id="password" type="password" autocomplete="new-password" maxlength="1024" aria-describedby="password-help form-message"><p id="password-help">Use at least 12 characters. Keep your password safe; it cannot be reset.</p><div id="confirmation"><label for="confirm-password">Confirm password</label><input id="confirm-password" type="password" autocomplete="new-password" maxlength="1024" aria-describedby="form-message"></div></div><p id="form-message" role="status" aria-live="polite"></p><div class="actions"><button id="unlock" class="primary" hidden>Unlock</button><button type="button" class="primary" id="create">Create wallet</button><button type="button" id="cancel-create" hidden>Cancel</button></div></form></section>
+<div id="funds" hidden>
+<nav aria-label="Wallet sections"><button data-tab="overview" aria-current="page">Overview</button><button data-tab="send">Send</button><button data-tab="receive">Receive</button><button data-tab="activity">Activity</button><button data-tab="network">Network</button><button data-tab="security">Security</button></nav>
+<div class="workspace-head"><h1 id="screen-title">Wallet overview</h1><p id="screen-help">Check your available balance, then send or receive a payment.</p></div><p id="notice" role="status" aria-live="polite"></p>
+<div class="screen screen-grid" data-screen="overview"><section><small class="eyebrow">Available balance · DUBYT</small><div class="value" id="available">—</div><p id="held"></p><div class="actions"><button data-go="send" class="primary">Send payment</button><button data-go="receive">Receive</button><button data-go="activity">View activity</button></div><p class="section-help">Only verified balances are shown. Reserved and time-protected amounts cannot be spent.</p></section><section><h2>Your wallet</h2><p class="eyebrow">Public address</p><p id="owner"></p><p class="hint">This address receives payments on the DueByte network. Your private key stays encrypted on this computer.</p><button data-go="security">Backup &amp; security</button></section></div>
+<div class="screen" data-screen="send" hidden><section><h2>Send payment</h2><form id="payment" novalidate><label for="recipient">Recipient public address</label><input id="recipient" autocomplete="off" spellcheck="false" aria-describedby="recipient-help"><p id="recipient-help" class="hint">Use a DueByte public address. Verify it with the recipient before confirming.</p><label for="amount">Amount · DUBYT</label><input id="amount" inputmode="numeric" pattern="[1-9][0-9]*" aria-describedby="fee-help"><label class="check"><input id="protection" type="checkbox">Unlock for the recipient after 24 hours</label><p id="fee-help" class="hint">Network fee: 3%, rounded up to a whole unit. You will review the total before confirming.</p><button class="primary" id="send">Review payment</button></form></section></div>
+<div class="screen" data-screen="receive" hidden><section><h2>Receive DUBYT</h2><p class="hint">Share your public address with the sender.</p><p id="receive-address" class="address"></p><button id="copy-address">Copy address</button><p class="section-help">Check the network and address before sharing. Your password and encrypted backup are never needed to receive a payment.</p></section></div>
+<div class="screen" data-screen="activity" hidden><section><h2>Payment activity</h2><p class="hint">Recent records available in the verified state and this wallet’s local outbox. A queued payment is not yet confirmed. Do not resend it while its outcome is pending.</p><ul id="payments"></ul><p id="empty-payments">No payment records yet.</p></section></div>
+<div class="screen" data-screen="network" hidden><table id="network-metrics" class="analytics-table" aria-label="Verified network metrics"></table><details class="verification-details"><summary>Verification details</summary><p id="analytics-scope" class="hint">Waiting for a verified network snapshot.</p><p id="verified-hash" class="address"></p><p class="section-help">Logical validator and worker records do not establish independent ownership. The current deployment has two server hosts under one administrator. This installed node does not vote or earn validator rewards.</p></details></div>
+<div class="screen screen-grid" data-screen="security" hidden><section><h2>Encrypted backup</h2><p class="hint">Save a backup separately from this computer. It contains your encrypted private key, not your password. Keep the password in a safe place; there is no reset service.</p><button id="backup" class="primary">Save encrypted backup</button><p class="hint">A backup restores this DueByte wallet on the same network. Keep old SunPhi backups separately; their format and network are different.</p></section><section><h2>Lock your wallet</h2><p class="hint">Lock the wallet when you step away. Network verification can continue while it is locked.</p><button id="lock">Lock wallet</button></section></div>
+</div>
+<dialog id="payment-review" aria-labelledby="review-title"><h2 id="review-title">Review payment</h2><p id="review-recipient" class="address"></p><p id="review-amount"></p><p id="review-protection"></p><p id="review-error" role="alert"></p><div class="actions"><button id="confirm-payment" class="primary">Confirm payment</button><button id="cancel-payment">Back</button></div></dialog>
+<details><summary>Connection details</summary><p id="network"></p><p>Confirmation requires more than two thirds of the current validator voting power. Without a quorum, a payment cannot be confirmed. Verification continues while the local wallet process is running.</p></details></main><footer>DueByte · DUBYT · 0.3.4</footer>
+<script>
+const token='__TOKEN__';const $=id=>document.getElementById(id);let creating=false,submitting=false,lastStatus=null,feedback='';
+function theme(value){document.documentElement.dataset.theme=value==='light'?'light':'graphite';$('theme').textContent=value==='light'?'Dark theme':'Light theme';try{localStorage.setItem('duebyte-theme',document.documentElement.dataset.theme);}catch{}}
+try{theme(localStorage.getItem('duebyte-theme')||'graphite');}catch{theme('graphite');}$('theme').onclick=()=>theme(document.documentElement.dataset.theme==='light'?'graphite':'light');
+async function api(path,data){const r=await fetch(path,{method:data?'POST':'GET',headers:{'X-Duebyte-Token':token,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok)throw Error(v.error);return v;}
+function connectionHealth(health){const verified=health==='verified',text=verified?'Data verified':health==='attention'?'Data not verified':'Verifying data',help=health==='attention'?'Check the node connection. Verification will retry automatically.':'Please wait for the first verification to finish.';$('sync').dataset.health=health;if($('phase').textContent!==text)$('phase').textContent=text;$('connection-help').hidden=verified;if($('connection-help').textContent!==help)$('connection-help').textContent=help;}
+function paint(s){const wasLocked=lastStatus?.locked;lastStatus=s;connectionHealth(s.error?'attention':s.checkedAt?'verified':'connecting');$('explain').hidden=!s.checkedAt;if(s.checkedAt){const time=new Date(s.checkedAt).toLocaleTimeString('en-GB'),height=String(s.height??'—');if($('check-time').textContent!==time)$('check-time').textContent=time;if($('check-height').textContent!==height)$('check-height').textContent=height;}$('message').textContent=feedback||s.error||'';$('entry').hidden=!s.locked;$('funds').hidden=s.locked;renderEntry(s);$('lock').disabled=submitting;$('send').disabled=submitting||s.working||!!s.error||!s.checkedAt;$('network').textContent=s.network;$('owner').textContent=s.owner||'';$('receive-address').textContent=s.owner||'';if(s.balance){$('available').textContent=s.balance.available;$('held').textContent='Reserved: '+s.balance.reserved+' · Time protected: '+s.balance.protected;}else{$('available').textContent='—';$('held').textContent='Waiting for a verified balance.';}if(wasLocked!==s.locked){selectTab('overview');resetPasswordVisibility();$('payment-review').close();review=null;}renderRecords(s.payments);renderAnalytics(s);}
+function renderEntry(s){const fresh=!s.hasVault;$('entry-title').textContent=fresh?(creating?'Create your wallet':'Your wallet'):'Unlock your wallet';$('entry-copy').textContent=fresh?'Create a wallet on this computer. Choose a password to protect its private key.':'Enter the password for the wallet saved on this computer.';$('password-fields').hidden=fresh&&!creating;$('confirmation').hidden=!fresh;$('password-label').textContent=fresh?'Choose a password':'Password';$('password').autocomplete=fresh?'new-password':'current-password';$('password-help').hidden=!fresh;$('create').hidden=!fresh;$('unlock').hidden=fresh;$('cancel-create').hidden=!fresh||!creating;$('create').disabled=submitting;$('unlock').disabled=submitting;$('cancel-create').disabled=submitting;$('create').textContent=submitting?'Creating wallet…':creating?'Create wallet':'Create wallet';if(!s.locked){$('password').value='';$('confirm-password').value='';creating=false;}}
+function formError(text,id='password'){$('form-message').textContent=text;$(id).setAttribute('aria-invalid','true');$(id).focus();}
+async function credentials(){
+ if(submitting)return;if(!lastStatus){formError('Connecting to your local wallet. Please try again shortly.');return;}
+ const fresh=!lastStatus.hasVault;if(fresh&&!creating){creating=true;$('form-message').textContent='';renderEntry(lastStatus);$('password').focus();return;}
+ const password=$('password').value;if(!password){formError(fresh?'Choose a password of at least 12 characters.':'Enter your wallet password.');return;}
+ if(fresh&&password.length<12){formError('Use at least 12 characters for your password.');return;}
+ if(fresh&&password!==$('confirm-password').value){formError('The passwords do not match. Please enter the same password again.','confirm-password');return;}
+ submitting=true;feedback='';$('form-message').textContent=fresh?'Creating your encrypted wallet…':'Unlocking your wallet…';renderEntry(lastStatus);
+ try{const deadline=Date.now()+30000;let result;while(true){try{result=await api(fresh?'/create':'/unlock',{password});break;}catch(e){if(!e.message.includes('please wait for current check')||Date.now()>=deadline)throw e;$('form-message').textContent='Waiting for the current network check to finish…';await new Promise(r=>setTimeout(r,250));}}$('password').value='';$('confirm-password').value='';$('form-message').textContent='';creating=false;paint(result);}
+ catch(e){$('form-message').textContent=e.message.includes('please wait')?'Network verification is still busy. Your password is retained; please try again.':e.message.includes('authenticate')?'Incorrect password or damaged wallet file. Please check your password.':e.message;}
+ finally{submitting=false;if(lastStatus)renderEntry(lastStatus);}
+}
+async function action(path,data){if(submitting)return;submitting=true;feedback='';try{paint(await api(path,data));}catch(e){feedback=e.message;$('message').textContent=feedback;}finally{submitting=false;}}
+$('login').onsubmit=e=>{e.preventDefault();void credentials();};$('create').onclick=()=>void credentials();$('cancel-create').onclick=()=>{creating=false;$('password').value='';$('confirm-password').value='';$('form-message').textContent='';renderEntry(lastStatus);};
+for(const id of ['password','confirm-password']){const input=$(id),wrap=document.createElement('div'),button=document.createElement('button');wrap.className='password-control';input.before(wrap);wrap.append(input,button);button.className='password-toggle';button.type='button';button.setAttribute('aria-controls',id);button.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';const hidden=()=>{input.type='password';button.setAttribute('aria-label','Show password');button.setAttribute('aria-pressed','false');};hidden();button.onclick=()=>{const visible=input.type==='password';input.type=visible?'text':'password';button.setAttribute('aria-label',visible?'Hide password':'Show password');button.setAttribute('aria-pressed',String(visible));};document.addEventListener('visibilitychange',()=>{if(document.hidden)hidden();});input.addEventListener('blur',()=>{if(!input.value)hidden();});}
+for(const id of ['password','confirm-password'])$(id).oninput=()=>{$(id).removeAttribute('aria-invalid');$('form-message').textContent='';};
+$('lock').onclick=()=>action('/lock',{});
+const screens={overview:['Wallet overview','Check your available balance, then send or receive a payment.'],send:['Send payment','Enter the recipient and amount, review the total, then confirm.'],receive:['Receive','Share your public address. Your password and private key stay private.'],activity:['Payment activity','Follow the original payment until it is confirmed or its reservation is released.'],network:['Network analytics','Inspect the latest verified snapshot. These figures are not live market prices or speed estimates.'],security:['Security','Save an encrypted backup and lock your wallet when you step away.']};
+function selectTab(name){if(!screens[name])return;for(const b of document.querySelectorAll('[data-tab]')){if(b.dataset.tab===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}for(const p of document.querySelectorAll('[data-screen]'))p.hidden=p.dataset.screen!==name;$('screen-title').textContent=screens[name][0];$('screen-help').textContent=screens[name][1];$('notice').textContent='';}
+for(const b of document.querySelectorAll('[data-tab],[data-go]')){b.onclick=()=>selectTab(b.dataset.tab||b.dataset.go);if(b.dataset.tab){const icon=document.createElement('span');icon.className='nav-icon';icon.setAttribute('aria-hidden','true');const paths={overview:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M9 10h12"/>',send:'<path d="M6 18 18 6M6 6h12v12"/>',receive:'<path d="M18 6 6 18M6 6v12h12"/>',activity:'<path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/>',network:'<circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="m11 7-5 10m7-10 5 10M7 19h10"/>',security:'<path d="m12 3 8 3v5c0 5-8 10-8 10S4 16 4 11V6Z"/><path d="m8 12 3 3 5-6"/>'};icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+paths[b.dataset.tab]+'</svg>';b.prepend(icon);}}
+function resetPasswordVisibility(){for(const id of ['password','confirm-password']){const input=$(id),b=input.parentElement.querySelector('.password-toggle');input.type='password';b?.setAttribute('aria-label','Show password');b?.setAttribute('aria-pressed','false');}}
+$('cancel-create').addEventListener('click',resetPasswordVisibility);
+function element(tag,text,cls){const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;return e;}
+let recordsKey='',analyticsKey='',review=null;
+const chartPanel=document.createElement('section');chartPanel.innerHTML='<h2>Verified history</h2><p id="history-summary" class="hint">Successful verification checks will appear here.</p><svg id="history-chart" viewBox="0 0 800 100" preserveAspectRatio="none" role="img" aria-label="Verified block height at successful checks in this session"><path d="M0 10H800 M0 50H800 M0 90H800" stroke="var(--border)" fill="none" stroke-width="0.5"/><polyline id="history-line"></polyline><circle id="history-point" r="3" fill="currentColor" cx="4" cy="90"/></svg><p class="hint">Last 60 successful checks · this session. Block height, not transaction throughput.</p>';$('network-metrics').after(chartPanel);const samples=[];
+function historySample(s){if(!s.analytics||!s.checkedAt||s.error||samples.at(-1)?.at===s.checkedAt)return;samples.push({at:s.checkedAt,height:Number(s.analytics.height)});if(samples.length>60)samples.shift();const min=Math.min(...samples.map(x=>x.height)),max=Math.max(...samples.map(x=>x.height));$('history-line').setAttribute('points',samples.map((x,i)=>(i*800/Math.max(1,samples.length-1))+','+(90-(x.height-min)*80/Math.max(1,max-min))).join(' '));const last=samples.at(-1);$('history-point').setAttribute('cx',samples.length===1?'4':'796');$('history-point').setAttribute('cy',String(90-(last.height-min)*80/Math.max(1,max-min)));$('history-summary').textContent=samples.length+' successful check'+(samples.length===1?'':'s')+' · blocks '+min.toLocaleString('en-US')+'–'+max.toLocaleString('en-US');}
+function renderRecords(rows){const k=JSON.stringify(rows);if(k===recordsKey)return;recordsKey=k;$('empty-payments').hidden=rows.length>0;$('payments').replaceChildren(...rows.map(p=>{const li=document.createElement('li'),head=element('div','', 'record-heading'),state=element('span',({QUEUED:'Queued',RESERVED:'Funds reserved',SETTLED:'Confirmed',EXPIRED:'Reservation released'}[p.status]||p.status),'record-status');state.dataset.state=p.status;head.append(element('strong',(p.direction||'Sent')+(p.value?' · '+p.value+' DUBYT':'')),state);li.append(head,element('p',p.pid,'record-id'));if(p.fee&&p.direction!=='Received')li.append(element('small','Network fee: '+p.fee+' DUBYT'));return li;}));}
+function renderAnalytics(s){historySample(s);const a=s.analytics,k=JSON.stringify([a,!!s.error]);if(k===analyticsKey)return;analyticsKey=k;$('network-metrics').replaceChildren();if(!a){$('analytics-scope').textContent='Waiting for a verified network snapshot.';$('verified-hash').textContent='';return;}const head=document.createElement('thead'),tr=document.createElement('tr');for(const label of ['Metric','Value','Description'])tr.append(element('th',label));head.append(tr);const body=document.createElement('tbody');$('network-metrics').append(head,body);for(const [label,value,hint] of [['Verified block',a.height,'Confirmed consensus header'],['State block',a.appHeight,'State certified by that header'],['Confirmed payments',a.settled,'Records in the retained state'],['Confirmed volume',a.volume,'DUBYT in retained payment records'],['Reserved payments',a.reserved,'Awaiting finalization or expiry'],['Released reservations',a.expired,'Records in the retained state'],['Worker records',a.workerSeats,'Logical entries, not physical servers'],['Live outputs',a.outputs,'Unspent balance records'],['Issued supply',a.supply,'DUBYT in the verified state']]){const row=element('tr','','metric'),name=element('th',label);name.scope='row';row.append(name,element('td',value==null?'—':BigInt(value).toLocaleString('en-US'),'numeric'),element('td',hint,'description'));body.append(row);}$('analytics-scope').textContent=(s.error?'Last verified snapshot; current verification is unavailable. ':'')+'Counts describe retained verified records, not a complete lifetime archive. Updated after successful verification.';$('verified-hash').textContent='Block hash: '+a.blockHash+'\nCheckpoint: '+a.checkpoint;}
+$('copy-address').onclick=async()=>{try{await navigator.clipboard.writeText(lastStatus.owner);$('notice').textContent='Public address copied.';}catch{$('notice').textContent='Select and copy the address above.';}};
+$('backup').onclick=async()=>{try{const backup=await api('/backup'),url=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='DueByte-wallet-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);$('notice').textContent='Encrypted backup download requested. Check the saved file and keep your password separately.';}catch(e){$('notice').textContent=e.message;}};
+const restoreBox=document.createElement('details');restoreBox.innerHTML='<summary>Restore an encrypted backup</summary><p>Use a backup from this DueByte network and its password. An existing wallet will never be overwritten.</p><label for="restore-file">Encrypted backup file</label><input id="restore-file" type="file" accept=".json,application/json"><label for="restore-password">Backup password</label><input id="restore-password" type="password" autocomplete="current-password"><button id="restore-wallet" type="button">Restore wallet</button><p id="restore-message" role="status"></p>';$('entry').append(restoreBox);
+const help=document.createElement('details');help.innerHTML='<summary>Forgot your password?</summary><p>Your password protects the local private key. DueByte cannot reset it. You need the original password to open the wallet or its encrypted backup.</p>';$('entry').append(help);
+$('restore-wallet').onclick=async()=>{const f=$('restore-file').files[0];if(!f||f.size>12000){$('restore-message').textContent='Select a DueByte encrypted backup file (up to 12 KB).';return;}const password=$('restore-password').value;if(!password){$('restore-message').textContent='Enter the backup password.';return;}$('restore-wallet').disabled=true;try{const s=await api('/restore',{backup:JSON.parse(await f.text()),password});$('restore-password').value='';$('restore-file').value='';$('restore-message').textContent='Backup restored. Enter its password above to unlock your wallet.';paint(s);}catch(e){$('restore-message').textContent=e.message.includes('authenticate')?'Incorrect password or damaged backup.':e.message;}finally{$('restore-wallet').disabled=false;}};
+$('payment').onsubmit=e=>{e.preventDefault();const recipient=$('recipient').value.trim(),value=$('amount').value;if(!/^[A-Za-z0-9_-]{43}$/.test(recipient)||!(/^[1-9][0-9]{0,18}$/).test(value)){feedback='Enter a valid DueByte public address and a positive whole amount.';$('message').textContent=feedback;(!/^[A-Za-z0-9_-]{43}$/.test(recipient)?$('recipient'):$('amount')).focus();return;}const fee=(BigInt(value)*3n+99n)/100n;review={recipient,value,protected:$('protection').checked};$('review-recipient').textContent='To: '+recipient;$('review-amount').textContent='Amount: '+value+' DUBYT · Fee: '+fee+' DUBYT · Total: '+(BigInt(value)+fee)+' DUBYT';$('review-protection').textContent=review.protected?'The recipient can spend the payment 24 hours after settlement.':'The recipient can spend the payment after settlement.';$('review-error').textContent='';$('payment-review').showModal();};
+$('cancel-payment').onclick=()=>{$('payment-review').close();review=null;};
+$('confirm-payment').onclick=async()=>{if(!review||submitting)return;if(lastStatus.error||!lastStatus.checkedAt){$('review-error').textContent='Wait for successful data verification before confirming.';return;}submitting=true;$('confirm-payment').disabled=true;try{const s=await api('/send',review);$('payment-review').close();review=null;$('recipient').value='';$('amount').value='';paint(s);selectTab('activity');$('notice').textContent='Payment submitted. Follow this record until its outcome is confirmed.';}catch(e){const busy=e.message.includes('wallet not ready');$('review-error').textContent=busy?'Verification is busy. Wait for it to finish, then confirm again.':'The result is uncertain. Check Activity before sending another payment. '+e.message;if(!busy)review=null;}finally{submitting=false;$('confirm-payment').disabled=!review;}};
+$('payment').addEventListener('submit',()=>{if(review)$('confirm-payment').disabled=false;});
+let polling=false;async function poll(){if(polling)return;polling=true;try{paint(await api('/status'));}catch(e){connectionHealth('attention');$('send').disabled=true;$('message').textContent='Local wallet unavailable. Check that the node is running.';}finally{polling=false;}}setInterval(poll,1500);void poll();
+</script></body></html>
