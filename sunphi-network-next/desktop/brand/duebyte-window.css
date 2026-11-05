@@ -1,0 +1,15 @@
+/* Empty draggable Windows caption; native minimize/maximize/close remain available. */
+.desktop-caption{position:sticky;top:0;z-index:20;flex:none;height:32px;line-height:32px;padding:0 152px 0 12px;background:#050609;color:#f3f4f5;font:12px/32px Inter,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;-webkit-app-region:drag;app-region:drag}
+.desktop-window body{padding-top:32px}
+.desktop-window .desktop-caption{position:fixed;inset:0 0 auto;height:32px}
+:root[data-theme=light] .desktop-caption{background:#f8f9fa;color:#111317}
+#theme{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;min-height:34px;padding:6px;flex:none}
+#theme svg{width:21px;height:21px;flex:none}
+#theme .theme-moon{display:none}
+:root[data-theme=light] #theme .theme-sun{display:none}
+:root[data-theme=light] #theme .theme-moon{display:block}
+/* Zoom controls shared by the node and its wallet window. */
+footer .window-zoom{display:flex;align-items:center;gap:2px;margin-left:auto;flex:none}
+footer:has(.window-zoom) #theme{margin-left:8px}
+.window-zoom button{min-width:32px;min-height:32px;padding:4px 6px;font-size:14px;line-height:1.2}
+.window-zoom button:nth-child(2){min-width:52px;font-size:12px;font-variant-numeric:tabular-nums}
