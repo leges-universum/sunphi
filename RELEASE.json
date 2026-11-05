@@ -1,0 +1,20 @@
+{
+  "version": "0.3.12",
+  "profile": "DUEBYTE_PUBLIC_CHECKPOINT_TRIAL_V1",
+  "profileHash": "451de74336b31b7b2948a9511eea29f015e4480baa2f078f3f6c3db20fe2e1ff",
+  "tag": "duebyte-v0.3.12",
+  "files": [
+    {
+      "name": "DueByte-0.3.12-Windows-x64.zip",
+      "bytes": 234159414,
+      "sha256": "dc9deac727f69a62e02eb5eaf83fc5651da4179d61de15bc7f2a2531f499e726",
+      "url": "https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.12/DueByte-0.3.12-Windows-x64.zip"
+    },
+    {
+      "name": "DueByte-0.3.12-Linux-x64.tar.gz",
+      "bytes": 84965241,
+      "sha256": "9e9bf7d0f27bc62100e4298faf2066168e81fd7d20e2f6df8e440e87e98543a0",
+      "url": "https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.12/DueByte-0.3.12-Linux-x64.tar.gz"
+    }
+  ]
+}
