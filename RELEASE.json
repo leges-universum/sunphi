@@ -1,0 +1,26 @@
+{
+  "version": "0.3.31",
+  "profile": "DUEBYTE_PUBLIC_CHECKPOINT_TRIAL_V1",
+  "profileHash": "451de74336b31b7b2948a9511eea29f015e4480baa2f078f3f6c3db20fe2e1ff",
+  "tag": "duebyte-v0.3.31",
+  "files": [
+    {
+      "name": "DueByte-Home-0.3.31-Windows-x64.zip",
+      "bytes": 241888396,
+      "sha256": "0b66bd53fc2ebc64ce62a0c6b19b414ddf80256ca4977d0f5b69d040c0f71c97",
+      "url": "https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.31/DueByte-Home-0.3.31-Windows-x64.zip"
+    },
+    {
+      "name": "DueByte-Home-0.3.31-Linux-x64.tar.gz",
+      "bytes": 92367362,
+      "sha256": "da6a41d723a99cfdedfef5faf89e49cb2bf65bf33cca9d2969495db7650c7196",
+      "url": "https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.31/DueByte-Home-0.3.31-Linux-x64.tar.gz"
+    },
+    {
+      "name": "DueByte-Server-0.3.31-Linux-x64.tar.gz",
+      "bytes": 92366038,
+      "sha256": "0a468c1366e75083d3107825fbc16d820b21c9a051982f7c94969e4b2fe96c6f",
+      "url": "https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.31/DueByte-Server-0.3.31-Linux-x64.tar.gz"
+    }
+  ]
+}
