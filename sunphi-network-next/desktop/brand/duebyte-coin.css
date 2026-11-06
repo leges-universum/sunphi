@@ -1,0 +1,37 @@
+/* Two supplied faces; compositor-only rotation, with no layout changes. */
+.duebyte-coin{position:relative;display:inline-block;flex:0 0 auto;width:48px;height:48px;perspective:500px;vertical-align:middle}
+.duebyte-coin[hidden]{display:none!important}
+.duebyte-coin::before,.duebyte-coin::after{content:"";position:absolute;inset:0;background:center/contain no-repeat;backface-visibility:hidden;animation:duebyte-front 5s linear infinite;pointer-events:none}
+.duebyte-coin::before{background-image:url('./duebyte-coin-v1.png')}
+.duebyte-coin::after{background-image:url('./duebyte-coin-back-v1.png');animation-name:duebyte-back;transform:rotateY(180deg)}
+@keyframes duebyte-front{from{transform:rotateY(0deg)}to{transform:rotateY(360deg)}}
+@keyframes duebyte-back{from{transform:rotateY(180deg)}to{transform:rotateY(540deg)}}
+/* The perpendicular shaded rim stays visible when the supplied faces turn edge-on. */
+.duebyte-coin-edge{position:absolute;left:calc(50% - 2px);top:8%;width:4px;height:84%;border-radius:40%;background:repeating-linear-gradient(0deg,#a96c13 0 1px,#f7ca59 1px 3px,#ffdf83 3px 4px);animation:duebyte-edge 5s linear infinite;pointer-events:none;transform:rotateY(90deg)}
+@keyframes duebyte-edge{from{transform:rotateY(90deg)}to{transform:rotateY(450deg)}}
+[data-animated=false] .duebyte-coin-edge{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.duebyte-coin-edge{display:none;animation:none}}
+[data-animated=false] .duebyte-coin::before,[data-animated=false] .duebyte-coin::after{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.duebyte-coin::before,.duebyte-coin::after{animation:none}.duebyte-coin::after{display:none}}
+.duebyte-wait{align-items:center;gap:14px;min-width:0;color:inherit}
+.duebyte-wait-copy{display:flex;flex-direction:column;gap:3px;font:12px/17px Inter,system-ui,sans-serif}
+.duebyte-wait-copy small{font:11px/16px Inter,system-ui,sans-serif;color:var(--muted,#8e99a5)}
+.duebyte-wait[hidden]{display:none!important}
+/* Continuous solid coin: two faces and 32 tangent rim facets; compositor only. */
+.duebyte-coin-solid{--coin-size:36px;width:var(--coin-size);height:var(--coin-size);perspective:400px}
+.duebyte-coin-solid::before,.duebyte-coin-solid::after{content:none;animation:none}
+.duebyte-coin-body{position:absolute;inset:0;transform-style:preserve-3d;animation:duebyte-solid-turn 5.5s linear infinite;will-change:transform}
+.duebyte-coin-body::before,.duebyte-coin-body::after{content:"";position:absolute;inset:8%;border-radius:50%;background:#c18c28 center/116% 116% no-repeat;backface-visibility:hidden}
+.duebyte-coin-body::before{background-image:url('./duebyte-coin-v1.png');transform:translateZ(calc(var(--coin-size)*.045))}
+.duebyte-coin-body::after{background-image:url('./duebyte-coin-back-v1.png');transform:rotateY(180deg) translateZ(calc(var(--coin-size)*.045))}
+.duebyte-coin-rim{position:absolute;left:50%;top:50%;width:calc(var(--coin-size)*.084);height:calc(var(--coin-size)*.09);background:linear-gradient(90deg,#99631b,#ffd86a 45%,#b77c20);transform:translate(-50%,-50%) rotateZ(calc(var(--facet)*11.25deg)) translateY(calc(var(--coin-size)*-.42)) rotateX(90deg)}
+@keyframes duebyte-solid-turn{from{transform:rotateY(0deg)}to{transform:rotateY(360deg)}}
+@media(prefers-reduced-motion:reduce){.duebyte-coin-body{animation:none;will-change:auto}}
+/* The browser wallet always reserves a notification lane. */
+#browser-status{height:76px;position:relative;margin-bottom:16px}
+#browser-status>#notice,#browser-status>.duebyte-wait{position:absolute;inset:0;margin:0;padding:8px 14px;border:0;border-left:2px solid var(--accent,#df971e);background:transparent;overflow:auto}
+#browser-status>.duebyte-wait{display:none}
+#browser-status>#notice{padding-right:150px}
+#browser-status>#connection-retry{position:absolute;right:8px;top:16px;font-size:12px;padding:8px 14px}
+body:is([aria-busy=true],[data-connecting=true]) #browser-status>.duebyte-wait{display:flex}
+body:is([aria-busy=true],[data-connecting=true]) #browser-status>#notice{visibility:hidden}
