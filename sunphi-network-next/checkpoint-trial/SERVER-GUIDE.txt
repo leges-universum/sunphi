@@ -1,0 +1,46 @@
+DueByte Server — explicit operator control
+
+One Linux x64 package supports configured follower, validator, attester,
+public-RPC, expiry-relay and checkpoint-publisher services. Installing a package
+does not register a node, issue tokens or grant consensus authority. Existing
+enrollment and signed network policy remain separate requirements. External
+Sun·Phi observers and mesh infrastructure retain their own deployments.
+
+INITIAL INSTALLATION
+Verify SHA256SUMS from the release, extract into a new directory, then:
+  sudo sh install.sh
+This creates /opt/duebyte-server/releases/0.3.18 and a check-only systemd timer.
+It does not restart a validator. Existing services continue unchanged.
+
+REGISTER AN EXISTING CONFIGURED SERVICE
+  sudo duebyte-server adopt duebyte-node0.service validator
+Use the actual local service name. Other supported roles: follower, attester,
+rpc, relay, checkpoints. Adopt checks the existing command; it never enrolls
+or restarts the node. Only explicitly adopted services participate in updates.
+Initial admission/configuration must be completed before adoption.
+
+MANUAL ACTIVATION
+  sudo duebyte-server activate
+Applies this installed package to adopted services one at a time, retaining
+the service user, arguments, data directory and existing sandbox settings.
+For the current ten-validator network, maintenance requires at least nine
+recent signatures. Do not update several hosts simultaneously. A failed
+service restart restores its previous executable command, never old data.
+Read /var/lib/duebyte-server-updates/last-activation.json after maintenance.
+
+NOTIFICATIONS AND FUTURE UPDATES
+  sudo duebyte-server check
+  sudo duebyte-server status
+  sudo journalctl -u duebyte-update-check --since today
+  sudo duebyte-server update
+The timer only verifies and records notices. It has no root privileges and
+cannot write installed software, network configuration or node data. Notices
+include available version, importance and deadline/activation height when
+declared by the signed release. The final command is an explicit manual
+installation. Protocol/data-format changes require a coordinated procedure.
+
+No email or Sun·Phi message is sent by this local notifier. Bind external
+monitoring to the journal/status explicitly if remote alerts are wanted.
+Offline or expired update metadata does not stop a running node. Investigate
+unverified notices; never bypass signatures. Wallets and signing keys are
+never included in the package, uploaded, replaced or rolled back.

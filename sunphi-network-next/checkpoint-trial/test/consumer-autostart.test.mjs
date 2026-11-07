@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createAutoStart,startupName} from '../consumer-autostart.mjs';
+const old='C:\\Users\\Test User\\Old\\DueByte.exe',exe='C:\\Users\\Test User\\New\\DueByte.exe';
+function fixture({enabled=true,command='"'+old+'" --connect',isolated=false}={}){let entry={path:old,enabled,args:['--connect']};const writes=[],reads=[];
+ const app={getLoginItemSettings(o){reads.push(o);const matches=o.path==='"'+entry?.path+'"'&&o.args.join(' ')==='--connect';return {openAtLogin:!!matches,launchItems:matches?[{name:startupName,scope:'user',enabled:entry.enabled}]:[]};},setLoginItemSettings(o){writes.push(o);entry=o.openAtLogin?{path:o.path,args:o.args,enabled:o.enabled}:null;}};
+ return {control:createAutoStart(app,{exe,platform:'win32',isolated,readCommand:()=>command}),writes,reads};}
+test('enabled old release migrates to current path; get/set use identical connect args',()=>{const f=fixture();assert.equal(f.writes.length,1);assert(f.control.get());assert.equal(f.writes[0].path,exe);assert(f.reads.every(x=>x.path.startsWith('"')&&x.args[0]==='--connect'));f.control.set(false);assert(!f.control.get());f.control.set(true);assert(f.control.get());});
+test('Windows-disabled startup stays disabled and is never migrated implicitly',()=>{const f=fixture({enabled:false});assert.equal(f.writes.length,0);assert(!f.control.get());f.control.set(true);assert(f.control.get());});
+test('unrecognised startup command is not migrated',()=>{const f=fixture({command:'"'+old+'" --unexpected'});assert.equal(f.writes.length,0);assert(!f.control.get());});
+test('isolated data directory never changes real startup settings',()=>{const f=fixture({isolated:true});assert(!f.control.available);assert(!f.control.get());assert.throws(()=>f.control.set(true));assert.equal(f.writes.length,0);assert.equal(f.reads.length,0);});
