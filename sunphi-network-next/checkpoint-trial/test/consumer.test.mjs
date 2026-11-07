@@ -1,0 +1,60 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtempSync,readFileSync,writeFileSync,existsSync,unlinkSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {randomUUID} from 'node:crypto';
+import {initialize,assemble} from '../operator.mjs';
+import {keys,hash,digest} from '../crypto.mjs';
+import {CHECKPOINT,attest} from '../checkpoint.mjs';
+import {validateConsumerProfile,consumerTransportArgs} from '../consumer-profile.mjs';
+import {consumerIdentity,prepareConsumer} from '../consumer-setup.mjs';
+import {consumerView} from '../consumer-view.mjs';
+import {unseal} from '../vault.mjs';
+import {refreshConsumerBootstrap} from '../consumer-bootstrap.mjs';
+import {Store} from '../store.mjs';import {origin} from '../core.mjs';
+const read=f=>JSON.parse(readFileSync(f));
+test('automatic non-voting setup pins network and transport, retains identity, rejects unsafe reconfiguration',()=>{
+ const out=mkdtempSync(join(tmpdir(),'duebyte-consumer-')),pass=randomUUID();
+ const records=Array.from({length:10},(_,i)=>({endpoint:`127.0.0.1:${26000+i*10}`,enrollment:initialize(join(out,'operator'+i),pass)}));
+ const dir=join(out,'profile');assemble(records,keys().publicKey,dir,{laboratory:true});const config=read(join(dir,'app-config.json')),genesis=read(join(dir,'genesis.json')),policy=read(join(dir,'trust-policy.json'));
+ const wire=Buffer.concat([Buffer.from('0000000b7373682d6564323535313900000020','hex'),Buffer.alloc(32,1)]),pin='ssh-ed25519 '+wire.toString('base64');
+ const p={version:1,config,genesis,policy,basePort:27000,walletPort:27800,hosts:[{ip:'192.0.2.1',port:2244,user:'duebytefollower',pin,forwards:[[27100,26000],[27101,26001]]},{ip:'192.0.2.2',port:2244,user:'duebytefollower',pin,forwards:[[27110,26010],[27111,26011]]}],peers:records.slice(0,2).map((r,i)=>({id:r.enrollment.peerId,port:27100+i*10})),rpcServers:['http://127.0.0.1:27101','http://127.0.0.1:27111'],workers:Object.fromEntries(Object.keys(config.initial.nodes).map(id=>[id,'http://127.0.0.1:27101']))};
+ const expected=hash(p);validateConsumerProfile(p,expected);writeFileSync(join(out,'consumer-profile.json'),JSON.stringify(p));
+ const args=consumerTransportArgs(p.hosts[0],join(out,'device'));assert(args.includes('StrictHostKeyChecking=yes'));assert(args.includes('BatchMode=yes'));assert(!args.includes('-R'));assert(args.includes('127.0.0.1:27101:127.0.0.1:26001'));
+ for(const mutate of [x=>x.policy.threshold=1,x=>x.rpcServers[0]='http://example.com:27101',x=>x.hosts[0].pin+='\nextra',x=>x.hosts[0].forwards[0][0]=x.walletPort,x=>x.workers={},x=>x.config.chainId='duebyte-trial-other']){const bad=structuredClone(p);mutate(bad);assert.throws(()=>validateConsumerProfile(bad,expected));assert.throws(()=>validateConsumerProfile(bad,hash(bad)));}
+ const state=join(out,'consumer'),id=consumerIdentity(state,p,expected),privateBefore=digest(readFileSync(join(state,'transport-key')));assert.equal(consumerIdentity(state,p,expected).id,id.id);assert.equal(digest(readFileSync(join(state,'transport-key'))),privateBefore);
+ const now=Math.floor(Date.now()/1000),body={domain:CHECKPOINT,policyHash:hash(policy),network:config.chainId,genesisHash:policy.genesisHash,sequence:1,height:2,blockHash:hash('qa-block'),appHeight:1,appHash:hash('qa-state'),snapshotHash:hash('qa-snapshot'),previous:null,issuedAt:now,expiresAt:now+300};
+ const doc={body,signatures:records.slice(0,3).map((_,i)=>attest(body,unseal(read(join(out,'operator'+i,'checkpoint-key.encrypted.json')),pass)))};
+ const incomplete={...doc,signatures:doc.signatures.slice(0,2)};assert.throws(()=>prepareConsumer(state,p,expected,incomplete));assert(!existsSync(join(state,'node')));
+ const prepared=prepareConsumer(state,p,expected,doc);assert.equal(read(join(prepared.node,'run-settings.json')).isValidator,false);assert(!existsSync(join(prepared.node,'checkpoint-key.encrypted.json')));assert(!existsSync(join(prepared.node,'work-key.json')));
+ const toml=readFileSync(join(prepared.node,'config/config.toml'),'utf8');assert(toml.includes('tcp://127.0.0.1:27000'));assert(toml.includes('enable = true'));assert(toml.includes('pex = false'));
+ const saved=digest(readFileSync(join(prepared.node,'config/priv_validator_key.json')));writeFileSync(join(prepared.wallet,'wallet.encrypted.json'),'retained-wallet-sentinel');prepareConsumer(state,p,expected,doc);assert.equal(digest(readFileSync(join(prepared.node,'config/priv_validator_key.json'))),saved);assert.equal(readFileSync(join(prepared.wallet,'wallet.encrypted.json'),'utf8'),'retained-wallet-sentinel');
+ // Recover an interrupted empty bootstrap without changing identity or balances.
+ const signerKeys=records.slice(0,3).map((_,i)=>unseal(read(join(out,'operator'+i,'checkpoint-key.encrypted.json')),pass));
+ const signed=b=>({body:b,signatures:signerKeys.map(k=>attest(b,k))});
+ const expired=signed({...body,issuedAt:now-3600,expiresAt:now-3300}),next=signed({...body,sequence:2,height:5,appHeight:4,previous:hash(expired.body)});
+ const cp=join(prepared.node,'checkpoint.json'),tomlFile=join(prepared.node,'config/config.toml');writeFileSync(cp,JSON.stringify(expired));
+ const lock=join(prepared.node,'supervisor.lock');writeFileSync(lock,String(process.pid));
+ assert.equal(refreshConsumerBootstrap(prepared.node,config,policy,next).changed,false);assert.deepEqual(read(cp),expired);unlinkSync(lock);
+ assert.throws(()=>refreshConsumerBootstrap(prepared.node,config,policy,{...next,signatures:next.signatures.slice(0,2)}),/quorum/);assert.deepEqual(read(cp),expired);
+ assert(refreshConsumerBootstrap(prepared.node,config,policy,next).changed);assert.equal(read(cp).body.height,5);assert(readFileSync(tomlFile,'utf8').includes('trust_height = 5'));
+ assert.throws(()=>refreshConsumerBootstrap(prepared.node,config,policy,doc),/rollback/);
+ assert.throws(()=>refreshConsumerBootstrap(prepared.node,config,policy,signed({...next.body,blockHash:hash('conflict')})),/equivocation/);
+ // Finish an interrupted pair of atomic metadata replacements on the next run.
+ writeFileSync(tomlFile,readFileSync(tomlFile,'utf8').replace('trust_height = 5','trust_height = 2'));
+ assert(refreshConsumerBootstrap(prepared.node,config,policy,next).changed);assert(readFileSync(tomlFile,'utf8').includes('trust_height = 5'));
+ const store=new Store(join(prepared.node,'application.sqlite'),config);store.restore({...origin(config),height:1,blockHash:hash('retained-block')});store.close();
+ const databaseBefore=digest(readFileSync(join(prepared.node,'application.sqlite'))),checkpointBefore=digest(readFileSync(cp)),configBefore=digest(readFileSync(tomlFile));
+ assert.equal(refreshConsumerBootstrap(prepared.node,config,policy,signed({...next.body,sequence:3,height:8,appHeight:7,previous:hash(next.body)})).changed,false);
+ assert.equal(digest(readFileSync(join(prepared.node,'application.sqlite'))),databaseBefore);assert.equal(digest(readFileSync(cp)),checkpointBefore);assert.equal(digest(readFileSync(tomlFile)),configBefore);
+ assert.equal(digest(readFileSync(join(prepared.node,'config/priv_validator_key.json'))),saved);assert.equal(readFileSync(join(prepared.wallet,'wallet.encrypted.json'),'utf8'),'retained-wallet-sentinel');
+ const other=structuredClone(p);other.walletPort++;assert.throws(()=>consumerIdentity(state,other,hash(other)),/another network profile/);
+ console.log('Consumer setup qualification retained at '+out);
+});
+test('node UI distinguishes active connection, history checking, staleness and wrong network',()=>{
+ const network='duebyte-trial-view',now=Date.now(),s={progress:'running',network,rpc:{chain:network,height:'12',time:new Date(now).toISOString(),catchingUp:false,votingPower:'0',peers:2}};
+ assert.equal(consumerView(s,now).connected,true);
+ for(const r of [{...s.rpc,catchingUp:true},{...s.rpc,peers:0},{...s.rpc,time:new Date(now-100000).toISOString()},{...s.rpc,chain:'other'},{...s.rpc,votingPower:'10'}])assert.equal(consumerView({...s,rpc:r},now).connected,false);
+ assert.equal(consumerView({progress:'reconnecting'}).working,true);assert.equal(consumerView({progress:'stopped'}).active,false);
+});
