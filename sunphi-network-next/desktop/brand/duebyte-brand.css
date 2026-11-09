@@ -1,0 +1,11 @@
+/* Owner-supplied DueByte artwork, compact in both site and wallet headers. */
+@import url('./duebyte-coin.css');
+@font-face{font-family:Inter;src:url('./inter.woff2') format('woff2');font-weight:100 900;font-display:swap}
+.duebyte-logo{display:inline-flex;align-items:center;flex:none;line-height:1;vertical-align:middle}
+.sunphi-wordmark{display:inline-flex;align-items:baseline;white-space:nowrap;font-family:Inter,system-ui,sans-serif;font-weight:500;letter-spacing:0;text-transform:none}
+.sunphi-wordmark .sunphi-dot{color:#ff625b}
+.sunphi-affiliation .sunphi-wordmark{font:500 16px/1.25 Inter,system-ui,sans-serif;letter-spacing:0}
+.duebyte-mark{position:relative;display:block;flex:none;width:156px;height:54px;overflow:hidden;background:url('./duebyte-wordmark-light-20261103.png') -20px -9px/208px auto no-repeat;mix-blend-mode:multiply}
+.duebyte-mark img,.duebyte-type{display:none!important}
+:root:is([data-theme=dark],[data-theme=graphite]) .duebyte-mark{background-image:url('./duebyte-wordmark-dark-20261103.png');mix-blend-mode:screen}
+@media(max-width:480px){.duebyte-mark{width:136px;height:47px;background-size:181.33px auto;background-position:-17.44px -7.85px}}
