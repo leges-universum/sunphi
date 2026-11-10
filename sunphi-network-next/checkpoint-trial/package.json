@@ -1,0 +1,1 @@
+{"name":"duebyte-checkpoint-trial","version":"0.2.0","private":true,"type":"module","engines":{"node":">=24.13.0"},"scripts":{"test":"node --test --test-concurrency=1 test/*.test.mjs","qualify":"node qualify.mjs --lifecycle"},"dependencies":{"tuf-js":"5.0.1","tar":"7.5.22","yauzl":"3.4.0"},"overrides":{"minimatch":"11.0.1"}}
