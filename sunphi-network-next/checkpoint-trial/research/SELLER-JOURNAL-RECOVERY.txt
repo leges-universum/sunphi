@@ -1,0 +1,29 @@
+SELLER JOURNAL RECOVERY - OFFLINE OPERATOR COMPONENT
+
+Included module: purchase-seller-recovery.mjs. No recovery button is added to
+Home by this component. It neither unlocks a wallet nor enables selling.
+
+Pause local sales and stop the signer before taking a snapshot. Use
+sellerJournalSnapshot(journalPath, pinnedProfile), then
+sealSellerRecovery(snapshot, pinnedProfile, backupPassword).
+Store the encrypted bundle on an independent recovery medium. Retain its
+latest checkpoint independently of the bundle. Never put passwords in command
+arguments, environment variables, logs or source files. The caller must use
+protected local input. This module does not handle password entry or storage.
+
+restoreSellerRecovery(newJournalPath, bundle, pinnedProfile, backupPassword,
+latestIndependentCheckpoint) refuses to overwrite a journal. It verifies the
+profile, signatures, used deposit addresses, daily counters and clock before
+committing the complete database in one transaction. Failed/incomplete restores
+must not be treated as an empty initialized seller. Preserve recovery evidence.
+
+After restoration, reconcile outstanding orders against DueByte, the relay and
+external BTC/USDC refund outbox before explicitly enabling local sales. The
+requiresReconciliation receipt is an instruction to the operator, not an
+enforced network authorization. The module cannot detect simultaneous rollback
+of both a backup and its independently retained checkpoint on a compromised
+host. A journal backup contains no private key and does not replace separate
+wallet and external-refund key/outbox backups.
+
+The purchase implementation remains isolated-only. No production inventory,
+prices, live BTC/USDC asset route or issuance is authorized by this package.
