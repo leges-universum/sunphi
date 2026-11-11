@@ -1,0 +1,27 @@
+{
+  "version": "0.3.55",
+  "network": "duebyte-trial-fresh-20261109-v45",
+  "profileHash": "15b2d004316dcab66d65eca71aa583ed9574c0a54abb335cd0ce8db139d45429",
+  "tag": "duebyte-v0.3.55",
+  "issuance": false,
+  "files": [
+    {
+      "name": "DueByte-Home-0.3.55-Windows-x64.zip",
+      "bytes": 242454408,
+      "sha256": "a08b6c9d292be19f7aa822c497128157eaee495fb7b5ce9738c3c099d118195a",
+      "url": "https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.55/DueByte-Home-0.3.55-Windows-x64.zip"
+    },
+    {
+      "name": "DueByte-Home-0.3.55-Linux-x64.tar.gz",
+      "bytes": 94083612,
+      "sha256": "c00566ad561a3c131225b72cd6f12b6c7dab0eaa3011cd785ab7c911928f50f4",
+      "url": "https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.55/DueByte-Home-0.3.55-Linux-x64.tar.gz"
+    },
+    {
+      "name": "DueByte-Server-0.3.55-Linux-x64.tar.gz",
+      "bytes": 94084957,
+      "sha256": "6a65ed20f270f625c096564364279e6de694c828e0e0c91365e6b5e3fa671eac",
+      "url": "https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.55/DueByte-Server-0.3.55-Linux-x64.tar.gz"
+    }
+  ]
+}
