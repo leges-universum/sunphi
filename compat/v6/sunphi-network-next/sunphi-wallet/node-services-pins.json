@@ -1,0 +1,42 @@
+{
+  "root": {
+    "domain": "DUEBYTE_CHECKPOINT_TRIAL_V1/POLICY",
+    "network": "duebyte-trial-fresh-20261109-v45",
+    "genesisHash": "0efcd99f18d870cb37ff53397922a81a8569870983e8fb1f7ad15bc8bd9295a2",
+    "version": 1,
+    "members": [
+      {
+        "key": "i3EhUgdLjwz0M0Jc-IAlbccCvBk31n0r4QlA9eW5hSA",
+        "group": "6b46099824fe2a0e185966b89e3872eb3c66b05ed2d1fcd85ac97a6b747639b7"
+      },
+      {
+        "key": "YZGqQJGECCs2p7CmH7SkYoLZJZJ3W-9XVVn0hLv42F8",
+        "group": "2aefa9797e3513a5f14456ac02238b2eb090cc14166820645e7f7b1817cbc149"
+      },
+      {
+        "key": "74c7zysZmRDgIhvglbx2_QjIaSTWzVxuLcWcf9dWK28",
+        "group": "7d860eceb80f19d468de471b7cf8766babcc2b07f93814f72febf45b4fb9be18"
+      },
+      {
+        "key": "eth7SmD1CHeVsxd91OEMRvP2bmSCIN5K4y6xATugRnE",
+        "group": "0b286d0907aa4c3866fb09367ec266734edc28631145b9c97869b5bd16d7fe67"
+      }
+    ],
+    "threshold": 3,
+    "maxAge": 3600,
+    "notAfter": 1796856947
+  },
+  "configHash": "5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c",
+  "indexedTransition": {
+    "kind": "fresh-genesis",
+    "manifestHash": "2fcd8a15fa7e0b2b9b5ed3e0a04efa9919160f719b4f43ddcd15ab7391e3d268",
+    "network": "duebyte-trial-fresh-20261109-v45",
+    "configHash": "5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c",
+    "targetSchema": "DUEBYTE_BOUNDED_NETWORK_V6",
+    "sourceHeight": 0,
+    "activationHeight": 1,
+    "sourceRoot": "d6e7ebe8b1e07b561cb3f2bc9298cf664534839d0b05350b4cb72cab1b1eebbe",
+    "targetRoot": "e4dbb46ff9b540e1053c2b3fc513f17ff48137f438a8466d3e4522e473e92dcc",
+    "archive": null
+  }
+}
