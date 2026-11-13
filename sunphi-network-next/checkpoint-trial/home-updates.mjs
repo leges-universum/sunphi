@@ -1,0 +1,45 @@
+import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {spawn} from 'node:child_process';import {randomUUID} from 'node:crypto';
+import {loadRelease,checkUpdate,stageUpdate,verifyPackage,readJSON,writeJSON,updatePreferences,setAutomaticUpdates,automaticEligible,installedHome,packageRoot} from './update-core.mjs';
+export function launchHome(top,{connect=false,ticket,userDataDir}={}){const win=process.platform==='win32',root=win?path.join(top,'resources/app'):top,exe=win?path.join(top,'DueByte.exe'):path.join(root,'runtime/node'),args=win?[]:[path.join(root,'sunphi-network-next/checkpoint-trial/consumer-cli.mjs')];if(connect)args.push('--connect');if(ticket)args.push('--duebyte-update-ticket='+ticket);if(userDataDir)args.push('--user-data-dir='+userDataDir);const p=spawn(exe,args,{windowsHide:!win,detached:true,stdio:'ignore',env:{...process.env,ELECTRON_RUN_AS_NODE:undefined}});p.on('error',()=>{});p.unref();return p;}
+export function forwardHome(root,state,options={}){let record;try{record=installedHome(state,loadRelease(root));}catch{writeJSON(path.join(state,'updates/launch-warning.json'),{at:new Date().toISOString(),message:'Managed update failed local verification. Starting the original trusted package.'});return false;}if(!record)return false;launchHome(record.top,options);return true;}
+export function reportHomeBoot(root,state,phase='ready'){const ticket=process.argv.find(a=>a.startsWith('--duebyte-update-ticket='))?.slice('--duebyte-update-ticket='.length);if(!ticket)return;assert(/^[a-f0-9-]{36}$/.test(ticket));writeJSON(path.join(state,'updates/health',ticket+'.json'),{ticket,pid:process.pid,version:loadRelease(root).version,phase,at:new Date().toISOString()});}
+export class HomeUpdates{
+ constructor({root,state,prepare,stop,quit,connected,userDataDir,check=checkUpdate}){this.root=root;this.state=state;this.release=loadRelease(root);assert.equal(this.release.edition,'home');this.prepare=prepare;this.stop=stop;this.quit=quit;this.connected=connected;this.userDataDir=userDataDir;this.checkRelease=check;this.retryAttempt=0;this.value={current:this.release.version,automatic:updatePreferences(state).automatic,phase:'idle',message:'Automatic updates keep this Home edition current.'};this.busy=false;this.ending=false;this.checked=null;}
+ start(){this.first=setTimeout(()=>void this.check(),30000+Math.floor(Math.random()*30000));this.first.unref();this.interval=setInterval(()=>void this.check(),6*60*60*1000);this.interval.unref();this.ready=setInterval(()=>{if(this.checked&&!this.busy&&!this.ending)void this.install().catch(()=>{});},30000);this.ready.unref();}
+ close(){clearTimeout(this.first);clearTimeout(this.retry);clearInterval(this.interval);clearInterval(this.ready);this.ending=true;}
+ snapshot(){return {...this.value};}
+ setAutomatic(enabled){setAutomaticUpdates(this.state,enabled);this.value.automatic=enabled;return this.snapshot();}
+ recordCheck(error){
+  // Store bounded diagnostics only; exception messages can contain URLs or paths.
+  const codes=new Set(['ETIMEDOUT','ECONNRESET','ECONNREFUSED','ENOTFOUND','EAI_AGAIN','UND_ERR_CONNECT_TIMEOUT','UND_ERR_HEADERS_TIMEOUT','UND_ERR_SOCKET','ENOSPC','EACCES','EPERM','ERR_ASSERTION']);
+  const names=new Set(['TimeoutError','AbortError','DownloadError','DownloadHTTPError','DownloadLengthMismatchError','RepositoryError','BadVersionNumberError','ExpiredMetadataError','UnsignedMetadataError','LengthOrHashMismatchError']);
+  const code=[error?.code,error?.cause?.code].find(c=>codes.has(c))??null;
+  const type=names.has(error?.name)?error.name:error?'VerificationError':null;
+  try{writeJSON(path.join(this.state,'updates/last-check.json'),{at:new Date().toISOString(),version:this.release.version,passed:!error,code,type,retryAttempt:this.retryAttempt,nextRetryAt:this.value.nextRetryAt??null});}catch{/* Diagnostics must never interrupt the node or update verification. */}
+ }
+ async check({retry=false}={}){
+  if(this.busy||this.ending)return;
+  clearTimeout(this.retry);if(!retry)this.retryAttempt=0;
+  this.busy=true;this.value.nextRetryAt=null;this.value.phase='checking';this.value.message='Checking the signed release catalog…';
+  try{
+   const c=await this.checkRelease({root:this.root,state:this.state});if(this.ending)return;
+   this.checked=c.available?c:null;this.retryAttempt=0;
+   this.value={...this.value,phase:c.available?'available':'current',available:c.available?c.descriptor.version:null,required:c.descriptor.required,deadline:c.descriptor.deadline,checkedAt:c.checkedAt,message:c.available?c.descriptor.summary:'You have the current verified Home release.'};this.recordCheck();
+  }catch(error){
+   this.checked=null;if(this.ending)return;
+   this.value.phase='unavailable';this.value.message='Updates could not be verified. Your current node keeps running; DueByte will retry.';
+   const delay=[60000,300000,900000][this.retryAttempt++];
+   if(delay){this.value.nextRetryAt=new Date(Date.now()+delay).toISOString();this.retry=setTimeout(()=>void this.check({retry:true}),delay);this.retry.unref();}
+   this.recordCheck(error);
+  }finally{this.busy=false;}
+  if(this.checked&&!this.ending)await this.install();
+ }
+ async install(){if(this.busy||this.ending||!this.checked||!this.value.automatic)return;const c=this.checked,d=c.descriptor,failed=path.join(this.state,'updates/failed.json');if(fs.existsSync(failed)&&readJSON(failed).version===d.version){this.value.phase='failed';this.value.message='The new version could not start. Your previous version and saved data were retained.';return;}
+ if(!automaticEligible(d,this.release,this.state)){this.value.phase='waiting';this.value.message=d.protocolChange||d.dataMigration?'This release needs a coordinated upgrade. Automatic installation is paused.':'This verified update will reach your installation in a later rollout group.';return;}
+ this.busy=true;try{this.value.phase='downloading';this.value.message='Downloading and verifying the Home update. This can take a few minutes.';const file=path.join(this.state,'updates/staged.json');let staged=fs.existsSync(file)?readJSON(file):null;if(staged?.descriptorSha256!==c.descriptorSha256)staged=await stageUpdate(c,{state:this.state,onPhase:phase=>{this.value.phase=phase;this.value.message=phase==='extracting'?'Preparing the downloaded package…':'Checking the application files before installation…';}});else{this.value.phase='verifying';this.value.message='Checking the saved update package…';verifyPackage(staged.top,d);}
+ if(!this.value.automatic||this.ending)return;const ready=await this.prepare();if(!ready){this.value.phase='ready';this.value.message='Update ready. Lock your wallet or return to the node; installation will continue automatically.';return;}
+ if(!this.value.automatic||this.ending)return;
+ const reconnect=!!this.connected(),ticket=randomUUID(),pending=path.join(this.state,'updates','pending-'+ticket+'.json');writeJSON(pending,{schema:1,ticket,parentPid:process.pid,oldTop:packageRoot(this.root),state:this.state,staged,connect:reconnect,userDataDir:this.userDataDir??null,createdAt:new Date().toISOString()});this.value.phase='installing';this.value.message='Installing the verified update. Your node will restart with its saved data.';
+ const runtime=path.join(this.root,'runtime',process.platform==='win32'?'node.exe':'node'),helper=spawn(runtime,[path.join(import.meta.dirname,'update-home-helper.mjs'),pending],{windowsHide:true,detached:true,stdio:'ignore',env:{...process.env,ELECTRON_RUN_AS_NODE:undefined}});await new Promise((ok,fail)=>{helper.once('spawn',ok);helper.once('error',fail);});helper.unref();this.close();await this.stop();await this.quit();
+ }catch{this.value.phase='failed';this.value.message='Update installation was stopped safely. Your saved data has been retained.';}finally{this.busy=false;}}
+}
