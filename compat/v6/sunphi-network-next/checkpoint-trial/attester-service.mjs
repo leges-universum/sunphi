@@ -1,0 +1,10 @@
+// Private loopback service; remote coordinators must use authenticated SSH tunnels.
+import {createServer} from 'node:http';
+import {readFileSync,writeFileSync,mkdirSync,existsSync,unlinkSync} from 'node:fs';
+import {join,resolve} from 'node:path';
+import assert from 'node:assert/strict';
+import {signCandidate} from './checkpoint-operator.mjs';
+import {password} from './password.mjs';
+import {unseal} from './vault.mjs';
+export function serveAttester({profile,home,url,key,port}){assert(port>=1024&&port<32768);mkdirSync(home,{recursive:true,mode:0o700});const candidate=join(home,'active-candidate');mkdirSync(candidate,{recursive:true});let busy=false,last=0;const server=createServer(async(req,res)=>{try{assert(req.method==='POST'&&req.url==='/'&&!req.headers.origin);assert(!busy&&Date.now()-last>=1000,'signer busy');busy=true;last=Date.now();try{let size=0,parts=[];for await(const b of req){size+=b.length;assert(size<=1048576);parts.push(b);}const request=JSON.parse(Buffer.concat(parts)),body=request.body??request,renewals=request.renewals??[];writeFileSync(join(candidate,'body.json'),JSON.stringify(body));writeFileSync(join(candidate,'renewals.json'),JSON.stringify(renewals));const manifestFile=join(candidate,'manifest.json');if(request.manifest)writeFileSync(manifestFile,JSON.stringify(request.manifest));else if(existsSync(manifestFile))unlinkSync(manifestFile);const signature=await signCandidate(profile,candidate,url,key,join(home,'attester.sqlite'));res.setHeader('Content-Type','application/json');res.end(JSON.stringify(signature));}finally{busy=false;}}catch(e){res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message}));}});server.requestTimeout=15000;server.listen(port,'127.0.0.1');return server;}
+if(process.argv[1]&&resolve(process.argv[1])===resolve(import.meta.filename)){const [profile,home,url,vault,port]=process.argv.slice(2),key=unseal(JSON.parse(readFileSync(vault)),await password('Checkpoint key password: '));serveAttester({profile,home,url,key,port:Number(port)});console.log('Independent checkpoint attester listening on loopback.');}
