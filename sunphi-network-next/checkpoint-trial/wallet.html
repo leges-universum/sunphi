@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en" data-theme="graphite"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DueByte — Wallet</title><link rel="stylesheet" href="/brand/duebyte-brand.css"><link rel="stylesheet" href="/brand/duebyte-window.css"><link rel="icon" href="/brand/sunphi-windows.png">
+<style>
+:root{
+ --page:#f8f9fa;--surface:#fff;--section:#f0f1f3;--ink:#111317;--muted:#525862;
+ --border:#b8bec6;--strong:#7d858f;--accent:#e60012;--success:#21834a;--warning:#a94d00;
+ --check-number:#e60012;--space:8px;--panel-space:16px;--control-height:34px;
+ color-scheme:light;font:13px/1.5 Inter,system-ui,sans-serif;background:var(--page);color:var(--ink)
+}
+:root[data-theme=graphite]{
+ --page:#050609;--surface:#090c0f;--section:#161b22;--ink:#f3f4f5;--muted:#a5abb3;
+ --border:#303740;--strong:#3d444d;--accent:#f47b20;--success:#53c985;--warning:#f6a04d;
+ --check-number:#53c985;color-scheme:dark
+}
+*{box-sizing:border-box}
+html{scrollbar-gutter:stable}
+body{margin:0}
+body{min-height:100vh;display:flex;flex-direction:column}
+body>main{width:100%;flex:1}
+[hidden]{display:none!important}
+header{padding:10px 24px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface)}
+header{padding-inline:max(24px,calc((100% - 1100px)/2 + 24px))}
+:root[data-theme=graphite] header{background:#000}
+/* Show only the supplied wordmark and ticker in the wallet header. */
+header .duebyte-logo{width:104px!important;height:44px!important}
+header .duebyte-mark{width:104px;height:44px;background-size:208px auto;background-position:-80px -13px}
+header .tag{margin-left:auto;color:var(--muted);font-size:12px}
+main,footer{max-width:1100px;margin:auto;padding:20px 24px}
+footer{max-width:none;width:100%;font-size:11px;color:var(--muted);padding:12px max(24px,calc((100% - 1100px)/2 + 24px));display:flex;align-items:center;justify-content:flex-start;gap:16px;flex-wrap:wrap;border-top:1px solid var(--border)}
+.sunphi-affiliation{display:inline-flex;gap:5px;align-items:center;color:var(--ink);text-decoration:none}
+.sunphi-affiliation{order:0}
+.sunphi-affiliation .sunphi-symbol{width:16px;height:16px;background:url('/brand/sunphi-mark.svg') center/contain no-repeat}
+:root[data-theme=graphite] .sunphi-affiliation .sunphi-symbol{background-image:url('/brand/sunphi-mark-light.svg')}
+.sunphi-affiliation strong{display:block;font:bold 9px/1 Georgia,serif;letter-spacing:.01em}
+.sunphi-affiliation small{display:block;font-size:5px;letter-spacing:.25em;margin-top:1px;color:var(--muted)}
+.sunphi-connection{grid-column:1/-1}.sunphi-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.sunphi-actions a{display:inline-flex;min-height:34px;align-items:center;padding:6px 12px;border:1px solid var(--strong);color:var(--ink);text-decoration:none;font-size:12px}.sunphi-code{display:inline-block;padding:8px 12px;border:1px solid var(--border);font:600 18px/1.4 monospace;letter-spacing:.18em;color:var(--ink)}.messenger-toggle{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;text-align:left}.messenger-toggle::after{content:'';height:18px;width:32px;border-radius:12px;background:var(--strong);box-shadow:inset 0 0 0 4px var(--surface);flex-shrink:0}.messenger-toggle[aria-checked=true]::after{background:var(--success)}
+h1,h2{letter-spacing:-.015em;line-height:1.4;font-weight:600;margin:0 0 8px}
+h1{font-size:18px}
+h2{font-size:13px}
+p{margin:8px 0;color:var(--muted)}
+small,.hint{font-size:12px;color:var(--muted)}
+section{padding:var(--panel-space);margin:0 0 16px;border:1px solid var(--border);background:var(--surface);min-width:0}
+section>:first-child{margin-top:0}
+section>:last-child{margin-bottom:0}
+button,input{font:inherit;color:var(--ink);border:1px solid var(--strong);border-radius:2px;background:var(--surface);min-height:var(--control-height)}
+button{padding:6px 12px;font-size:12px;font-weight:550;cursor:pointer;line-height:20px}
+button:hover{background:var(--section)}
+:root[data-theme=light] button:not(:disabled):is(:hover,:focus-visible){background:#111317;color:#fff;border-color:#111317;box-shadow:none}
+button.primary{border-bottom-color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,summary:focus-visible,input[type=checkbox]:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+input{width:100%;min-width:0;margin:5px 0 12px;padding:6px 10px;line-height:20px}
+input:not([type=checkbox]):focus{outline:0;box-shadow:none;border-color:var(--accent)}
+input[type=checkbox]{width:15px;height:15px;min-height:15px;margin:0;accent-color:var(--accent);flex-shrink:0}
+input[type=file]{font-size:12px;padding:5px 6px}
+input::file-selector-button{font:inherit;color:var(--ink);background:var(--section);border:0;border-right:1px solid var(--border);margin:-5px 8px -5px -6px;padding:7px 10px}
+label{display:block;font-size:12px;font-weight:500}
+.check{display:flex;gap:8px;align-items:flex-start;font-weight:400}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+form>.primary{margin-top:12px}
+#payment{max-width:600px}
+#recipient-help{margin:-4px 0 16px;font-size:11px}
+#password-help{margin:-4px 0 12px;font-size:11px}
+#fee-help{margin:8px 0;font-size:11px}
+.password-control{position:relative}
+.password-control input{padding-right:42px}
+.password-toggle{position:absolute;right:2px;top:7px;width:30px;height:30px;min-height:30px;padding:6px;border:0;color:var(--muted)}
+.password-toggle svg{display:block;width:18px;height:18px}
+#entry{max-width:560px;margin:24px auto;padding:var(--panel-space)}
+#entry-copy{margin-bottom:16px;font-size:12px}
+#entry details{margin-top:16px}
+#form-message,#restore-message,#review-error,#message{color:var(--warning);font-size:12px;overflow-wrap:anywhere}
+#form-message:empty,#restore-message:empty,#review-error:empty,#message:empty,#notice:empty{display:none}
+#form-message,#restore-message,#review-error{margin:8px 0}
+#message{margin:8px 0 0}
+#notice{font-size:12px;border-left:2px solid var(--accent);padding:6px 10px;margin:0 0 16px;background:var(--surface)}
+.connection-status{padding:10px 16px}
+.sync{display:flex;gap:10px;align-items:center;min-height:36px}
+.sync strong{display:block;font-size:12px;font-weight:550;color:var(--warning)}
+.sync[data-health=verified] strong{color:var(--success)}
+.sync:not([data-health=verified]) .duebyte-coin-body{animation-play-state:paused}
+.connection-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:7px;vertical-align:1px}
+#connection-help{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+#explain{display:block;font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink)}
+#explain .check-value{color:var(--check-number)}
+nav{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--border);margin:0 0 16px}
+nav button{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:500;border-radius:0;padding:7px 10px;min-height:36px}
+nav button[aria-current=page]{background:var(--section);color:var(--ink);box-shadow:inset 0 -1px var(--accent)}
+.nav-icon{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted)}
+.nav-icon svg{width:16px;height:16px}
+nav button[aria-current=page] .nav-icon{color:var(--accent)}
+.workspace-head{margin:0 0 16px}
+.workspace-head p{margin:4px 0 0;font-size:12px;max-width:80ch}
+.screen{margin-bottom:16px}
+.screen>section:last-child{margin-bottom:0}
+.screen-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.screen-grid>section{margin-bottom:0}
+#purchase-form .actions button[aria-pressed=true]{background:var(--section);color:var(--ink);box-shadow:inset 0 -1px var(--accent)}
+#two-way-form .actions button[aria-pressed=true]{background:var(--section);color:var(--ink);box-shadow:inset 0 -1px var(--accent)}
+#two-way-preview,#two-way-orders>div{margin-block:24px;padding:20px;background:var(--section);border-top:1px solid var(--border)}
+#purchase-form .actions,#two-way-form .actions{margin-bottom:16px}
+#purchase-chain{overflow-wrap:anywhere}
+[data-screen=exchange]>section{align-self:start}
+#purchase-result{margin-top:20px;border-top:1px solid var(--border);padding-top:16px}
+#wallet-rewards{grid-column:1/-1;margin:0}
+#wallet-rewards dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+#wallet-rewards dt{color:var(--muted);font-size:11px}
+#wallet-rewards dd{margin:6px 0 0;font-size:16px;font-variant-numeric:tabular-nums}
+.value{font-size:22px;font-weight:550;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;margin:4px 0;line-height:1.4}
+.eyebrow{font-size:11px;font-weight:500;color:var(--muted)}
+.address,#owner,.record-id{font:12px/1.6 ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
+#owner,#receive-address{padding:10px 12px;background:var(--page);border:1px solid var(--border);margin:12px 0}
+#receive-address{max-width:600px}
+#held{font-size:12px;font-variant-numeric:tabular-nums}
+.section-help{border-top:1px solid var(--border);padding-top:12px;margin-top:16px;font-size:11px}
+details{border-top:1px solid var(--border);padding-top:12px;font-size:12px}
+details p{max-width:90ch;overflow-wrap:anywhere}
+summary{cursor:pointer;font-size:12px;font-weight:500;min-height:24px;line-height:24px}
+.verification-details{margin-top:16px}
+.verification-details[open]{padding:12px 16px;border:1px solid var(--border);background:var(--surface)}
+#network,#verified-hash{overflow-wrap:anywhere}
+#verified-hash{white-space:pre-line;font-size:11px}
+ul{list-style:none;padding:0;margin:12px 0 0}
+li{padding:10px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+li:last-child{border-bottom:0}
+.record-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:12px}
+.record-heading strong{font-weight:550;font-variant-numeric:tabular-nums}
+.record-status{font-size:11px;color:var(--muted)}
+.record-status[data-state=SETTLED]{color:var(--success)}
+.record-status[data-state=QUEUED],.record-status[data-state=RESERVED]{color:var(--warning)}
+.record-id{font-size:11px;margin:4px 0}
+li small{font-size:11px}
+#empty-payments{padding:16px 0;margin:12px 0 0;border-top:1px solid var(--border);font-size:12px}
+.analytics-table{width:100%;border-collapse:collapse;border:1px solid var(--border);background:var(--surface);font-size:12px;line-height:1.5;margin-bottom:16px}
+.analytics-table th,.analytics-table td{padding:7px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:400;vertical-align:top}
+.analytics-table thead{background:var(--section);color:var(--muted)}
+.analytics-table thead th{font-size:11px;font-weight:500}
+.analytics-table tbody th{width:28%;font-weight:500}
+.analytics-table .numeric{width:18%;text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+.analytics-table thead th:nth-child(2){text-align:right}
+.analytics-table .description{font-size:11px;color:var(--muted)}
+#history-chart{display:block;width:100%;height:60px;color:var(--accent);margin:12px 0}
+#history-chart polyline{fill:none;stroke:currentColor;stroke-width:2;vector-effect:non-scaling-stroke}
+dialog{color:var(--ink);background:var(--surface);border:1px solid var(--strong);border-radius:2px;width:calc(100% - 32px);max-width:520px;padding:var(--panel-space)}
+#collateral-form{max-width:720px;margin-top:24px}
+#collateral-picker{margin:8px 0 0;border:1px solid var(--border)}
+.collateral-nodes{display:grid;gap:1px;max-height:260px;overflow:auto;padding:8px}
+.collateral-nodes button{text-align:left;white-space:normal;overflow-wrap:anywhere}
+#collateral-node-id,#collateral-review-node{overflow-wrap:anywhere;font-size:13px}
+#collateral-review-values{display:grid;gap:0;margin:24px 0}
+#collateral-review-values>div{display:flex;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--border)}
+#collateral-review-values dt{color:var(--muted)}
+#collateral-review-values dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#collateral-review-dialog button:focus-visible{outline:1px solid var(--muted);outline-offset:2px}
+dialog::backdrop{background:#0009}
+dialog p{overflow-wrap:anywhere;font-size:12px}
+dialog h2{font-size:14px}
+#review-amount{padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;color:var(--ink)}
+@media(max-width:700px){
+ main,footer{padding:16px}
+ footer{padding-top:12px;padding-bottom:12px}
+ header{padding:10px 16px;gap:8px}
+ header .tag{display:none}
+ header button{padding:6px 9px}
+ .screen-grid{grid-template-columns:1fr}
+ nav{gap:0}nav button{padding:7px 8px}
+ #entry{margin:16px auto}
+ .analytics-table th,.analytics-table td{padding:7px 8px}
+ .analytics-table tbody th{width:35%}
+ .analytics-table .numeric{width:22%}
+ .analytics-table .description{font-size:11px}
+ .record-heading{flex-wrap:wrap;gap:4px}
+}
+
+/* Stable two-column entry, using the node screen's shell and spacing. */
+body{height:100dvh;min-height:0;overflow:hidden}
+body>main{min-height:0;overflow:auto;max-width:1240px;padding:40px 28px 24px;margin:0 auto}
+header{min-height:72px;flex:none;padding:12px max(28px,calc((100% - 1240px)/2 + 28px))}
+footer{flex:none;padding-inline:max(28px,calc((100% - 1240px)/2 + 28px))}
+#entry-layout{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:36px;align-items:start}
+#entry-intro{padding-top:26px}
+#entry-intro>.eyebrow{font:10px/1.6 Consolas,monospace;letter-spacing:2px;color:var(--accent)}
+#entry-intro>h1{font-size:36px;line-height:1.15;margin:18px 0 24px}
+#entry-intro>.lead{font-size:16px;line-height:1.7;max-width:42ch}
+#entry-intro>.hint{font-size:13px;line-height:1.7;margin-top:28px;max-width:48ch}
+#entry-intro .connection-status{margin-top:32px;padding:16px 0;border-width:1px 0 0;background:transparent}
+#entry{max-width:none;width:100%;margin:0;padding:26px}
+#entry-title{font-size:22px;margin-bottom:24px}
+#entry-copy{font-size:13px;line-height:1.7;margin:20px 0}
+.entry-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border)}
+.entry-tabs button{flex:1;min-width:0;padding:10px 6px;border:0;border-radius:0;font-size:13px;background:transparent}
+.entry-tabs button[aria-selected=true]{box-shadow:inset 0 -1px var(--accent);color:var(--ink)}
+#entry button:not(.password-toggle){min-height:44px;font-size:13px}
+#entry label{font-size:13px}
+#entry input,#entry select{min-height:44px;font-size:14px}
+#entry input{margin:7px 0 12px}
+#entry .password-toggle{top:9px;width:40px;height:40px;padding:10px}
+#entry .password-control input{padding-right:48px}
+#entry .password-toggle:hover{background:transparent!important;color:var(--ink)!important}
+#entry #password-help{font-size:12px;line-height:1.6;margin:0 0 20px}
+#saved-wallet{padding:16px;border:1px solid var(--border);margin-bottom:24px}
+.wallet-picker{position:relative;margin:8px 0}
+#wallet-picker{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:44px;padding:12px 16px;margin:0;border:1px solid var(--strong);background:var(--surface);color:var(--ink);font-size:14px;text-align:left}
+#wallet-picker::after{content:'';width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin:0 3px 4px 8px;flex:none}
+#wallet-picker[aria-expanded=true]::after{transform:rotate(225deg);margin-top:6px}
+#wallet-options{position:absolute;inset:calc(100% + 4px) 0 auto;z-index:20;max-height:240px;overflow:auto;padding:4px;background:var(--section);border:1px solid var(--strong);border-radius:3px;box-shadow:0 12px 28px #0003}
+#wallet-options [role=option]{display:flex;align-items:center;gap:12px;width:100%;margin:0;min-height:44px;padding:10px 12px;border:0;background:transparent;color:var(--ink);font-size:14px;text-align:left;overflow-wrap:anywhere}
+#wallet-options [role=option]::after{content:'';margin-left:auto;flex:none;width:7px;height:12px;border:solid transparent;border-width:0 2px 2px 0;transform:rotate(45deg)}
+#wallet-options [aria-selected=true]::after{border-color:var(--accent)}
+#wallet-picker:hover,#wallet-picker[aria-expanded=true],#wallet-options [role=option]:hover,#wallet-options [role=option]:focus{background:var(--section);color:var(--ink);outline:none;box-shadow:none}
+:root[data-theme=graphite] #wallet-options [role=option]:hover,:root[data-theme=graphite] #wallet-options [role=option]:focus{background:#2b3139}
+:root[data-theme=light] #wallet-options [role=option]:hover,:root[data-theme=light] #wallet-options [role=option]:focus{background:#111317;color:#fff}
+#wallet-picker:focus-visible{outline:1px solid var(--muted);outline-offset:3px}
+select{font:inherit;width:100%;padding:10px;color:var(--ink);background:var(--surface);border:1px solid var(--strong);border-radius:2px;margin:8px 0}
+select:focus,input:not([type=checkbox]):focus-visible{border-color:var(--accent);box-shadow:none;outline:0 solid transparent}
+input:autofill,input:-webkit-autofill{-webkit-text-fill-color:var(--ink);box-shadow:0 0 0 1000px var(--surface) inset!important}
+#selected-address{font:11px/1.7 Consolas,monospace;overflow-wrap:anywhere}
+#entry details{margin-top:24px;padding:16px;border:1px solid var(--border)}
+#entry details summary{font-size:13px}
+#entry .hint{line-height:1.7}
+#entry .actions{margin-top:20px}
+#entry .primary{background:var(--section)}
+button:not(:disabled):is(:hover,:active){background:#000;color:#fff;border-color:var(--strong)}
+:root[data-theme=light] button:not(:disabled):is(:hover,:focus-visible,:active){background:#000;color:#fff;border-color:#000}
+#workspace-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+#workspace-tools .actions{margin:0}
+#workspace-wallet{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+#entry-loading{min-height:280px;color:var(--muted)}
+@media(max-width:900px){#entry-layout{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:24px}#entry-intro>h1{font-size:30px}}
+@media(max-width:700px){body>main{padding:24px 16px}header{padding:12px 16px}footer{padding-inline:16px}#entry-layout{grid-template-columns:1fr;gap:24px}#entry-intro{padding:0}#entry-intro>h1{font-size:28px}#entry-intro>.hint{margin-top:14px}#entry{padding:20px}.entry-tabs button{font-size:12px!important}}
+/* Wallet planes share the node screen's graphite hierarchy. */
+html:root[data-theme] body:not(.consumer) .screen-grid{padding:0;border:0;background:transparent;gap:24px;align-items:start}
+html:root body:not(.consumer) .screen>section{padding:24px;border-radius:8px}
+html:root body:not(.consumer) .screen h2{font-size:18px;line-height:1.4;margin-bottom:16px}
+html:root body:not(.consumer) .screen h3{font-size:15px;line-height:1.5;margin:0 0 12px}
+html:root body:not(.consumer) .screen p{line-height:1.7}
+html:root body:not(.consumer) .screen .eyebrow{display:block;margin-bottom:8px;font-size:11px;letter-spacing:.08em}
+html:root body:not(.consumer) .screen .hint{font-size:13px}
+html:root body:not(.consumer) .screen label{font-size:13px}
+html:root body:not(.consumer) .screen .section-help{margin:24px -24px -24px;padding:20px 24px;background:var(--section);border-top:1px solid var(--border);border-radius:0 0 7px 7px;font-size:12px}
+html:root body:not(.consumer) .screen>section.panel{padding:0}
+.panel-head,.panel-body,.panel-band{padding:24px;min-width:0}
+.panel-head{border-bottom:1px solid var(--border)}
+.panel-head h2:last-child{margin-bottom:0!important}
+.panel-body>:first-child,.panel-band>:first-child{margin-top:0}
+.panel-body>:last-child,.panel-band>:last-child{margin-bottom:0}
+.panel-band{background:var(--section);border-top:1px solid var(--border);border-radius:0 0 7px 7px}
+html:root body:not(.consumer) .panel-band .section-help{margin:0 0 20px;padding:0;border:0;background:transparent;border-radius:0}
+.nodes-overview,.node-notices{grid-column:1/-1}
+html:root body:not(.consumer) .nodes-workspace .panel-head>.eyebrow{color:var(--accent);font-family:ui-monospace,Consolas,monospace}
+#nodes-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:20px}
+html:root body:not(.consumer) #nodes-list>section{padding:20px;margin:0;background:var(--section);border-radius:4px}
+#nodes-list [role=status]{padding-top:12px;border-top:1px solid var(--border);color:var(--warning)}
+#node-alert-approval{max-width:600px;display:block;margin-top:8px}
+label[for=node-alert-approval]{margin-top:24px}
+#collateral-form{padding-top:20px;border-top:1px solid var(--border)}
+html:root body:not(.consumer) #collateral-picker{padding:0}
+#collateral-picker>summary{padding:12px 16px}
+html:root body:not(.consumer) [data-screen=overview] .value{font-size:36px;line-height:1.3;margin:16px 0}
+html:root body:not(.consumer) [data-screen=overview] #held{padding:16px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+#wallet-rewards{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0}
+#wallet-rewards>summary{padding:18px 24px}
+html:root body:not(.consumer) #wallet-rewards>summary{color:var(--ink)}
+#wallet-rewards dl{margin:0;padding:24px;background:var(--section);border-block:1px solid var(--border)}
+#wallet-rewards dd{font-size:24px}
+#wallet-rewards>.hint{padding:16px 24px;margin:0}
+html:root body:not(.consumer) :is([data-screen=send],[data-screen=receive],[data-screen=exchange])>section{max-width:760px;margin-inline:0}
+#payment,#receive-address{max-width:none}
+.payment-options{margin:24px 0;padding:20px;background:var(--section);border:1px solid var(--border);border-radius:4px}
+.payment-options>.hint{margin:10px 0 24px}
+.payment-options>.hint:last-child{margin-bottom:0}
+html:root body:not(.consumer) .payment-options .check{color:var(--ink);font-weight:550;align-items:center}
+html:root body:not(.consumer) [data-screen=activity]>section{padding-bottom:24px}
+#payments li{padding:20px;margin:0;border:1px solid var(--border);background:var(--section)}
+#payments li+li{border-top:0}
+html:root body:not(.consumer) #empty-payments{padding:32px 24px;margin:24px -24px -24px;background:var(--section);border-radius:0 0 7px 7px}
+.record-heading{font-size:14px}.record-id{margin:12px 0}
+html:root body:not(.consumer) .analytics-table th,html:root body:not(.consumer) .analytics-table td{padding:16px;font-size:13px}
+html:root body:not(.consumer) .analytics-table .description{font-size:12px}
+.analytics-table tbody tr:nth-child(even){background:var(--section)}
+.analytics-table tbody tr:hover{background:#dce2e9}
+:root[data-theme=graphite] .analytics-table tbody tr:hover{background:#343d48}
+html:root body:not(.consumer) .screen .verification-details .section-help{margin:16px 0 0;padding:16px;max-width:none;border-radius:0}
+html:root body:not(.consumer) [data-screen=security] a:not(.sunphi-actions a){color:var(--muted);text-underline-offset:3px}
+html:root body:not(.consumer) [data-screen=security] a:not(.sunphi-actions a):is(:hover,:focus-visible){color:var(--accent)}
+html:root body:not(.consumer) [data-screen=security]>section>h2{margin:0 -24px 20px;padding:0 24px 18px;border-bottom:1px solid var(--border)}
+html:root body:not(.consumer) [data-screen=security]>section>button,html:root body:not(.consumer) [data-screen=security] .sunphi-actions{margin-block:16px}
+html:root body:not(.consumer) [data-screen=security]>section>.hint:last-child{margin:20px -24px -24px;padding:18px 24px;background:var(--section);border-top:1px solid var(--border);border-radius:0 0 7px 7px}
+#purchase-status,#purchase-result{padding:20px;background:var(--section);border:1px solid var(--border);border-radius:4px}
+#purchase-result:empty{display:none}
+#purchase-form{margin-top:24px}
+html:root body:not(.consumer) #seller-panel{padding:20px;background:var(--section);border-radius:4px}
+html:root body:not(.consumer) #saved-wallet{background:var(--section);border-radius:4px}
+html:root body:not(.consumer) dialog{padding:28px;border-radius:8px}
+html:root body:not(.consumer) dialog h2{font-size:20px;margin-bottom:20px}
+html:root body:not(.consumer) dialog .actions{margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}
+@supports(grid-template-rows:subgrid){@media(min-width:801px){
+ html:root[data-theme] body:not(.consumer) [data-screen=security]{align-items:stretch;row-gap:0}
+ html:root body:not(.consumer) [data-screen=security]>section{margin-bottom:24px}
+ [data-screen=security]>section:not(.sunphi-connection){display:grid;grid-template-rows:subgrid;grid-row:span 7;row-gap:0}
+ [data-screen=security]>section:not(.sunphi-connection)>.eyebrow{grid-row:1}
+ [data-screen=security]>section:not(.sunphi-connection)>h2{grid-row:2}
+ [data-screen=security]>section:not(.sunphi-connection)>h2+p{grid-row:3}
+ [data-screen=security]>section:not(.sunphi-connection)>button{grid-row:4;justify-self:start;align-self:start}
+ [data-screen=security]>section:not(.sunphi-connection)>button+p{grid-row:5}
+ [data-screen=security]>section:not(.sunphi-connection)>button+p+p{grid-row:6}
+ [data-screen=security]>section:not(.sunphi-connection)>a{grid-row:7}
+ [data-screen=security]>section:not(.sunphi-connection)>p.hint:last-child{grid-row:5 / span 3;align-self:end}
+}}
+@media(max-width:800px){html:root body:not(.consumer) .screen-grid{grid-template-columns:1fr}#nodes-list{grid-template-columns:1fr}}
+@media(max-width:480px){html:root body:not(.consumer) .screen>section{padding:20px}.panel-head,.panel-body,.panel-band{padding:20px}html:root body:not(.consumer) .screen .section-help{margin:20px -20px -20px;padding:18px 20px}html:root body:not(.consumer) .panel-band .section-help{margin:0 0 20px;padding:0}html:root body:not(.consumer) [data-screen=security]>section>h2{margin-inline:-20px;padding-inline:20px}html:root body:not(.consumer) [data-screen=security]>section>.hint:last-child,html:root body:not(.consumer) #empty-payments{margin:20px -20px -20px;padding:18px 20px}#wallet-rewards dl{grid-template-columns:1fr;gap:20px}#wallet-rewards dl>div+div{border-top:1px solid var(--border);padding-top:16px}.payment-options{padding:16px}html:root body:not(.consumer) .analytics-table th,html:root body:not(.consumer) .analytics-table td{padding:12px 8px}}
+</style></head><body>
+<header><span class="duebyte-logo" role="img" aria-label="DueByte DUBYT"><span class="duebyte-mark"></span></span><span class="tag">DueByte network</span><button id="theme" type="button" aria-label="Switch to light theme" title="Switch to light theme"><svg class="theme-sun" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="theme-moon" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.2A8.5 8.5 0 0 1 10.8 3.5 8.5 8.5 0 1 0 20.5 13.2Z"/></svg></button></header>
+<main><div id="entry-layout"><div id="entry-intro"><p class="eyebrow">YOUR KEYS. YOUR INSTRUCTIONS.</p><h1>Welcome to DueByte Wallet</h1><p class="lead">Open your wallet, create a new one or restore an encrypted backup.</p><p class="hint">Each wallet has its own address and password. Keep an encrypted backup and its password safe; both are needed for recovery.</p><section class="connection-status"><div id="sync" class="sync" data-health="connecting"><span class="duebyte-coin duebyte-coin-solid" aria-hidden="true"><span class="duebyte-coin-body"><i class="duebyte-coin-rim" style="--facet:0"></i><i class="duebyte-coin-rim" style="--facet:1"></i><i class="duebyte-coin-rim" style="--facet:2"></i><i class="duebyte-coin-rim" style="--facet:3"></i><i class="duebyte-coin-rim" style="--facet:4"></i><i class="duebyte-coin-rim" style="--facet:5"></i><i class="duebyte-coin-rim" style="--facet:6"></i><i class="duebyte-coin-rim" style="--facet:7"></i><i class="duebyte-coin-rim" style="--facet:8"></i><i class="duebyte-coin-rim" style="--facet:9"></i><i class="duebyte-coin-rim" style="--facet:10"></i><i class="duebyte-coin-rim" style="--facet:11"></i><i class="duebyte-coin-rim" style="--facet:12"></i><i class="duebyte-coin-rim" style="--facet:13"></i><i class="duebyte-coin-rim" style="--facet:14"></i><i class="duebyte-coin-rim" style="--facet:15"></i><i class="duebyte-coin-rim" style="--facet:16"></i><i class="duebyte-coin-rim" style="--facet:17"></i><i class="duebyte-coin-rim" style="--facet:18"></i><i class="duebyte-coin-rim" style="--facet:19"></i><i class="duebyte-coin-rim" style="--facet:20"></i><i class="duebyte-coin-rim" style="--facet:21"></i><i class="duebyte-coin-rim" style="--facet:22"></i><i class="duebyte-coin-rim" style="--facet:23"></i><i class="duebyte-coin-rim" style="--facet:24"></i><i class="duebyte-coin-rim" style="--facet:25"></i><i class="duebyte-coin-rim" style="--facet:26"></i><i class="duebyte-coin-rim" style="--facet:27"></i><i class="duebyte-coin-rim" style="--facet:28"></i><i class="duebyte-coin-rim" style="--facet:29"></i><i class="duebyte-coin-rim" style="--facet:30"></i><i class="duebyte-coin-rim" style="--facet:31"></i></span></span><div><strong role="status"><span class="connection-dot" aria-hidden="true"></span><span id="phase">Verifying data</span></strong><small id="connection-help">Please wait for the first verification to finish.</small><small id="explain" hidden>Last successful check: <span id="check-time" class="check-value"></span> · block <span id="check-height" class="check-value"></span></small></div></div><p id="message" role="status"></p></section>
+</div><section id="entry" aria-labelledby="entry-title"><h2 id="entry-title">Unlock your wallet</h2>
+<div class="entry-tabs" role="tablist" aria-label="Wallet access">
+<button id="tab-open" role="tab" aria-selected="true" aria-controls="open-panel">Open existing</button>
+<button id="tab-create" role="tab" aria-selected="false" aria-controls="open-panel" tabindex="-1">Create new</button>
+<button id="tab-restore" role="tab" aria-selected="false" aria-controls="restore-panel" tabindex="-1">Restore backup</button></div>
+<p id="entry-loading" role="status">Loading your saved wallets…</p>
+<div id="open-panel" role="tabpanel" aria-labelledby="tab-open" hidden><p id="entry-copy"></p>
+<div id="saved-wallet"><label id="wallet-picker-label" for="wallet-picker">Saved wallet</label><select id="wallet-select" hidden aria-hidden="true" tabindex="-1"></select><div class="wallet-picker"><button id="wallet-picker" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="wallet-options" aria-labelledby="wallet-picker-label wallet-picker-name" aria-describedby="selected-address"><span id="wallet-picker-name"></span></button><div id="wallet-options" role="listbox" aria-labelledby="wallet-picker-label" hidden></div></div><p id="selected-address"></p><button id="choose-file" type="button">Choose a backup file</button></div>
+<form id="login" novalidate><div id="wallet-name-field" hidden><label for="wallet-name">Wallet name</label><input id="wallet-name" maxlength="80" placeholder="For example, Personal wallet" autocomplete="off" aria-describedby="wallet-name-help"><p id="wallet-name-help" class="hint">A label on this computer. It is not published to the network.</p></div>
+<div id="password-fields"><label id="password-label" for="password">Wallet password</label><input id="password" type="password" autocomplete="current-password" placeholder="Enter your wallet password" maxlength="1024" aria-describedby="password-help form-message"><p id="password-help"></p><div id="confirmation" hidden><label for="confirm-password">Confirm password</label><input id="confirm-password" type="password" autocomplete="new-password" placeholder="Enter the same password again" maxlength="1024" aria-describedby="form-message"></div></div>
+<p id="form-message" role="status" aria-live="polite"></p><div class="actions"><button id="unlock" class="primary">Unlock selected wallet</button><button type="button" class="primary" id="create" hidden>Create wallet</button><button type="button" id="cancel-create" hidden>Back</button></div></form>
+<p class="hint">You can save an encrypted backup after unlocking your wallet.</p></div>
+<div id="restore-panel" role="tabpanel" aria-labelledby="tab-restore" hidden><p class="hint">Restore a DueByte backup using its original password. Your existing wallets are kept separately.</p><label for="restore-file">Encrypted backup file</label><input id="restore-file" type="file" accept=".json,application/json" aria-describedby="restore-file-help"><p id="restore-file-help" class="hint">DueByte encrypted wallet · .json · up to 12 KB · same network.</p><label for="restore-name">Wallet name (optional)</label><input id="restore-name" maxlength="80" placeholder="For example, Restored wallet" autocomplete="off"><label for="restore-password">Backup password</label><input id="restore-password" type="password" autocomplete="current-password" placeholder="Enter the original backup password" maxlength="1024" aria-describedby="restore-password-help restore-message"><p id="restore-password-help" class="hint">Use the password that protected this backup when it was saved.</p><div class="actions"><button id="restore-wallet" type="button" class="primary">Restore wallet</button><button id="restore-back" type="button">Back</button></div><p id="restore-message" role="status"></p></div>
+<details><summary>Forgot your password?</summary><p>Your password protects your private key. DueByte cannot reset it. An encrypted backup also requires its original password.</p></details>
+</section></div><div id="workspace-connection" hidden></div>
+<div id="funds" hidden><div id="workspace-tools"><span id="workspace-wallet"></span><div class="actions"><button id="quick-backup">Save encrypted backup</button><button id="switch-wallet">Switch wallet</button></div></div>
+<nav aria-label="Wallet sections"><button data-tab="overview" aria-current="page">Overview</button><button data-tab="send">Send</button><button data-tab="receive">Receive</button><button data-tab="activity">Activity</button><button data-tab="exchange">Exchange</button><button data-tab="network">Network</button><button data-tab="security">Security</button></nav>
+<div class="workspace-head"><h1 id="screen-title">Wallet overview</h1><p id="screen-help">Check your available balance, then send or receive a payment.</p></div><p id="notice" role="status" aria-live="polite"></p>
+<div class="screen screen-grid" data-screen="overview"><section><small class="eyebrow">Available balance · DUBYT</small><div class="value" id="available">—</div><p id="held"></p><div class="actions"><button data-go="send" class="primary">Send payment</button><button data-go="receive">Receive</button><button data-go="activity">View activity</button></div><p class="section-help">Only verified balances are shown. Reserved and recipient-locked amounts cannot be spent.</p></section><section><h2>Your wallet</h2><p class="eyebrow">Public address</p><p id="owner"></p><p class="hint">This address receives payments on the DueByte network. Your private key stays encrypted on this computer.</p><button data-go="security">Backup &amp; security</button></section><details id="wallet-rewards"><summary>Rewards</summary><dl aria-label="Rewards in DUBYT"><div><dt>Accrued · DUBYT</dt><dd aria-label="Accrued amount unavailable">—</dd></div><div><dt>Awaiting payment</dt><dd aria-label="Pending amount unavailable">—</dd></div><div><dt>Paid · DUBYT</dt><dd aria-label="Paid amount unavailable">—</dd></div></dl><p class="hint">No confirmed reward statement is available for this wallet yet. Amounts are unavailable, not zero.</p></details></div>
+<div class="screen" data-screen="send" hidden><section><h2>Send payment</h2><form id="payment" novalidate><label for="recipient">Recipient public address</label><input id="recipient" autocomplete="off" spellcheck="false" aria-describedby="recipient-help"><p id="recipient-help" class="hint">Use a DueByte public address. Verify it with the recipient before confirming.</p><label for="amount">Amount · DUBYT</label><input id="amount" inputmode="decimal" aria-describedby="fee-help"><div class="payment-options"><label class="check"><input id="delayed-send" type="checkbox" disabled aria-describedby="delayed-help">Send after 24 hours</label><p id="delayed-help" class="hint">Checking network availability.</p><label class="check"><input id="protection" type="checkbox" aria-describedby="lock-help">Lock recipient spending for 24 hours</label><p id="lock-help" class="hint">The recipient can spend the funds 24 hours after execution. With delayed sending, this clock starts after the sending delay. This limits onward transfers; it does not allow cancellation after execution.</p></div><p id="fee-help" class="hint">The verified network tariff and exact total are shown before you sign.</p><button class="primary" id="send">Review payment</button></form></section></div>
+<div class="screen" data-screen="receive" hidden><section><h2>Receive DUBYT</h2><p class="hint">Share your public address with the sender.</p><p id="receive-address" class="address"></p><button id="copy-address">Copy address</button><p class="section-help">Check the network and address before sharing. Your password and encrypted backup are never needed to receive a payment.</p></section></div>
+<div class="screen" data-screen="activity" hidden><section><h2 id="history-heading" tabindex="-1">Payment activity</h2><p class="hint">Up to 200 recent records available in the verified state and this wallet’s local outbox. A queued payment is not yet confirmed. Do not resend it while its outcome is pending.</p><button id="history-refresh" type="button" hidden></button><ul id="payments"></ul><nav id="history-pagination" class="history-pagination" aria-label="Payment history pages" hidden><div id="history-pages" class="history-page-actions"></div><p id="history-range" aria-live="polite" aria-atomic="true"></p></nav><p id="empty-payments">No payment records yet.</p></section></div>
+<div class="screen" data-screen="network" hidden><table id="network-metrics" class="analytics-table" aria-label="Verified network metrics"></table><details class="verification-details"><summary>Verification details</summary><p id="analytics-scope" class="hint">Waiting for a verified network snapshot.</p><p id="verified-hash" class="address"></p><p class="section-help">Logical validator and worker records do not establish independent ownership. The current deployment has two server hosts under one administrator. This installed node does not vote or earn validator rewards.</p></details></div>
+<div class="screen" data-screen="exchange" hidden><section id="two-way-panel" class="panel" hidden>
+<div class="panel-head"><small class="eyebrow">Isolated exchange</small><h2>Exchange DUBYT</h2><p class="hint">Test assets only. The intended production stablecoin is native USDC on Ethereum. This laboratory uses a local test token, not real USDC.</p></div>
+<div class="panel-body"><p id="two-way-message" role="status" aria-live="polite">Checking availability...</p>
+<form id="two-way-form" hidden><label>Direction</label><div id="two-way-directions" class="actions" role="group" aria-label="Exchange direction"><button type="button" data-direction="BUY_DUBYT" aria-pressed="true">Buy DUBYT</button><button type="button" data-direction="SELL_DUBYT" aria-pressed="false">Sell DUBYT</button></div>
+<label>External asset</label><div id="two-way-assets" class="actions" role="group" aria-label="External asset"><button type="button" data-asset="BTC" aria-pressed="true">Bitcoin</button><button type="button" data-asset="USDC" aria-pressed="false">USDC</button></div>
+<label for="two-way-amount">Amount in DUBYT</label><input id="two-way-amount" inputmode="decimal" maxlength="27" required autocomplete="off">
+<label id="two-way-address-label" for="two-way-address">Your external refund address</label><input id="two-way-address" maxlength="100" required autocomplete="off" spellcheck="false">
+<p class="hint">Use an address in your external wallet on the indicated test network. Never enter a private key or recovery phrase.</p><button id="two-way-review" class="primary">Review exchange</button></form>
+<div id="two-way-preview" class="panel-band" hidden><h3>Review exchange</h3><p id="two-way-summary"></p><p id="two-way-route" class="address"></p><p id="two-way-fee" class="hint"></p><p id="two-way-deadline" class="hint"></p><button id="two-way-confirm" type="button" class="primary">Confirm exact terms</button></div>
+<div id="two-way-orders"></div><button id="two-way-refresh" type="button">Refresh status</button></div>
+<div class="panel-band"><p class="hint">Only a verified DueByte state confirms the DUBYT reservation or release. External settlement and refunds require their own verified network evidence. Do not send funds to an address merely because it appears in a quote.</p></div>
+</section><section id="legacy-purchase-panel">
+<section id="seller-panel" hidden style="margin-bottom:32px"><small class="eyebrow">Seller workspace</small><h2>Sell from this wallet</h2>
+<p id="seller-name"></p><p id="seller-limits"></p><p id="seller-prices" class="hint"></p><p id="seller-message" role="status" aria-live="polite"></p>
+<p class="hint">Your key stays on this computer. New approvals pause when you lock the wallet or network verification is unavailable. Existing orders are retained.</p>
+<div class="actions"><button id="seller-start" type="button" class="primary">Enable sales within these limits</button><button id="seller-stop" type="button" hidden>Pause sales</button></div></section>
+<small class="eyebrow">Protected purchase</small><h2>Buy DUBYT</h2>
+<p id="purchase-status" role="status" aria-live="polite">Checking purchase availability...</p>
+<p id="purchase-lab" class="hint" hidden>Isolated test with test assets only. Do not send real money or cryptocurrency.</p>
+<form id="purchase-form" hidden>
+<label for="purchase-amount">DUBYT to receive</label><input id="purchase-amount" inputmode="decimal" autocomplete="off" required maxlength="27" placeholder="For example, 10.5">
+<label>Pay with</label><div id="purchase-methods" class="actions" role="group" aria-label="Payment method"></div>
+<label for="purchase-refund">Refund address</label><input id="purchase-refund" autocomplete="off" spellcheck="false" required maxlength="100" aria-describedby="purchase-refund-help" placeholder="An address you control on the selected network">
+<p id="purchase-refund-help" class="hint">If your payment needs a refund, it will return to this address. Use an address in your own external wallet.</p>
+<p class="hint">DUBYT will arrive in your currently open wallet. Review the total before continuing.</p>
+<button id="purchase-prepare" type="submit" class="primary">Review purchase</button></form>
+<div id="purchase-result" hidden><h3 id="purchase-heading">Review your purchase</h3><p id="purchase-summary"></p><p id="purchase-fees" class="hint"></p><p id="purchase-seller" class="hint"></p><p id="purchase-expiry" class="hint"></p><p id="purchase-terms" class="hint"></p>
+<p id="purchase-address" class="address" hidden></p><p id="purchase-chain" class="hint"></p>
+<button id="purchase-confirm" class="primary" type="button">Reserve DUBYT and continue</button><button id="purchase-back" type="button">Change amount</button></div>
+<div class="actions"><button id="purchase-refresh" type="button">Refresh</button><button data-go="receive">Receive DUBYT</button></div>
+</section></div>
+<div class="screen screen-grid nodes-workspace" data-screen="collateral" hidden>
+<section class="panel nodes-overview"><div class="panel-head"><small class="eyebrow">01 / Connected nodes</small><h2>Rewards &amp; server status</h2><p class="hint">Your wallet can receive rewards from several servers. Each server confirms its own connection.</p></div>
+<div class="panel-body"><div class="actions"><button id="nodes-refresh" type="button">Refresh node connections</button><button data-go="security">Messenger settings</button></div>
+<p id="nodes-status" role="status">Refresh to see verified connections and collateral warnings.</p><div id="collateral-summary" hidden></div><div id="nodes-list"></div></div></section>
+<section class="panel node-pairing"><div class="panel-head"><small class="eyebrow">02 / Wallet connection</small><h2>Link or unlink a server</h2><p class="hint">Use this wallet in Home or your browser. Your spending key stays off the server.</p></div><div class="panel-body">
+<form id="node-link-form"><label for="node-link-id">Node identifier</label><input id="node-link-id" class="address" autocomplete="off" maxlength="64" pattern="[a-f0-9]{64}" required placeholder="Paste the identifier shown on your server">
+<p class="hint">Use the reward node identifier, not an IP address or the device connection identifier.</p><div class="actions"><button class="primary" id="node-link-review">Link this wallet</button><button type="button" id="node-unlink-review">Unlink this wallet</button></div></form>
+</div>
+<div class="panel-band"><p class="section-help">Changing the payout wallet does not transfer previously earned rewards or collateral. Settle existing reward obligations before changing a connection. Unlinking payouts does not shut down the server or withdraw its collateral.</p>
+<label for="node-link-approval">Server approval file</label><input type="file" id="node-link-approval" accept="application/json,.json"><p class="hint">Import the approval after confirming the matching code on your server. This candidate checks both signatures; network submission is not enabled yet.</p>
+</div></section>
+<section class="panel node-collateral"><div class="panel-head"><small class="eyebrow">03 / Server collateral</small><h2>Add a new contribution</h2></div><div class="panel-body">
+<p class="hint">Set a separate amount for each server. A wallet on your home computer can fund several servers; the home node does not automatically receive collateral. Use confirmed DUBYT received directly or through an exchange.</p>
+<div id="funding-requests" aria-live="polite"></div>
+<p id="collateral-status" role="status">Check registered servers and your spendable balance.</p>
+<div class="actions"><button id="collateral-refresh" type="button">Refresh available funds</button><button data-go="exchange">Purchase options</button></div>
+<form id="collateral-form" novalidate>
+<label>Registered server</label><details id="collateral-picker"><summary id="collateral-selected">Choose a server</summary><div id="collateral-nodes" class="collateral-nodes"></div></details>
+<p id="collateral-node-id" class="address"></p>
+<label for="collateral-amount">Amount for this server &middot; DUBYT</label><input id="collateral-amount" inputmode="decimal" autocomplete="off" placeholder="0.000000" aria-describedby="collateral-available">
+<p id="collateral-available" class="hint">Available: checking</p><p class="hint">Existing collateral is shown above under My nodes. This form prepares a new contribution; it does not show or withdraw funds already deposited.</p><button id="collateral-review-button" class="primary" disabled>Review collateral</button>
+</form>
+</div><div class="panel-band"><p class="section-help">Own collateral can be penalized for proved violations. Release requires completion of obligations and a waiting period of at least 24 hours; reserved consensus collateral remains locked. Network-funded support is separate from your own funds.</p>
+<p class="hint">Confirming sends the exact contribution request to the server operator. After approval, this unlocked wallet submits the deposit and checks network confirmation. Keep the wallet unlocked until confirmation, or return later to check the saved request. Finish or cancel the pending request before creating another.</p>
+</div></section>
+<section class="panel node-notices"><div class="panel-head"><small class="eyebrow">04 / Sun&middot;Phi Messenger</small><h2>Server notices</h2></div><div class="panel-body"><p class="hint">Receive notices when this server has no payout wallet or secured payment capacity. This is separate from payment notifications. Notices remain on after a payout wallet is unlinked; you can turn them off here. Connecting an account alone does not enable notices.</p>
+<div class="actions"><button type="button" id="node-alert-review">Enable server notices</button><button type="button" id="node-alert-status">Check notice status</button><button type="button" id="node-alert-stop" disabled>Turn off notices</button></div>
+<label for="node-alert-approval">Enable notices with server approval</label><input type="file" id="node-alert-approval" accept="application/json,.json"><p id="node-alert-message" class="hint" role="status">Choose a node above and connect your account in Messenger settings. Enabling requires your wallet signature and the server matching code.</p>
+</div></section>
+</div>
+<div class="screen screen-grid" data-screen="security" hidden><section><h2>Encrypted backup</h2><p class="hint">Save a backup separately from this computer. It contains your encrypted private key, not your password. Keep the password in a safe place; there is no reset service.</p><button id="backup" class="primary">Save encrypted backup</button><p class="hint">A backup restores this DueByte wallet on the same network. Keep old Sun·Phi backups separately; their format and network are different.</p></section><section><h2>Lock your wallet</h2><p class="hint">Lock the wallet when you step away. Network verification can continue while it is locked.</p><button id="lock">Lock wallet</button></section>
+<section><small class="eyebrow">Payment protection</small><h2>Recipient spending lock</h2><p class="hint">Apply a 24-hour spending lock to an individual payment. The recipient receives the funds at settlement, but cannot move the locked amount until the delay ends.</p><button data-go="send">Set up a payment</button><p class="hint">This option does not reverse a payment or protect other unlocked funds.</p></section>
+<section><small class="eyebrow">Payment protection</small><h2>Send after 24 hours</h2><p class="hint">Hold an outgoing payment before execution, with time to cancel it.</p><button id="setup-delayed" data-go="send" disabled>Set up delayed payment</button><p class="hint">This is a separate option from the recipient spending lock.</p></section>
+<section class="sunphi-connection"><small class="eyebrow"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span> Messenger</small><h2>Your account connection</h2><p id="sunphi-status" class="hint">Connect your account at ai-agent-online.com to use messenger options with this wallet.</p><div id="sunphi-pairing" hidden><p class="hint">Open Sun·Phi and check that this code matches. Then return here to finish.</p><p class="sunphi-code" id="sunphi-code"></p></div><div class="sunphi-actions"><button id="sunphi-start">Connect Sun·Phi</button><a id="sunphi-open" target="_blank" rel="noopener noreferrer" hidden>Open Sun·Phi</a><button id="sunphi-check" hidden>Check connection</button><button id="sunphi-confirm" class="primary" hidden>Confirm connection</button><button id="sunphi-disconnect" hidden>Disconnect account</button></div><p id="sunphi-message" class="hint" role="status"></p><p class="hint">Connecting does not turn on either option. Your wallet password and private key stay on this computer.</p></section>
+<section><h2 id="notifications-title">Payment notifications</h2><p class="hint">Optional payment updates in your Sun·Phi messenger. Off by default.</p><button id="sunphi-notifications" class="messenger-toggle" role="switch" aria-checked="false" aria-labelledby="notifications-title" disabled>Off</button><p id="notifications-help" class="hint">Connect your Sun·Phi account first.</p></section>
+<section><h2 id="approval-title">Additional payment approval</h2><p class="hint">Optionally require your approval in the messenger before sending a payment. Off by default.</p><button id="sunphi-approval" class="messenger-toggle" role="switch" aria-checked="false" aria-labelledby="approval-title" disabled>Off</button><p id="approval-help" class="hint">Connect your Sun·Phi account first.</p><p class="hint">Works independently of payment notifications.</p><a href="https://ai-agent-online.com/Messages" target="_blank" rel="noopener noreferrer">Open Sun·Phi messenger</a></section></div>
+</div>
+<dialog id="cancel-review" aria-labelledby="cancel-title"><h2 id="cancel-title">Cancel delayed payment?</h2><p id="cancel-copy"></p><p class="hint">Cancellation must be confirmed by the network before execution. Closing this window does not cancel the payment.</p><p id="cancel-error" role="alert"></p><div class="actions"><button id="confirm-cancel">Confirm cancellation</button><button id="keep-payment">Keep payment</button></div></dialog>
+<dialog id="payment-review" aria-labelledby="review-title"><h2 id="review-title">Review payment</h2><p id="review-recipient" class="address"></p><p id="review-amount"></p><p id="review-protection"></p><p id="review-error" role="alert"></p><div class="actions"><button id="confirm-payment" class="primary">Confirm payment</button><button id="cancel-payment">Back</button></div></dialog>
+<dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
+<dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
+<details><summary>Connection details</summary><p id="network"></p><p>Confirmation requires more than two thirds of the current validator voting power. Without a quorum, a payment cannot be confirmed. Verification continues while the local wallet process is running.</p></details></main><footer><span>DueByte · DUBYT · 0.3.70</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+<script>
+const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
+let token=sessionStorage.getItem('duebyte-session')||newSession();sessionStorage.setItem('duebyte-session',token);
+const $=id=>document.getElementById(id);let creating=false,entryMode='open',submitting=false,lastStatus=null,feedback='';
+function theme(value){document.documentElement.dataset.theme=value==='light'?'light':'graphite';const label=value==='light'?'Switch to dark theme':'Switch to light theme';$('theme').setAttribute('aria-label',label);$('theme').title=label;try{localStorage.setItem('duebyte-theme',document.documentElement.dataset.theme);}catch{}}
+try{theme(window.duebyteWindow ? (window.duebyteWindow.light?'light':'graphite') : localStorage.getItem('duebyte-theme')||'graphite');}catch{theme('graphite');}$('theme').onclick=()=>theme(document.documentElement.dataset.theme==='light'?'graphite':'light');
+async function api(path,data){const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(['/send','/cancel-payment','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok)throw Error(v.error);if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}
+function renderPaymentTariff(s){const t=s.paymentTariff,p=t?.active,fmt=n=>(Number(n)/1000000).toFixed(6).replace(/0+$/,'').replace(/\.$/,'');let text=!t?'Waiting for the verified network tariff.':!p?'Current legacy network fee: 3%, rounded up to the smallest supported unit.':p.version==='DUEBYTE_PAYMENT_FEE_006_V2'?'Network fee: 0.06% of the payment, with a minimum of '+fmt(p.baseMicro)+' DUBYT. The larger amount applies; there is no upper fee cap or extra fee for coverage parts. Amounts round up to 0.000001 DUBYT. The initial minimum uses $1 per DUBYT as a planning reference, not a promised exchange rate. On expiry or cancellation, '+fmt(String(Math.ceil(Number(p.baseMicro)/10)))+' DUBYT of the quoted fee is retained; the remaining quoted fee is released.':'Legacy network fee: 0.001%, minimum '+fmt(p.baseMicro)+', base-fee cap '+fmt(p.capMicro)+' DUBYT, plus '+fmt(p.additionalPartMicro)+' DUBYT per additional coverage part.';if(t?.pending)text+=' A new tariff is scheduled for '+new Date(t.pending.activation*1000).toISOString()+'.';$('fee-help').textContent=text+' Review the exact total before signing. BTC and Ethereum fees are separate.';}
+function moneyText(record,key){return record?.display?.[key]??((record?.unitScale??'1')==='1'?record?.[key]:'—');}
+function connectionHealth(health){const verified=health==='verified',text=verified?'Data verified':health==='attention'?'Data not verified':'Verifying data',help=health==='attention'?'Check the node connection. Verification will retry automatically.':'Please wait for the first verification to finish.';$('sync').dataset.health=health;if($('phase').textContent!==text)$('phase').textContent=text;$('connection-help').hidden=verified;if($('connection-help').textContent!==help)$('connection-help').textContent=help;}
+function paint(s){renderPaymentTariff(s);const wasLocked=lastStatus?.locked;lastStatus=s;connectionHealth(s.error?'attention':s.checkedAt?'verified':'connecting');$('explain').hidden=!s.checkedAt;if(s.checkedAt){const time=new Date(s.checkedAt).toLocaleTimeString('en-GB'),height=String(s.height??'—');if($('check-time').textContent!==time)$('check-time').textContent=time;if($('check-height').textContent!==height)$('check-height').textContent=height;}$('message').textContent=feedback||s.error||'';$('entry-layout').hidden=!s.locked;$('workspace-connection').hidden=s.locked;const connection=document.querySelector('.connection-status'),target=s.locked?$('entry-intro'):$('workspace-connection');if(connection.parentElement!==target)target.append(connection);$('workspace-wallet').textContent=(s.wallets||[]).find(w=>w.id===s.activeWallet)?.name||'DueByte Wallet';$('funds').hidden=s.locked;renderEntry(s);$('lock').disabled=submitting;$('send').disabled=submitting||s.working||!!s.error||!s.checkedAt;$('network').textContent=s.network;$('owner').textContent=s.owner||'';$('receive-address').textContent=s.owner||'';if(s.balance){$('available').textContent=moneyText({...s.balance,unitScale:s.unitScale??'1'},'available');$('held').textContent='Reserved: '+moneyText({...s.balance,unitScale:s.unitScale??'1'},'reserved')+' · Scheduled: '+moneyText({...s.balance,unitScale:s.unitScale??'1',scheduled:s.balance.scheduled??'0'},'scheduled')+' · Recipient-locked: '+moneyText({...s.balance,unitScale:s.unitScale??'1'},'protected');}else{$('available').textContent='—';$('held').textContent='Waiting for a verified balance.';}if(wasLocked!==s.locked){feedback='';$('message').textContent=s.error||'';$('payment').reset();selectTab('overview');resetPasswordVisibility();$('payment-review').close();review=null;$('cancel-review').close();cancelReview=null;}renderDelayAvailability(s);renderRecords(s.payments);renderAnalytics(s);}
+function renderEntry(s){
+ renderSunPhi(s);
+ renderCollateralState(s);
+ renderPurchaseState(s);
+ const reward=s.rewards,metrics=$('wallet-rewards').querySelectorAll('dd');for(const [index,key] of ['accrued','pending','paid'].entries()){metrics[index].textContent=reward?.available?moneyText(reward,key):'—';metrics[index].setAttribute('aria-label',reward?.available?`${key}: ${moneyText(reward,key)} DUBYT`:`${key} unavailable`);}$('wallet-rewards').querySelector('.hint').textContent=reward?.available?'Total earnings of this installation. Choose the receiving wallets in the node window. '+(reward.message??''):(reward?.message??'No confirmed reward statement is available for this node yet. Amounts are unavailable, not zero.');
+ const fresh=entryMode==='create',open=entryMode==='open',wallets=s.wallets||[];creating=fresh;
+ $('entry-loading').hidden=true;$('entry-title').textContent=fresh?'Create your wallet':open?'Unlock your wallet':'Restore your wallet';
+ for(const name of ['open','create','restore']){const b=$('tab-'+name);b.setAttribute('aria-selected',String(entryMode===name));b.tabIndex=entryMode===name?0:-1;b.disabled=submitting;}
+ $('open-panel').hidden=entryMode==='restore';$('open-panel').setAttribute('aria-labelledby',fresh?'tab-create':'tab-open');$('restore-panel').hidden=entryMode!=='restore';
+ $('entry-copy').textContent=fresh?'Create a separate wallet with its own address and password. Your existing wallets are preserved.':s.hasVault?'Your last selected wallet is ready. Enter its password, or choose another wallet.':'No wallet is saved on this computer. Select Create new or Restore backup to get started.';
+ $('saved-wallet').hidden=!open||!s.hasVault;$('password-fields').hidden=open&&!s.hasVault;$('wallet-name-field').hidden=!fresh;$('confirmation').hidden=!fresh;
+ const select=$('wallet-select'),key=JSON.stringify(wallets);if(select.dataset.key!==key){select.replaceChildren(...wallets.map(w=>{const o=document.createElement('option');o.value=w.id;o.textContent=w.name;return o;}));select.dataset.key=key;}select.value=s.selectedWallet||'';select.disabled=submitting;
+ renderWalletPicker(wallets,s.selectedWallet);
+ $('selected-address').textContent=wallets.find(w=>w.id===s.selectedWallet)?.owner||'Open this wallet once to confirm its saved address.';
+ $('password-label').textContent=fresh?'Choose a password':'Wallet password';$('password').autocomplete=fresh?'new-password':'current-password';$('password').placeholder=fresh?'At least 12 characters':'Enter your wallet password';
+ $('password-help').textContent=fresh?'Use at least 12 characters. Keep this password separate from your encrypted backup.':'Enter the password for the selected wallet. There is no password reset service.';
+ $('create').hidden=!fresh;$('unlock').hidden=!open||!s.hasVault;$('cancel-create').hidden=!fresh;for(const id of ['create','unlock','cancel-create','restore-wallet','restore-back','choose-file'])$(id).disabled=submitting;
+ $('create').textContent=submitting?'Creating wallet…':'Create wallet';
+ if(!s.locked){clearEntrySecrets();creating=false;}
+}
+function clearEntrySecrets(){for(const id of ['password','confirm-password','restore-password']){$(id).value='';$(id).removeAttribute('aria-invalid');}resetPasswordVisibility();}
+function setEntryMode(mode){if(submitting)return;entryMode=mode;clearEntrySecrets();$('form-message').textContent='';$('restore-message').textContent='';if(lastStatus)renderEntry(lastStatus);}
+for(const name of ['open','create','restore'])$('tab-'+name).onclick=()=>setEntryMode(name);
+document.querySelector('.entry-tabs').onkeydown=e=>{const names=['open','create','restore'];let i=names.indexOf(entryMode);if(e.key==='ArrowRight')i=(i+1)%3;else if(e.key==='ArrowLeft')i=(i+2)%3;else if(e.key==='Home')i=0;else if(e.key==='End')i=2;else return;e.preventDefault();setEntryMode(names[i]);$('tab-'+names[i]).focus();};
+$('choose-file').onclick=()=>{setEntryMode('restore');$('restore-file').focus();};
+$('restore-back').onclick=()=>setEntryMode('open');
+$('wallet-select').onchange=async()=>{clearEntrySecrets();await action('/select-wallet',{walletId:$('wallet-select').value});};
+function closeWalletPicker(focus=false){$('wallet-options').hidden=true;$('wallet-picker').setAttribute('aria-expanded','false');if(focus)$('wallet-picker').focus();}
+function renderWalletPicker(wallets,selected){
+ const list=$('wallet-options'),key=JSON.stringify(wallets.map(w=>({id:w.id,name:w.name})));
+ if(list.dataset.key!==key){closeWalletPicker();list.replaceChildren(...wallets.map(w=>{const b=document.createElement('button');b.type='button';b.setAttribute('role','option');b.tabIndex=-1;b.dataset.walletId=w.id;b.textContent=w.name;b.onclick=async()=>{if(submitting)return;closeWalletPicker(true);$('wallet-select').value=w.id;await $('wallet-select').onchange();};return b;}));list.dataset.key=key;}
+ for(const b of list.children){b.setAttribute('aria-selected',String(b.dataset.walletId===selected));b.disabled=submitting;}
+ $('wallet-picker-name').textContent=wallets.find(w=>w.id===selected)?.name||'Choose a wallet';$('wallet-picker').disabled=submitting||!wallets.length;if(submitting)closeWalletPicker();
+}
+function openWalletPicker(last=false){if($('wallet-picker').disabled)return;$('wallet-options').hidden=false;$('wallet-picker').setAttribute('aria-expanded','true');const items=[...$('wallet-options').children];(last?items.at(-1):items.find(b=>b.getAttribute('aria-selected')==='true')||items[0])?.focus();}
+$('wallet-picker').onclick=()=>{$('wallet-options').hidden?openWalletPicker():closeWalletPicker();};
+$('wallet-picker').onkeydown=e=>{if(['ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();openWalletPicker(e.key==='ArrowUp');}};
+$('wallet-options').onkeydown=e=>{const items=[...$('wallet-options').children],i=items.indexOf(document.activeElement);if(e.key==='Escape'){e.preventDefault();closeWalletPicker(true);return;}if(e.key==='Tab'){closeWalletPicker(true);return;}const next=e.key==='ArrowDown'?(i+1)%items.length:e.key==='ArrowUp'?(i-1+items.length)%items.length:e.key==='Home'?0:e.key==='End'?items.length-1:null;if(next!==null){e.preventDefault();items[next]?.focus();}};
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('.wallet-picker'))closeWalletPicker();});
+document.addEventListener('focusin',e=>{if(!e.target.closest('.wallet-picker'))closeWalletPicker();});
+function formError(text,id='password'){$('form-message').textContent=text;$(id).setAttribute('aria-invalid','true');$(id).focus();}
+async function credentials(){
+ if(submitting)return;if(!lastStatus){formError('Connecting to your local wallet. Please try again shortly.');return;}
+ const fresh=entryMode==='create';
+ const password=$('password').value;if(!password){formError(fresh?'Choose a password of at least 12 characters.':'Enter your wallet password.');return;}
+ if(fresh&&password.length<12){formError('Use at least 12 characters for your password.');return;}
+ if(fresh&&password!==$('confirm-password').value){formError('The passwords do not match. Please enter the same password again.','confirm-password');return;}
+ submitting=true;feedback='';$('form-message').textContent=fresh?'Creating your encrypted wallet…':'Unlocking your wallet…';renderEntry(lastStatus);
+ try{const deadline=Date.now()+30000;let result;while(true){try{result=await api(fresh?'/create':'/unlock',{password,...(fresh?{name:$('wallet-name').value}:{walletId:lastStatus.selectedWallet})});break;}catch(e){if(!e.message.includes('please wait for current check')||Date.now()>=deadline)throw e;$('form-message').textContent='Waiting for the current network check to finish…';await new Promise(r=>setTimeout(r,250));}}$('password').value='';$('confirm-password').value='';$('form-message').textContent='';creating=false;entryMode='open';paint(result);if(fresh){selectTab('security');$('notice').textContent='Wallet created. Save an encrypted backup before using this wallet.';}}
+ catch(e){$('form-message').textContent=e.message.includes('please wait')?'Network verification is still busy. Your password is retained; please try again.':e.message.includes('authenticate')?'Incorrect password or damaged wallet file. Please check your password.':e.message;}
+ finally{submitting=false;if(lastStatus)renderEntry(lastStatus);}
+}
+async function action(path,data){if(submitting)return;submitting=true;feedback='';try{paint(await api(path,data));}catch(e){feedback=e.message;$('message').textContent=feedback;}finally{submitting=false;}}
+$('login').onsubmit=e=>{e.preventDefault();void credentials();};$('create').onclick=()=>void credentials();$('cancel-create').onclick=()=>setEntryMode('open');
+for(const id of ['password','confirm-password','restore-password']){const input=$(id),wrap=document.createElement('div'),button=document.createElement('button');wrap.className='password-control';input.before(wrap);wrap.append(input,button);button.className='password-toggle';button.type='button';button.setAttribute('aria-controls',id);button.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';const hidden=()=>{input.type='password';button.setAttribute('aria-label','Show password');button.title='Show password';button.setAttribute('aria-pressed','false');};hidden();button.onclick=()=>{const visible=input.type==='password';input.type=visible?'text':'password';button.setAttribute('aria-label',visible?'Hide password':'Show password');button.title=visible?'Hide password':'Show password';button.setAttribute('aria-pressed',String(visible));};document.addEventListener('visibilitychange',()=>{if(document.hidden)hidden();});input.addEventListener('blur',()=>{if(!input.value)hidden();});}
+for(const id of ['password','confirm-password'])$(id).oninput=()=>{$(id).removeAttribute('aria-invalid');$('form-message').textContent='';};
+$('lock').onclick=()=>action('/lock',{});$('switch-wallet').onclick=async()=>{await action('/lock',{});setEntryMode('open');};
+const screens={overview:['Wallet overview','Check your available balance, then send or receive a payment.'],send:['Send payment','Enter the recipient and amount, review the total, then confirm.'],receive:['Receive','Share your public address. Your password and private key stay private.'],activity:['Payment activity','Follow the original payment until it is confirmed or its reservation is released.'],exchange:['Exchange','Buy DUBYT with Bitcoin or USDC when an offer is available.'],network:['Network analytics','Inspect the latest verified snapshot. These figures are not live market prices or speed estimates.'],security:['Security','Protect access to your wallet and understand each payment option.']};
+screens.collateral=['My nodes','Manage server payout connections and choose collateral for each server.'];
+const collateralTab=document.createElement('button');collateralTab.dataset.tab='collateral';collateralTab.textContent='My nodes';document.querySelector('[data-tab=security]').before(collateralTab);
+function selectTab(name){if(!screens[name])return;const changed=document.querySelector('nav [data-tab][aria-current=page]')?.dataset.tab!==name;for(const b of document.querySelectorAll('[data-tab]')){if(b.dataset.tab===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}for(const p of document.querySelectorAll('[data-screen]'))p.hidden=p.dataset.screen!==name;$('screen-title').textContent=screens[name][0];$('screen-help').textContent=name==='exchange'&&lastStatus?.features?.twoWayExchange?'Buy or sell DUBYT with Bitcoin or USDC on the supported test route.':screens[name][1];$('notice').textContent='';if(changed)document.querySelector('main').scrollTop=0;if(name==='collateral'&&changed)void loadCollateral();}
+for(const b of document.querySelectorAll('[data-tab],[data-go]')){b.onclick=()=>selectTab(b.dataset.tab||b.dataset.go);if(b.dataset.tab){const icon=document.createElement('span');icon.className='nav-icon';icon.setAttribute('aria-hidden','true');const paths={overview:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M9 10h12"/>',send:'<path d="M6 18 18 6M6 6h12v12"/>',receive:'<path d="M18 6 6 18M6 6v12h12"/>',activity:'<path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/>',exchange:'<path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/>',network:'<circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="m11 7-5 10m7-10 5 10M7 19h10"/>',security:'<path d="m12 3 8 3v5c0 5-8 10-8 10S4 16 4 11V6Z"/><path d="m8 12 3 3 5-6"/>'};icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+paths[b.dataset.tab]+'</svg>';b.prepend(icon);}}
+collateralTab.querySelector('.nav-icon').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>';
+function resetPasswordVisibility(){for(const id of ['password','confirm-password','restore-password']){const input=$(id),b=input.parentElement.querySelector('.password-toggle');input.type='password';b?.setAttribute('aria-label','Show password');if(b)b.title='Show password';b?.setAttribute('aria-pressed','false');}}
+$('cancel-create').addEventListener('click',resetPasswordVisibility);
+function element(tag,text,cls){const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;return e;}
+let recordsKey='',analyticsKey='',review=null,cancelReview=null;
+const historyPageSize=12;let historyPage=1,historyIds=[],latestHistory=[],historyPagerKey='',remoteHistory=null,historyOwner=null,historyBusy=false;
+const localHistory=document.createElement('ul'),localHistoryLabel=element('h3','Local payment requests');$('payments').before(localHistoryLabel,localHistory);localHistory.hidden=true;localHistoryLabel.hidden=true;
+async function historyGo(page){
+ if(lastStatus?.indexedHistory||remoteHistory){
+  if(historyBusy)return;historyBusy=true;const owner=lastStatus.owner;
+  try{const result=await api('/history',{offset:(page-1)*historyPageSize,limit:historyPageSize,through:page===1?null:(remoteHistory??lastStatus.indexedHistory).total});if(lastStatus.locked||lastStatus.owner!==owner)return;remoteHistory=result;historyPage=page;recordsKey='';renderRecords(latestHistory);$('message').textContent=feedback||lastStatus.error||'';}
+  catch(e){$('message').textContent=e.message;return;}finally{historyBusy=false;}
+ }else{historyPage=page;if(page===1)historyIds=[];recordsKey='';renderRecords(latestHistory);}
+ $('history-heading').focus({preventScroll:true});document.querySelector('main').scrollTop=0;
+}
+$('history-refresh').onclick=()=>historyGo(1);
+function renderHistoryPager(total,pages,pending){
+ $('history-pagination').hidden=total<=historyPageSize;
+ const text=total?`Showing ${(historyPage-1)*historyPageSize+1}–${Math.min(historyPage*historyPageSize,total)} of ${total}`:'';
+ if($('history-range').textContent!==text)$('history-range').textContent=text;
+ $('history-refresh').hidden=!pending;const updateText=`${pending} new payment${pending===1?'':'s'} · Show latest`;
+ if($('history-refresh').textContent!==updateText)$('history-refresh').textContent=updateText;
+ const key=historyPage+':'+pages;if(key===historyPagerKey)return;historyPagerKey=key;
+ const controls=[],button=(text,page,label,disabled=false)=>{const b=element('button',text);b.type='button';b.setAttribute('aria-label',label);b.disabled=disabled;b.onclick=()=>historyGo(page);return b;};
+ controls.push(button('‹ Previous',historyPage-1,'Previous history page',historyPage===1));
+ const visible=[...new Set([1,historyPage-1,historyPage,historyPage+1,pages])].filter(n=>n>=1&&n<=pages).sort((a,b)=>a-b);let last=0;
+ for(const n of visible){if(last&&n-last>1){const gap=element('span','…','history-page-gap');gap.setAttribute('aria-hidden','true');controls.push(gap);}const b=button(String(n),n,'History page '+n);if(n===historyPage)b.setAttribute('aria-current','page');controls.push(b);last=n;}
+ controls.push(button('Next ›',historyPage+1,'Next history page',historyPage===pages));$('history-pages').replaceChildren(...controls);
+}
+function renderDelayAvailability(s){const enabled=!!s.features?.delayedPayments&&!s.error&&!!s.checkedAt;$('delayed-send').disabled=!enabled;$('setup-delayed').disabled=!enabled;$('delayed-help').textContent=enabled?'After preparation, the network reserves this payment for 24 hours. Cancel it in Activity before execution. The release fee is shown before confirmation and never exceeds the network fee or 1 DUBYT.':s.features?.delayedPayments?'Verification is unavailable. Delayed sending is paused.':'Delayed sending awaits activation of the network upgrade.';}
+function utc(seconds){return new Date(seconds*1000).toLocaleString('en-GB',{timeZone:'UTC'})+' UTC';}
+const chartPanel=document.createElement('section');chartPanel.innerHTML='<h2>Verified history</h2><p id="history-summary" class="hint">Successful verification checks will appear here.</p><svg id="history-chart" viewBox="0 0 800 100" preserveAspectRatio="none" role="img" aria-label="Verified block height at successful checks in this session"><path d="M0 10H800 M0 50H800 M0 90H800" stroke="var(--border)" fill="none" stroke-width="0.5"/><polyline id="history-line"></polyline><circle id="history-point" r="3" fill="currentColor" cx="4" cy="90"/></svg><p class="hint">Last 60 successful checks · this session. Block height, not transaction throughput.</p>';$('network-metrics').after(chartPanel);const samples=[];
+function historySample(s){if(!s.analytics||!s.checkedAt||s.error||samples.at(-1)?.at===s.checkedAt)return;samples.push({at:s.checkedAt,height:Number(s.analytics.height)});if(samples.length>60)samples.shift();const min=Math.min(...samples.map(x=>x.height)),max=Math.max(...samples.map(x=>x.height));$('history-line').setAttribute('points',samples.map((x,i)=>(i*800/Math.max(1,samples.length-1))+','+(90-(x.height-min)*80/Math.max(1,max-min))).join(' '));const last=samples.at(-1);$('history-point').setAttribute('cx',samples.length===1?'4':'796');$('history-point').setAttribute('cy',String(90-(last.height-min)*80/Math.max(1,max-min)));$('history-summary').textContent=samples.length+' successful check'+(samples.length===1?'':'s')+' · blocks '+min.toLocaleString('en-US')+'–'+max.toLocaleString('en-US');}
+function renderRecords(rows){
+ if(historyOwner!==lastStatus?.owner||lastStatus?.locked){historyOwner=lastStatus?.owner;remoteHistory=null;historyPage=1;historyIds=[];}
+ const remote=remoteHistory??lastStatus?.indexedHistory;
+ if(remote&&!lastStatus.locked){
+  $('history-heading').parentElement.querySelector('p.hint').textContent='Verified network payments, loaded one page at a time. New arrivals do not move the page you are reading. Local requests are shown separately.';
+  latestHistory=rows;const visible=remote.rows.slice(0,historyPageSize),pending=rows.filter(p=>['QUEUED','AWAITING_APPROVAL','NOT_SUBMITTED','REVIEW_REQUIRED','HISTORY_UNAVAILABLE'].includes(p.status));
+  localHistory.hidden=localHistoryLabel.hidden=!pending.length;localHistory.replaceChildren(...pending.map(paymentRecordElement));
+  renderHistoryPager(remote.total,Math.max(1,Math.ceil(remote.total/historyPageSize)),Math.max(0,(lastStatus.indexedHistory?.available??remote.available)-remote.total));
+  $('empty-payments').hidden=remote.total>0||pending.length>0;$('payments').replaceChildren(...visible.map(paymentRecordElement));return;
+ }
+ localHistory.hidden=localHistoryLabel.hidden=true;
+ latestHistory=rows;const byId=new Map(rows.map(p=>[p.pid,p]));
+ // Freeze ordering on older pages, but always refresh each visible record's status.
+ // New arrivals are offered explicitly instead of moving the page being read.
+ const browsingHistory=!document.querySelector('[data-screen=activity]').hidden&&!lastStatus?.locked;
+ if(!historyIds.length||(historyPage===1&&!browsingHistory))historyIds=rows.map(p=>p.pid);else historyIds=historyIds.filter(id=>byId.has(id));
+ const pages=Math.max(1,Math.ceil(historyIds.length/historyPageSize));historyPage=Math.min(historyPage,pages);
+ if(!historyIds.length)historyIds=rows.map(p=>p.pid);
+ const visible=historyIds.slice((historyPage-1)*historyPageSize,historyPage*historyPageSize).map(id=>byId.get(id));
+ renderHistoryPager(historyIds.length,Math.max(1,Math.ceil(historyIds.length/historyPageSize)),rows.length-historyIds.length);
+ const k=JSON.stringify([visible,!!lastStatus?.error,!!lastStatus?.checkedAt,submitting]);if(k===recordsKey)return;recordsKey=k;$('empty-payments').hidden=rows.length>0;
+ $('payments').replaceChildren(...visible.map(paymentRecordElement));
+}
+function paymentRecordElement(p){
+  const li=document.createElement('li'),head=element('div','', 'record-heading'),label=p.cancellationPending?'Cancellation requested':({QUEUED:'Queued',AWAITING_APPROVAL:'Awaiting your approval',RESERVED:'Funds reserved',SCHEDULED:'Scheduled',CANCELLED:'Cancelled',SETTLED:'Confirmed',EXPIRED:'Reservation released',NOT_SUBMITTED:'Not sent'}[p.status]||p.status),state=element('span',label,'record-status');state.dataset.state=p.status;
+  head.append(element('strong',(p.direction||'Sent')+(p.value?' · '+moneyText(p,'value')+' DUBYT':'')),state);li.append(head,element('p',p.pid,'record-id'));
+  if(p.executeAt&&p.status==='SCHEDULED')li.append(element('p','Scheduled for '+utc(p.executeAt)+'. Execution continues automatically when the network is available.','hint'));
+  if(p.scheduled&&p.status==='RESERVED')li.append(element('p','Preparing the delayed payment. Its 24-hour window starts when preparation is confirmed.','hint'));
+  if(p.recipientDelay)li.append(element('p','Recipient spending lock: 24 hours after execution.','hint'));
+  if(p.fee&&p.direction!=='Received')li.append(element('small',(p.feeLabel||(['QUEUED','RESERVED','SCHEDULED'].includes(p.status)?'Estimated fee':['EXPIRED','CANCELLED'].includes(p.status)?'Release fee':'Network fee'))+': '+moneyText(p,'fee')+' DUBYT'));
+  if(p.status==='NOT_SUBMITTED')li.append(element('p','The request expired before network acceptance. No funds were debited. You can create a new payment.','hint'));
+  if(p.status==='AWAITING_APPROVAL'){li.append(element('p','This payment has not been sent. Review its signed request in Sun·Phi messenger.','hint'));if(p.canRequestApproval){const b=element('button','Request approval again');b.disabled=submitting||!!lastStatus?.error;b.onclick=()=>sunphiAction('payment-approval',{pid:p.pid});li.append(b);}}
+  if(p.status==='REVIEW_REQUIRED')li.append(element('p','Network units changed before submission. Prepare a new payment; this saved draft will not be sent.','hint'));
+  if(p.status==='HISTORY_UNAVAILABLE')li.append(element('p','This older request is outside the retained network history. Its outcome is not confirmed here. Check your saved records before making another payment.','hint'));
+  if(p.canCancel&&!p.cancellationPending){const button=element('button','Cancel payment');button.type='button';button.disabled=submitting||!!lastStatus?.error||!lastStatus?.checkedAt;button.onclick=()=>{cancelReview=p;$('cancel-copy').textContent='Payment: '+moneyText(p,'value')+' DUBYT. Release fee: '+moneyText(p,'cancelFee')+' DUBYT. The remaining reserved funds return to your wallet.';$('cancel-error').textContent='';$('cancel-review').showModal();};li.append(button);}
+  if(p.cancellationPending)li.append(element('p','Waiting for network confirmation. The payment is not cancelled yet.','hint'));return li;
+}
+function renderAnalytics(s){historySample(s);const a=s.analytics,k=JSON.stringify([a,!!s.error]);if(k===analyticsKey)return;analyticsKey=k;$('network-metrics').replaceChildren();if(!a){$('analytics-scope').textContent='Waiting for a verified network snapshot.';$('verified-hash').textContent='';return;}const head=document.createElement('thead'),tr=document.createElement('tr');for(const label of ['Metric','Value','Description'])tr.append(element('th',label));head.append(tr);const body=document.createElement('tbody');$('network-metrics').append(head,body);for(const [label,value,hint] of [['Verified block',a.height,'Confirmed consensus header'],['State block',a.appHeight,'State certified by that header'],['Confirmed payments',a.settled,'Records in the retained state'],['Confirmed volume',a.volume,'DUBYT in retained payment records'],['Reserved payments',a.reserved,'Awaiting finalization or expiry'],['Released reservations',a.expired,'Records in the retained state'],['Worker records',a.workerSeats,'Logical entries, not physical servers'],['Live outputs',a.outputs,'Unspent balance records'],['Issued supply',a.supply,'DUBYT in the verified state']]){const row=element('tr','','metric'),name=element('th',a.scope==='owner'&&['Reserved payments','Live outputs'].includes(label)?'Your '+label.toLowerCase():label);name.scope='row';row.append(name,element('td',value==null?'—':label==='Confirmed volume'?moneyText(a,'volume'):label==='Issued supply'?moneyText(a,'supply'):BigInt(value).toLocaleString('en-US'),'numeric'),element('td',hint,'description'));body.append(row);}$('analytics-scope').textContent=(s.error?'Last verified snapshot; current verification is unavailable. ':'')+(a.scope==='owner'?'Balances and active payments cover this wallet. Supply covers the network. Network worker counts and historical totals are unavailable in this view.':'Counts describe retained verified records, not a complete lifetime archive. Updated after successful verification.');$('verified-hash').textContent='Block hash: '+a.blockHash+'\nCheckpoint: '+a.checkpoint;}
+$('copy-address').onclick=async()=>{try{await navigator.clipboard.writeText(lastStatus.owner);$('notice').textContent='Public address copied.';}catch{$('notice').textContent='Select and copy the address above.';}};
+$('backup').onclick=async()=>{try{const backup=await api('/backup'),url=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='DueByte-wallet-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);$('notice').textContent='Encrypted backup download requested. Check the saved file and keep your password separately.';}catch(e){$('notice').textContent=e.message;}};
+$('quick-backup').onclick=()=>$('backup').click();
+$('restore-wallet').onclick=async()=>{
+ if(submitting)return;const f=$('restore-file').files[0];if(!f||f.size>12000){$('restore-message').textContent='Select a DueByte encrypted backup file (.json, up to 12 KB).';$('restore-file').focus();return;}
+ const password=$('restore-password').value;if(!password){$('restore-message').textContent='Enter the original backup password.';$('restore-password').focus();return;}
+ submitting=true;renderEntry(lastStatus);$('restore-message').textContent='Restoring your encrypted backup…';
+ try{let backup;try{backup=JSON.parse(await f.text());}catch{throw Error('This file is not valid JSON. Select a DueByte encrypted backup.');}
+ const previousIds=(lastStatus.wallets||[]).map(w=>w.id),s=await api('/restore',{backup,password,name:$('restore-name').value});
+ entryMode='open';clearEntrySecrets();$('restore-file').value='';paint(s);$('form-message').textContent=previousIds.includes(s.selectedWallet)?'This wallet is already saved. Enter its current password to unlock it.':'Backup restored. Enter its password to unlock the selected wallet.';
+ }catch(e){$('restore-message').textContent=e.message.includes('authenticate')?'Incorrect password or damaged backup.':e.message;}
+ finally{submitting=false;if(lastStatus)renderEntry(lastStatus);}
+};
+$('payment').onsubmit=async e=>{
+ e.preventDefault();if(submitting)return;
+ const recipient=$('recipient').value.trim(),value=$('amount').value,unitScale=lastStatus?.unitScale??'1',walletId=lastStatus?.activeWallet;
+ if(!/^[A-Za-z0-9_-]{43}$/.test(recipient)){$('message').textContent='Enter a valid DueByte public address.';$('recipient').focus();return;}
+ if($('delayed-send').checked&&$('delayed-send').disabled){$('message').textContent='Delayed sending is unavailable. Review the network status or uncheck the option.';return;}
+ const request={recipient,value,unitScale,protected:$('protection').checked,delayed:$('delayed-send').checked};
+ submitting=true;$('send').disabled=true;review=null;feedback='';$('message').textContent='';
+ try{
+  const quote=await api('/quote',request);
+  if(lastStatus?.locked||lastStatus?.activeWallet!==walletId||(lastStatus?.unitScale??'1')!==unitScale)throw Error('Wallet or payment units changed. Review again.');
+  review={...request,fee:quote.fee,abortFee:quote.abortFee,...(quote.feeSchedule?{feeSchedule:quote.feeSchedule,partsCount:quote.partsCount}:{})};
+  $('review-recipient').textContent='To: '+recipient;
+  $('review-amount').textContent='Amount: '+quote.display.value+' DUBYT · Fee: '+quote.display.fee+' DUBYT · Total: '+quote.display.total+' DUBYT';
+  $('review-protection').textContent=review.delayed?('Execute after a 24-hour cancellation window, starting after network preparation. Cancellation fee: '+quote.display.abortFee+' DUBYT. '+(review.protected?'Then lock recipient spending for another 24 hours.':'The recipient can spend the funds after execution.')):review.protected?'The payment settles now and cannot be cancelled. The recipient can spend it 24 hours after settlement.':'The recipient can spend the payment after settlement. A settled payment cannot be cancelled.';
+  $('review-error').textContent='';$('confirm-payment').disabled=false;$('confirm-payment').textContent=review.delayed?'Schedule payment':'Confirm payment';$('payment-review').showModal();
+ }catch(e){feedback=e.message;$('message').textContent=feedback;$('amount').focus();}
+ finally{submitting=false;$('send').disabled=!!lastStatus?.working||!!lastStatus?.error||!lastStatus?.checkedAt;}
+};
+$('keep-payment').onclick=()=>{$('cancel-review').close();cancelReview=null;};
+$('confirm-cancel').onclick=async()=>{if(!cancelReview||submitting)return;submitting=true;$('confirm-cancel').disabled=true;try{const s=await api('/cancel-payment',{pid:cancelReview.pid});feedback='Cancellation requested. Wait for network confirmation in Activity.';$('cancel-review').close();cancelReview=null;paint(s);}catch(e){$('cancel-error').textContent=e.message+' Check Activity before trying again.';}finally{submitting=false;$('confirm-cancel').disabled=false;}};
+$('cancel-payment').onclick=()=>{$('payment-review').close();review=null;};
+$('confirm-payment').onclick=async()=>{if(!review||submitting)return;if((lastStatus.unitScale??'1')!==review.unitScale){$('review-error').textContent='Payment units changed. Close this review and prepare the payment again.';return;}if(lastStatus.error||!lastStatus.checkedAt){$('review-error').textContent='Wait for successful data verification before confirming.';return;}submitting=true;$('confirm-payment').disabled=true;try{const s=await api('/send',review);$('payment-review').close();review=null;$('recipient').value='';$('amount').value='';paint(s);selectTab('activity');$('notice').textContent=s.sunphi?.approval.enabled?'Open Sun·Phi messenger to approve this payment. Nothing has been sent to the network yet.':'Payment submitted. Follow this record until its outcome is confirmed.';}catch(e){const busy=e.message.includes('wallet not ready');$('review-error').textContent=busy?'Verification is busy. Wait for it to finish, then confirm again.':'The result is uncertain. Check Activity before sending another payment. '+e.message;if(!busy)review=null;}finally{submitting=false;$('confirm-payment').disabled=!review;}};
+$('payment').addEventListener('submit',()=>{if(review)$('confirm-payment').disabled=false;});
+function renderSunPhi(s){
+ const m=s.sunphi,p=m?.pairing,busy=submitting||s.working||s.locked;
+ $('sunphi-start').hidden=!!m?.linked;$('sunphi-start').disabled=busy;$('sunphi-start').textContent=p?'Continue connection':'Connect Sun·Phi';
+ $('sunphi-status').textContent=m?.linked?'Your Sun·Phi account is connected to this wallet.':p?.phase==='claimed'?'Account confirmed in Sun·Phi. Confirm the connection here to finish.':'Connect your account at ai-agent-online.com to use messenger options with this wallet.';
+ $('sunphi-pairing').hidden=!p;$('sunphi-code').textContent=p?.code??'';$('sunphi-open').hidden=!p;if(p)$('sunphi-open').href=p.url;else $('sunphi-open').removeAttribute('href');
+ $('sunphi-check').hidden=!p&&!m?.linked;$('sunphi-check').disabled=busy;$('sunphi-confirm').hidden=!p||p.phase!=='claimed';$('sunphi-confirm').disabled=busy;
+ $('sunphi-disconnect').hidden=!m?.linked;$('sunphi-disconnect').disabled=busy||!!m?.approval.enabled;
+ for(const name of ['notifications','approval']){const enabled=m?.[name]?.enabled===true,button=$('sunphi-'+name);button.setAttribute('aria-checked',String(enabled));button.textContent=enabled?'On':'Off';button.disabled=busy||!m?.linked||!s.features?.['sunphi'+(name==='notifications'?'Notifications':'Approval')];}
+ $('notifications-help').textContent=!m?.linked?'Connect your Sun·Phi account first.':s.features?.sunphiNotifications?'Choose whether payment status updates appear in your messenger.':'Your account is connected. Notification delivery is not available in this version yet.';
+ const policyPending=(m?.requests??[]).some(q=>q.kind==='policy'&&['opening','pending','submitted'].includes(q.status)&&q.expires>Date.now()/1000);if(policyPending)$('sunphi-approval').disabled=true;
+ $('approval-help').textContent=policyPending?'Settings request pending. Review it in Sun·Phi messenger; the switch changes only after network confirmation.':m?.approval.enabled?'Additional approval is required by the network. Disconnecting an account does not turn it off.':!m?.linked?'Connect your Sun·Phi account first.':s.features?.sunphiApproval?'Use the switch, then confirm the settings in Sun·Phi messenger.':'Approval will be available after the network upgrade is activated.';
+}
+async function sunphiAction(action,data={}){if(submitting)return;submitting=true;renderSunPhi(lastStatus);$('sunphi-message').textContent='Working…';try{paint(await api('/sunphi/'+action,data));$('sunphi-message').textContent=action==='confirm'?'Account connected. Both options remain off.':action==='disconnect'?'Account disconnected.':action==='notifications'?'Notification preference saved.':['approval','payment-approval'].includes(action)?'Open Sun·Phi messenger to review and approve this request.':'';}catch(e){$('sunphi-message').textContent=e.message;}finally{submitting=false;renderSunPhi(lastStatus);}}
+$('sunphi-start').onclick=()=>sunphiAction('start');$('sunphi-check').onclick=()=>sunphiAction('check');$('sunphi-confirm').onclick=()=>sunphiAction('confirm',{accountId:lastStatus.sunphi?.pairing?.accountId});$('sunphi-disconnect').onclick=()=>sunphiAction('disconnect');$('sunphi-notifications').onclick=()=>sunphiAction('notifications',{enabled:!lastStatus.sunphi?.notifications.enabled});$('sunphi-approval').onclick=()=>sunphiAction('approval',{enabled:!lastStatus.sunphi?.approval.enabled});
+function renderFundingRequests(rows){
+ const box=$('funding-requests');box.replaceChildren();if(!rows.length)return;box.append(element('h3','Contribution requests'));
+ const labels={AWAITING_SERVER:'Awaiting server approval',SUBMITTING:'Submitting',AWAITING_NETWORK:'Awaiting network confirmation',COMMITTED:'Confirmed',REJECTED:'Declined by server',CANCELLED:'Cancelled before submission',EXPIRED:'Expired',CONFLICT:'Conflicting operation confirmed',RECONCILE_REQUIRED:'Check confirmed history'};
+ for(const r of rows){const card=element('article','','node-card');card.append(element('h4',r.amount+' DUBYT · '+(labels[r.status]??r.status)),element('p','Server '+r.node,'address'),element('p',r.verifiedHeight?'Confirmed at block '+r.verifiedHeight:r.message??'', 'hint'));
+ for(const [allowed,action,label]of [[r.canRetry,'retry','Check now'],[r.canCancel,'cancel','Cancel request']])if(allowed){const b=element('button',label);b.type='button';b.disabled=submitting||lastStatus?.working;b.onclick=async()=>{if(submitting)return;submitting=true;const current=noticeContext();try{const next=await api('/collateral/'+action,{id:r.id});if(current())renderFundingRequests(rows.map(x=>x.id===r.id?next:x));}catch(e){if(current())$('collateral-status').textContent=e.message;}finally{submitting=false;}};card.append(b);}box.append(card);}
+}
+let fundingSignature='';
+let collateralChoice=null,collateralData=null,collateralReview=null,collateralOwner=null;
+let nodeLinkReview=null,nodeAlertStatus=null;
+function noticeContext(){const session=token,owner=lastStatus?.owner;return()=>token===session&&!lastStatus?.locked&&lastStatus?.owner===owner;}
+function downloadInstruction(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+function collateralLine(label,value){return element('p',label+': '+(value===null?'Not verified':value+' DUBYT'),'hint');}
+function renderCollateralSummary(c){const box=$('collateral-summary');box.replaceChildren();box.hidden=!c;if(!c)return;
+ box.append(element('h3','Your deposited collateral'),collateralLine('Currently held across '+c.nodes+' servers',c.remaining),collateralLine('Total deposited by this wallet',c.deposited),collateralLine('Returned to this wallet',c.withdrawn),element('p','Deposited collateral is separate from your spendable wallet balance. Network support belongs to the support pool.','hint'));
+ if(c.founder){const f=c.founder;box.append(element('h3','Your founder allocation'),collateralLine('Planned allocation',f.total),collateralLine('Released to this wallet',f.released),collateralLine(f.fullyIssued?'Not yet released':'Not yet issued',f.remaining),element('p','Only released funds can be used. The planned allocation is not a spendable balance.','hint'));}
+}
+async function loadNodeConnections(){if(submitting||lastStatus?.locked)return;submitting=true;const current=noticeContext();try{const data=await api('/nodes/options',{});if(!current())return;
+ $('nodes-status').textContent=data.reason||(data.nodes.length?'Verified node connections'+(data.verifiedHeight==null?'':', generation '+data.verifiedHeight)+'.':'No registered node is linked to this wallet.');renderCollateralSummary(data.collateral);$('nodes-list').replaceChildren(...data.nodes.map(n=>{const panel=element('section',''),title=element('h3',(n.kind==='server'?'Server ':'Home node ')+n.id.slice(0,12));panel.append(title,element('p',n.id,'address'),collateralLine('Total server collateral',n.display.stake));
+ if(n.collateral){const c=n.collateral,d=c.display;panel.append(collateralLine('Your collateral currently held',d.remaining),collateralLine('Network support',d.support));if(c.owned){panel.append(collateralLine('Deposited by this wallet',d.deposited),collateralLine('Returned to this wallet',d.withdrawn));if(c.release)panel.append(element('p','Release requested: '+c.release.amount+' DUBYT; earliest '+utc(c.release.readyAt)+', subject to outstanding obligations.','hint'));}else panel.append(element('p','A payout connection does not give this wallet ownership of the server collateral.','hint'));
+ const details=element('details','');details.append(element('summary','Collateral use'),collateralLine('Reserved for consensus',d.consensus),collateralLine('Held for payments',d.tasks),collateralLine('Unreserved server collateral',d.capacity),element('p','Unreserved collateral is not your spendable balance. Returning your contribution requires completion of obligations and the release waiting period.','hint'));panel.append(details);}
+ panel.append(collateralLine('Rewards awaiting payment',n.display.pending));for(const a of n.alerts){const p=element('p',a.message);p.setAttribute('role','status');panel.append(p);}const choose=element('button','Choose this node');choose.type='button';choose.onclick=()=>{$('node-link-id').value=n.id;};panel.append(choose);return panel;}));
+ }catch(e){if(current()){$('nodes-status').textContent=e.message;renderCollateralSummary(null);$('nodes-list').replaceChildren();}}finally{submitting=false;}}
+$('nodes-refresh').onclick=loadNodeConnections;
+async function reviewNodeLink(operation){if(submitting||lastStatus?.locked)return;submitting=true;nodeLinkReview=null;const owner=lastStatus.owner;try{const r=await api('/nodes/review',{node:$('node-link-id').value.trim(),operation});if(lastStatus.locked||lastStatus.owner!==owner)throw Error('Wallet changed. Review again.');nodeLinkReview=r;$('node-link-summary').textContent=operation.toUpperCase()+' | '+r.body.node+' | Wallet '+r.body.wallet;$('node-link-code').textContent=r.code;$('node-link-warning').textContent=r.lastWallet?'This is the last payout wallet. Confirmed future earnings will wait until a wallet is linked. Collateral remains with the server.':'Current balances and collateral ownership stay unchanged.';$('node-link-error').textContent='';$('node-link-confirm').disabled=false;$('node-link-dialog').showModal();}catch(e){$('nodes-status').textContent=e.message;}finally{submitting=false;}}
+$('node-link-form').onsubmit=e=>{e.preventDefault();void reviewNodeLink('link');};$('node-unlink-review').onclick=()=>reviewNodeLink('unlink');
+$('node-link-cancel').onclick=()=>{nodeLinkReview=null;$('node-link-dialog').close();};$('node-link-dialog').addEventListener('cancel',()=>{nodeLinkReview=null;});
+$('node-link-confirm').onclick=async()=>{if(submitting||!nodeLinkReview)return;submitting=true;$('node-link-confirm').disabled=true;try{const alerts=nodeLinkReview.kind==='alerts',request=await api(alerts?'/node-alerts/confirm':'/nodes/confirm',{id:nodeLinkReview.id});downloadInstruction(request,alerts?'DueByte-node-alert-request.json':'DueByte-node-link-request.json');$('node-link-dialog').close();$(alerts?'node-alert-message':'nodes-status').textContent=alerts?'Request signed. Confirm the matching code on the server, then import its approval to enable notices.':'Request signed. Confirm the matching code on the server, then import its approval. No connection has changed yet.';}catch(e){$('node-link-error').textContent=e.message;}finally{nodeLinkReview=null;submitting=false;}};
+$('node-alert-review').onclick=async()=>{if(submitting||lastStatus?.locked)return;submitting=true;const current=noticeContext();try{const r=await api('/node-alerts/review',{node:$('node-link-id').value.trim()});if(!current())return;nodeLinkReview={...r,kind:'alerts'};$('node-link-summary').textContent='SERVER NOTICES | '+r.body.node+' | Account '+r.body.account;$('node-link-code').textContent=r.code;$('node-link-warning').textContent='Allow server notices in this account. This does not allow spending, change payouts or move collateral. Notices stay on after payout unlink.';$('node-link-error').textContent='';$('node-link-confirm').disabled=false;$('node-link-dialog').showModal();}catch(e){if(current())$('node-alert-message').textContent=e.message;}finally{submitting=false;}};
+$('node-alert-status').onclick=async()=>{if(submitting||lastStatus?.locked)return;submitting=true;const current=noticeContext();nodeAlertStatus=null;$('node-alert-stop').disabled=true;try{const node=$('node-link-id').value.trim(),r=await api('/node-alerts/status',{node});if(!current())return;nodeAlertStatus={node,revision:r.revision};$('node-alert-message').textContent=r.enabled?'Server notices are on. Observer state: '+r.status:'Server notices are off. '+r.status;$('node-alert-stop').disabled=!r.enabled;}catch(e){if(current())$('node-alert-message').textContent=e.message;}finally{submitting=false;}};
+$('node-alert-stop').onclick=async()=>{if(submitting||!nodeAlertStatus||lastStatus?.locked)return;submitting=true;const current=noticeContext();try{await api('/node-alerts/stop',nodeAlertStatus);if(!current())return;$('node-alert-message').textContent='Server notices are off. Payouts and collateral are unchanged.';$('node-alert-stop').disabled=true;nodeAlertStatus=null;}catch(e){if(current())$('node-alert-message').textContent=e.message;}finally{submitting=false;}};
+$('node-alert-approval').onchange=async()=>{const f=$('node-alert-approval').files[0];$('node-alert-approval').value='';if(!f||submitting||lastStatus?.locked)return;submitting=true;const current=noticeContext();try{if(f.size>12000)throw Error('Approval file is too large.');const approval=JSON.parse(await f.text());if(!current())return;const r=await api('/node-alerts/activate',{approval});if(!current())return;$('node-alert-message').textContent=r.enabled?'Server notices enabled. The server observer will check conditions independently of this computer.':'Server notices remain off.';}catch(e){if(current())$('node-alert-message').textContent=e.message;}finally{submitting=false;}};
+$('node-link-approval').onchange=async()=>{const f=$('node-link-approval').files[0];$('node-link-approval').value='';if(!f||submitting||lastStatus?.locked)return;submitting=true;const owner=lastStatus.owner;try{if(f.size>12000)throw Error('Approval file is too large.');const r=await api('/nodes/check',{action:JSON.parse(await f.text())});if(lastStatus.locked||lastStatus.owner!==owner)return;$('nodes-status').textContent='Both signatures verified for '+r.node+'. '+r.reason+' Nothing has been submitted.';}catch(e){$('nodes-status').textContent=e.message;}finally{submitting=false;}};
+function renderCollateralState(s){
+ renderFundingRequests(s.locked?[]:(s.collateralRequests??[]));
+ const signature=s.locked?'':JSON.stringify((s.collateralRequests??[]).map(r=>[r.id,r.status]));if(signature!==fundingSignature){fundingSignature=signature;if(!s.locked&&(s.collateralRequests??[]).some(r=>r.status==='COMMITTED')&&!submitting&&!s.working&&!document.querySelector('[data-screen=collateral]').hidden)void loadCollateral();}
+ if(s.locked||collateralOwner!==s.owner){nodeLinkReview=null;nodeAlertStatus=null;$('node-alert-stop').disabled=true;$('node-link-dialog').close();renderCollateralSummary(null);$('nodes-list').replaceChildren();$('node-link-id').value='';$('nodes-status').textContent='Refresh to see verified connections and collateral warnings.';$('node-alert-message').textContent='Choose a node above and connect your account in Messenger settings.';}
+ if(s.error&&nodeLinkReview){nodeLinkReview=null;$('node-link-confirm').disabled=true;$('node-link-error').textContent='Network verification changed. Close and review again.';}
+ if(s.locked||collateralOwner!==s.owner){collateralOwner=s.locked?null:s.owner;collateralChoice=null;collateralData=null;collateralReview=null;$('collateral-review-dialog').close();$('collateral-nodes').replaceChildren();$('collateral-selected').textContent='Choose a server';$('collateral-node-id').textContent='';$('collateral-amount').value='';$('collateral-available').textContent='Available: checking';$('collateral-status').textContent='Check registered servers and your spendable balance.';}
+ if(collateralReview&&(s.error||s.unitScale!==collateralReview.body.unitScale)){collateralReview=null;$('collateral-error').textContent='Verification or payment units changed. Close and review again.';}
+ $('collateral-review-button').disabled=submitting||s.locked||s.working||!!s.error||!collateralData?.enabled||!collateralChoice||(s.collateralRequests??[]).some(r=>r.canRetry);
+ $('collateral-refresh').disabled=submitting||s.locked||s.working;
+ $('collateral-confirm').disabled=submitting||s.locked||!!s.error||!collateralReview;
+}
+async function loadCollateral(){
+ if(submitting||lastStatus?.locked)return;submitting=true;const owner=lastStatus?.owner;$('collateral-status').textContent='Verifying spendable funds and registered servers...';
+ try{const data=await api('/collateral/options',{});if(lastStatus?.locked||owner!==lastStatus.owner)return;collateralData=data;collateralChoice=null;
+  $('collateral-status').textContent=data.reason||'Choose a registered server and review the exact amount. No funds move during review.';$('collateral-available').textContent='Available: '+data.available+' DUBYT';$('collateral-selected').textContent='Choose a server';$('collateral-node-id').textContent='';
+  $('collateral-nodes').replaceChildren(...data.nodes.map(n=>{const b=element('button','Server '+n.id.slice(0,12)+(n.releasePending?' - release pending':''));b.type='button';b.disabled=n.releasePending||n.connected===false;b.title=n.id;b.onclick=()=>{collateralChoice=n.id;$('collateral-selected').textContent='Server '+n.id.slice(0,12);$('collateral-node-id').textContent=n.id;$('collateral-picker').open=false;renderCollateralState(lastStatus);};return b;}));
+ }catch(e){collateralData=null;$('collateral-status').textContent=e.message;}
+ finally{submitting=false;if(lastStatus)renderCollateralState(lastStatus);}
+ if(!lastStatus?.locked&&lastStatus.owner===owner)await loadNodeConnections();
+}
+$('collateral-refresh').onclick=loadCollateral;
+$('collateral-form').onsubmit=async e=>{
+ e.preventDefault();if(submitting||!collateralChoice)return;const owner=lastStatus.owner;submitting=true;collateralReview=null;renderCollateralState(lastStatus);
+ try{const r=await api('/collateral/review',{node:collateralChoice,amount:$('collateral-amount').value,unitScale:lastStatus.unitScale});if(lastStatus.locked||lastStatus.owner!==owner)throw Error('Wallet changed. Review again.');collateralReview=r;
+  $('collateral-review-node').textContent='Server '+r.body.node;$('collateral-review-values').replaceChildren(...[['Available',r.display.available],['Collateral',r.display.collateral],['Remaining available',r.display.remainingAvailable]].map(([label,value])=>{const row=element('div','');row.append(element('dt',label),element('dd',value+' DUBYT'));return row;}));
+  $('collateral-review-expiry').textContent='Consent expires: '+utc(r.expiresAt);$('collateral-error').textContent='';$('collateral-review-dialog').showModal();
+ }catch(e){$('collateral-status').textContent=e.message;}finally{submitting=false;renderCollateralState(lastStatus);}
+};
+$('collateral-back').onclick=()=>{collateralReview=null;$('collateral-review-dialog').close();};
+$('collateral-review-dialog').addEventListener('cancel',()=>{collateralReview=null;});
+$('collateral-confirm').onclick=async()=>{
+ if(submitting||!collateralReview)return;submitting=true;const id=collateralReview.id;renderCollateralState(lastStatus);
+ try{const request=await api('/collateral/confirm',{id});$('collateral-review-dialog').close();renderFundingRequests([request]);lastStatus.collateralRequests=[request];$('collateral-status').textContent='Contribution request saved. Approve it in the server management interface; confirmation will appear here.';
+ }catch(e){$('collateral-error').textContent=e.message+' Close and review again.';}finally{collateralReview=null;submitting=false;renderCollateralState(lastStatus);}
+};
+let twoWayBusy=false,twoWayContext=null,twoWayDraft=null,twoWayDirection='BUY_DUBYT',twoWayAsset='BTC',twoWayEnabled=false;
+function clearTwoWay(){twoWayDraft=null;$('two-way-preview').hidden=true;}
+function twoWayControls(){
+ if(twoWayDraft?.outcomeRequired)$('two-way-deadline').textContent='Quote expires: '+utc(twoWayDraft.expiresAt)+'. Once external payment is authorized, DUBYT remain reserved until payment or refund is verified.';
+ const disabled=twoWayBusy||submitting||lastStatus?.locked||lastStatus?.working||!!lastStatus?.error||!twoWayEnabled;for(const e of $('two-way-form').querySelectorAll('button,input'))e.disabled=disabled;$('two-way-confirm').disabled=disabled||!twoWayDraft||twoWayDraft.expiresAt<=Date.now()/1000;$('two-way-refresh').disabled=twoWayBusy;}
+function showTwoWayOrders(orders){$('two-way-orders').replaceChildren(...orders.map(o=>{const box=element('div');box.className='panel-band';box.append(element('h3',(o.direction==='BUY_DUBYT'?'Buy ':'Sell ')+o.dubyt+' DUBYT'),element('p',o.asset+' / '+o.network+' / '+({LOCKED:'DUBYT reserved',CLAIMED:'DUBYT transfer confirmed',REFUNDED:'DUBYT returned',EXPIRED_UNFUNDED:'Expired without a reservation',NOT_CONFIRMED:'Awaiting DUBYT confirmation'}[o.status]??o.status.replaceAll('_',' '))),element('p',o.verified?'Verified against DueByte consensus.':'No committed DUBYT reservation has been verified.'));
+ if(o.awaitingOutcome)box.append(element('p','Awaiting verified payment or refund. Your DUBYT remain reserved until the external result is confirmed. Do not pay again.'));
+ if(o.canRefund){const b=element('button','Release expired DUBYT reservation');b.type='button';b.onclick=()=>twoWayAction('/exchange/refund',o.id);box.append(b);}else if(o.status==='NOT_CONFIRMED'){const b=element('button','Retry saved request');b.type='button';b.onclick=()=>twoWayAction('/exchange/resume',o.id);box.append(b);}return box;}));}
+async function loadTwoWay(){if(twoWayBusy||lastStatus?.locked||!lastStatus?.features?.twoWayExchange)return;twoWayBusy=true;const context=purchaseContext();twoWayControls();try{if(twoWayContext!==context){clearTwoWay();$('two-way-orders').replaceChildren();twoWayContext=context;}const a=await api('/exchange/availability',{});if(context!==purchaseContext()||lastStatus.locked)return;twoWayEnabled=a.available;$('two-way-form').hidden=!a.available;$('two-way-message').textContent=a.reason;if(a.available){const s=await api('/exchange/status',{});if(context===purchaseContext()&&!lastStatus.locked){showTwoWayOrders(s.orders);$('two-way-form').hidden=s.orders.some(o=>['LOCKED','NOT_CONFIRMED'].includes(o.status));}}}catch(e){if(context===purchaseContext())$('two-way-message').textContent=e.message;}finally{twoWayBusy=false;twoWayControls();}}
+for(const b of $('two-way-directions').querySelectorAll('button'))b.onclick=()=>{twoWayDirection=b.dataset.direction;clearTwoWay();for(const x of b.parentElement.children)x.setAttribute('aria-pressed',String(x===b));$('two-way-address-label').textContent=twoWayDirection==='BUY_DUBYT'?'Your external refund address':'Your external receiving address';};
+for(const b of $('two-way-assets').querySelectorAll('button'))b.onclick=()=>{twoWayAsset=b.dataset.asset;clearTwoWay();$('two-way-address').value='';for(const x of b.parentElement.children)x.setAttribute('aria-pressed',String(x===b));};
+$('two-way-form').addEventListener('input',clearTwoWay);
+$('two-way-form').onsubmit=async e=>{e.preventDefault();if(twoWayBusy||!twoWayEnabled)return;twoWayBusy=true;clearTwoWay();const context=purchaseContext();twoWayControls();try{const r=await api('/exchange/quote',{direction:twoWayDirection,asset:twoWayAsset,amount:$('two-way-amount').value.trim(),address:$('two-way-address').value.trim()});if(context!==purchaseContext()||lastStatus.locked)return;twoWayDraft=r;$('two-way-summary').textContent=r.direction==='BUY_DUBYT'?'You pay '+r.external+' '+r.asset+' and receive '+r.dubyt+' DUBYT.':'You pay '+r.dubyt+' DUBYT and receive '+r.external+' '+r.asset+'.';$('two-way-route').textContent=r.network+' / Receive: '+r.recipient+' / Refund: '+r.refundAddress;$('two-way-fee').textContent='DueByte fee: '+r.fee+' DUBYT. Paid by: '+r.feePayer+'. External network fees are separate.';$('two-way-deadline').textContent='Quote expires: '+utc(r.expiresAt)+'. DUBYT refund eligibility: '+utc(r.refundAt);$('two-way-preview').hidden=false;}catch(e){if(context===purchaseContext())$('two-way-message').textContent=e.message;}finally{twoWayBusy=false;twoWayControls();}};
+async function twoWayAction(route,id){if(twoWayBusy||lastStatus.locked)return;twoWayBusy=true;const context=purchaseContext();twoWayControls();try{const r=await api(route,{id});if(context===purchaseContext()&&!lastStatus.locked){clearTwoWay();$('two-way-message').textContent=r.verified?'Verified exchange state: '+r.status:'Request submitted. Awaiting consensus confirmation.';}}catch(e){if(context===purchaseContext())$('two-way-message').textContent=e.message+' Refresh the saved order before trying again.';}finally{twoWayBusy=false;twoWayControls();}}
+$('two-way-confirm').onclick=()=>{if(twoWayDraft&&!$('two-way-confirm').disabled)void twoWayAction('/exchange/confirm',twoWayDraft.review);};
+$('two-way-refresh').onclick=loadTwoWay;
+setInterval(()=>{if(!document.querySelector('[data-screen=exchange]').hidden)void loadTwoWay();},15000);
+let purchaseRoute=null,purchaseDraft=null,purchaseSession=null,purchaseRevision=0,purchaseAvailable=false,purchaseOrder=null,purchaseOwner=null,purchaseBusy=false;
+function clearPurchase(){purchaseRevision++;purchaseDraft=null;purchaseSession=null;purchaseOrder=null;$('purchase-result').hidden=true;$('purchase-address').hidden=true;}
+function purchaseContext(){return token+':'+lastStatus?.activeWallet+':'+lastStatus?.owner+':'+lastStatus?.network;}
+function renderPurchaseState(s){
+ if(s.locked||twoWayContext&&twoWayContext!==purchaseContext()){clearTwoWay();$('two-way-orders').replaceChildren();twoWayEnabled=false;twoWayContext=null;}twoWayControls();
+ if(s.locked||s.error||purchaseOwner&&purchaseOwner!==purchaseContext()){clearPurchase();purchaseAvailable=false;$('purchase-form').hidden=true;}
+ const disabled=submitting||purchaseBusy||s.locked||s.working||!!s.error||!s.checkedAt||!purchaseAvailable;
+ $('purchase-prepare').disabled=disabled||!purchaseRoute;
+ $('purchase-confirm').disabled=disabled||!purchaseDraft||purchaseDraft.expiresAt<=Date.now()/1000;
+ $('purchase-refresh').disabled=disabled&&!s.locked&&(submitting||purchaseBusy);
+}
+function showPurchase(r,isOrder=false){
+ $('purchase-result').hidden=false;$('purchase-form').hidden=true;
+ $('purchase-summary').textContent='You pay '+r.payTotal+' '+r.route+' / You receive '+r.dubyt+' DUBYT';
+ $('purchase-fees').textContent='Included fee: '+r.fee+' '+r.route+'. '+r.feeNote;
+ $('purchase-seller').textContent='Seller: '+r.seller;$('purchase-expiry').textContent=(isOrder?'Payment deadline: ':'Quote valid until: ')+utc(isOrder?r.payUntil:r.expiresAt);
+ $('purchase-terms').textContent=r.terms;$('purchase-chain').textContent='Payment network: '+r.paymentNetwork+(r.refundDestination?' / Refund address: '+r.refundDestination:'');
+ const paymentWindowEnded=isOrder&&r.status==='AWAITING_PAYMENT'&&Date.now()/1000>=r.payUntil;
+ $('purchase-heading').textContent=paymentWindowEnded?'Payment window ended':isOrder?r.statusLabel:'Review your purchase';
+ $('purchase-confirm').hidden=isOrder;$('purchase-back').hidden=isOrder&&!['COMPLETED','CANCELLED','REFUNDED'].includes(r.status);$('purchase-back').textContent=isOrder?'New purchase':'Change amount';
+ $('purchase-address').hidden=!isOrder||r.status!=='AWAITING_PAYMENT'||paymentWindowEnded;$('purchase-address').textContent=isOrder&&r.status==='AWAITING_PAYMENT'&&!paymentWindowEnded?'Send the exact total to: '+r.destination:'';
+ $('purchase-status').textContent=paymentWindowEnded?'Do not send a new payment. Checking for a payment already sent; your order is retained.':isOrder?r.message:'Review the price and terms. Payment details appear after DUBYT is reserved.';
+}
+async function loadPurchase(){
+ if(lastStatus?.features?.twoWayExchange){$('legacy-purchase-panel').hidden=true;$('two-way-panel').hidden=false;return loadTwoWay();}
+ $('legacy-purchase-panel').hidden=false;$('two-way-panel').hidden=true;
+ if(submitting||purchaseBusy||!lastStatus||lastStatus.locked)return;
+ purchaseBusy=true;const context=purchaseContext(),revision=++purchaseRevision;renderPurchaseState(lastStatus);
+ try{const r=await api('/purchase/availability',{});if(context!==purchaseContext()||lastStatus.locked||revision!==purchaseRevision)return;
+  purchaseOwner=context;purchaseAvailable=r.available===true;purchaseSession=token;$('purchase-lab').hidden=!r.isolated;
+  $('purchase-status').textContent=r.reason||'Choose an amount and payment method.';
+  $('purchase-form').hidden=!purchaseAvailable;$('purchase-result').hidden=true;
+  purchaseRoute=r.routes.some(x=>x.id===purchaseRoute)?purchaseRoute:r.routes[0]?.id??null;
+  $('purchase-methods').replaceChildren(...r.routes.map(x=>{const b=element('button',x.label);b.type='button';b.dataset.route=x.id;b.setAttribute('aria-pressed',String(purchaseRoute===x.id));b.onclick=()=>{clearPurchase();purchaseRoute=x.id;for(const other of $('purchase-methods').children)other.setAttribute('aria-pressed',String(other===b));};return b;}));
+  purchaseOrder=r.activeOrder??null;if(purchaseOrder)showPurchase(purchaseOrder,true);
+ }catch(e){purchaseAvailable=false;$('purchase-form').hidden=true;$('purchase-status').textContent=e.message;}
+ finally{purchaseBusy=false;renderPurchaseState(lastStatus);}
+}
+$('purchase-refresh').onclick=loadPurchase;
+$('purchase-back').onclick=()=>{clearPurchase();$('purchase-form').hidden=!purchaseAvailable;};
+$('purchase-form').addEventListener('input',clearPurchase);
+$('purchase-form').onsubmit=async e=>{
+ e.preventDefault();if(submitting||purchaseBusy||!purchaseAvailable||lastStatus.locked)return;
+ clearPurchase();const context=purchaseContext(),revision=purchaseRevision;purchaseBusy=true;renderPurchaseState(lastStatus);
+ try{const r=await api('/purchase/quote',{amount:$('purchase-amount').value.trim(),route:purchaseRoute,refundDestination:$('purchase-refund').value.trim()});
+  if(context!==purchaseContext()||lastStatus.locked||revision!==purchaseRevision)throw Error('Wallet or amount changed. Review again.');
+  purchaseDraft=r;purchaseOwner=context;purchaseSession=token;showPurchase(r);
+ }catch(e){$('purchase-status').textContent=e.message;}finally{purchaseBusy=false;renderPurchaseState(lastStatus);}
+};
+$('purchase-confirm').onclick=async()=>{
+ renderPurchaseState(lastStatus);if($('purchase-confirm').disabled||!purchaseDraft)return;
+ const context=purchaseContext(),id=purchaseDraft.id;purchaseBusy=true;renderPurchaseState(lastStatus);
+ try{const r=await api('/purchase/accept',{id});if(context!==purchaseContext()||lastStatus.locked)throw Error('Wallet changed. Reopen the purchase to check its status.');
+  purchaseDraft=null;purchaseOrder=r;showPurchase(r,true);
+ }catch(e){purchaseDraft=null;$('purchase-status').textContent=e.message+' Refresh to check whether a reservation was made.';}
+ finally{purchaseBusy=false;renderPurchaseState(lastStatus);}
+};
+setInterval(async()=>{
+ if(purchaseBusy||!purchaseOrder||lastStatus?.locked||document.querySelector('[data-screen=exchange]').hidden)return;
+ purchaseBusy=true;const context=purchaseContext();
+ try{const r=await api('/purchase/order',{id:purchaseOrder.id});if(context===purchaseContext()&&!lastStatus.locked){purchaseOrder=r;showPurchase(r,true);}}
+ catch{$('purchase-status').textContent='Connection interrupted. Your order is retained; checking again automatically.';}
+ finally{purchaseBusy=false;renderPurchaseState(lastStatus);}
+},3000);
+document.querySelector('[data-tab=exchange]').addEventListener('click',()=>void loadPurchase());
+let sellerView=null,sellerBusy=false,sellerContext=null;
+async function loadSeller(){
+ if(sellerBusy||!lastStatus||lastStatus.locked){if(lastStatus?.locked){sellerView=null;$('seller-panel').hidden=true;}return;}
+ if(document.querySelector('nav [aria-current=page]')?.dataset.tab!=='exchange')return;
+ sellerBusy=true;const context=purchaseContext();try{const s=await api('/seller/status',{});if(context!==purchaseContext()||lastStatus.locked)return;sellerView=s;sellerContext=context;$('seller-panel').hidden=!s.available;if(!s.available)return;
+ $('seller-name').textContent=s.operator+' / '+$('workspace-wallet').textContent;
+ $('seller-limits').textContent='Maximum per order: '+s.maximum+' DUBYT. Daily signing limit: '+s.daily+' DUBYT.';
+ $('seller-prices').textContent='Isolated test only. For 1 DUBYT: '+s.prices.map(r=>r.amount+' '+r.asset).join(' or ')+'. The buyer reviews the exact total before payment.';
+ $('seller-message').textContent=s.message;$('seller-start').hidden=s.enabled;$('seller-stop').hidden=!s.enabled;$('seller-start').disabled=!!lastStatus.error||!lastStatus.checkedAt||lastStatus.working;
+ }catch{$('seller-message').textContent='Seller configuration unavailable. Sales remain paused.';sellerView=null;$('seller-start').disabled=true;}finally{sellerBusy=false;}
+}
+$('seller-start').onclick=async()=>{if(sellerBusy||!sellerView?.available||sellerContext!==purchaseContext())return;sellerBusy=true;try{const data={profileHash:sellerView.profileHash},permit=await api('/authorize-action',{path:'/seller/start',data});const r=await fetch('/seller/start',{method:'POST',headers:{'Content-Type':'application/json','X-Duebyte-Token':token,'X-Duebyte-Action':permit.permit},body:JSON.stringify(data)});const s=await r.json();if(!r.ok)throw Error(s.error);}catch(e){$('seller-message').textContent=e.message;}finally{sellerBusy=false;void loadSeller();}};
+$('seller-stop').onclick=async()=>{try{await api('/seller/stop',{});}catch(e){$('seller-message').textContent=e.message;}finally{void loadSeller();}};
+const assetPanel=document.createElement('section');assetPanel.id='assets-panel';assetPanel.className='panel';assetPanel.style.gridColumn='1 / -1';
+assetPanel.innerHTML='<div class="panel-head"><h2>Your assets</h2><p class="hint">DUBYT, Bitcoin and USDC remain on their own networks.</p></div><div class="panel-body"><div id="asset-cards" class="screen-grid"></div><p id="asset-message" class="hint" role="status"></p><button id="asset-refresh" type="button">Refresh balances</button></div><details><summary>How external wallets work</summary><div class="panel-body"><p>Your DueByte address receives DUBYT only. Bitcoin and USDC need separate external addresses. A connected address lets DueByte display its balance; it does not grant permission to spend.</p><p>Use a wallet you control, keep its encrypted recovery materials separately and choose the exact supported USDC network. Never enter a seed phrase into an exchange form. Your DueByte backup does not restore an external wallet.</p><p>Exchange offers reserve existing assets. Review the amount you receive, network fees, destination and refund conditions before approving. A pending transfer is not an available balance. No payment should be sent when a route is unavailable.</p><p>External account connection and two-way exchange are being qualified on isolated networks. Do not send real BTC or USDC to test addresses.</p></div></details>';
+document.querySelector('[data-screen=overview]').prepend(assetPanel);
+const assetStyle=document.createElement('style');assetStyle.textContent='#asset-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}#asset-cards>div{min-width:0;border:1px solid var(--border);padding:20px}#asset-cards h3{margin:0 0 12px}#asset-cards .asset-value{font-size:26px;color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;margin:0 0 16px}#asset-cards p{overflow-wrap:anywhere}#asset-cards .address{font-size:11px;color:var(--muted)}#assets-panel>details>summary{padding:20px 24px}@media(max-width:800px){#asset-cards{grid-template-columns:1fr}}';document.head.append(assetStyle);
+let assetsBusy=false,assetsContext=null,assetsAt=0;
+function drawAssets(rows){$('asset-cards').replaceChildren(...rows.map(a=>{const card=element('div');card.className='panel-body';card.style.background='var(--section)';const value=element('p',a.available??'—');value.className='asset-value';card.append(element('h3',a.asset),value);const labels={'not-connected':'External wallet not connected',unavailable:'Balance unavailable',stale:'Last observation is out of date',observed:'Observed on the external network',verified:'Verified by DueByte'};card.append(element('p',labels[a.status]??'Balance unavailable'));if(a.network)card.append(element('p',a.network));if(a.address){const addr=element('p',a.address);addr.className='address';card.append(addr);}if(a.pending&&a.pending!=='0')card.append(element('p','Awaiting confirmations: '+a.pending));return card;}));}
+async function loadAssets(force=false){
+ const s=lastStatus;if(!s||s.locked){assetsContext=null;assetsAt=0;drawAssets(['DUBYT','BTC','USDC'].map(asset=>({asset,status:'unavailable',available:null})));return;}
+ const context=purchaseContext();if(assetsContext!==context){drawAssets(['DUBYT','BTC','USDC'].map(asset=>({asset,status:'unavailable',available:null})));$('asset-message').textContent='';assetsAt=0;}
+ if(document.querySelector('nav [aria-current=page]')?.dataset.tab!=='overview'||assetsBusy)return;
+ if(!force&&assetsContext===context&&Date.now()-assetsAt<15000)return;assetsBusy=true;assetsContext=context;assetsAt=Date.now();
+ try{const r=await api('/assets',{});if(context!==purchaseContext()||lastStatus.locked)return;drawAssets(r.assets);$('asset-message').textContent=r.message;}
+ catch{if(context===purchaseContext()&&!lastStatus.locked){drawAssets(['DUBYT','BTC','USDC'].map(asset=>({asset,status:'unavailable',available:null})));$('asset-message').textContent='Balances could not be refreshed. An unavailable balance is not zero.';}}
+ finally{assetsBusy=false;}
+}
+$('asset-refresh').onclick=()=>void loadAssets(true);
+let polling=false;async function poll(){if(polling)return;polling=true;try{paint(await api('/status'));void loadSeller();void loadAssets();}catch(e){connectionHealth('attention');clearPurchase();$('purchase-prepare').disabled=true;$('send').disabled=true;$('message').textContent='Local wallet unavailable. Check that the node is running.';drawAssets(['DUBYT','BTC','USDC'].map(asset=>({asset,status:'unavailable',available:null})));assetsAt=0;}finally{polling=false;}}setInterval(poll,1500);void poll();
+</script></body></html>

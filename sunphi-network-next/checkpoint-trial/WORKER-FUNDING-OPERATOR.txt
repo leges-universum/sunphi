@@ -1,0 +1,49 @@
+DueByte collateral owner-consent handoff
+
+Server package:
+  duebyte-server funding-sign /absolute/operator.json /absolute/owner-consent.json /absolute/handoff.json
+All three packages also include the same module, invoked with their bundled Node:
+  runtime/node sunphi-network-next/checkpoint-trial/worker-funding-operator.mjs PROFILE CONSENT OUTPUT
+Windows Home uses resources/app/runtime/node.exe and the module under resources/app.
+Use this administrative tool on the host holding the intended worker key. Never
+copy a server key into a Home wallet just to run the command.
+
+The local operator profile has exactly these fields:
+  format: DUEBYTE_WORKER_FUNDING_OPERATOR_V1
+  profile: absolute directory containing app-config.json, trust-policy.json, genesis.json
+  policyPin: independently accepted SHA-256 canonical trust-policy hash
+  home: private persistent directory for the verifier and exclusive signing lock
+  binary: absolute path to the bundled duebyte-abci verifier
+  url: existing local CometBFT JSON-RPC endpoint (127.0.0.1)
+  bounded: the existing authenticated bounded-state transport configuration
+  keyFile: existing private work-key.json with node, publicKey and privateKey
+  scope: exact object with configHash, node, owner, valueMicro
+
+Select the local scope independently of the incoming request. For the prepared
+zero-stage personal allocation, valueMicro is "90000000" at scale1000000.
+The profile does not authorize issuance or create missing owner inputs.
+Linux profile/key files must be owned by the invoking account with mode0600;
+the verifier directory must be private (0700). Windows requires an equivalent
+private ACL on its directory; this tool does not claim to validate Windows ACLs.
+Use the deployed worker's key, not its CometBFT validator key.
+
+After separately authorized funding, create the owner consent in Home using
+the current proved inputs. Transfer only that public signed JSON to the worker.
+The worker verifies the pinned trust policy and current consensus-certified
+owner view, worker key, amount, inputs, sequence and short UTC consent window.
+It writes a signed action only after validation. No transaction is broadcast.
+The owner must submit the returned action through the authorized funding flow.
+Wait for certified inclusion before preparing the next allocation: its change
+output may differ. A lost response requires reconciliation against current
+state. An identical committed request yields ALREADY_COMMITTED with no action.
+
+Outputs are exclusive and never overwrite previous evidence. Receipt data is
+written and synced to a unique .partial file before publishing the final name.
+An interrupted write may leave a .partial file: it is not a completed handoff.
+Never submit or rename a partial file. Check current certified state before
+retrying. A crash after publication may leave both names; the final receipt is
+the evidence to reconcile, not permission to create another spend. If the file
+system cannot publish exclusively, the command fails without a fallback overwrite.
+A crash may leave funding-sign.lock. Establish that no signer is running before
+removing only that stale lock; never delete the verifier's trust database.
+No key is included in the receipt. Publishing a package does not enable minting.
