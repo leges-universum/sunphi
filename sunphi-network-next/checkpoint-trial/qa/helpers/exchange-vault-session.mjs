@@ -1,0 +1,33 @@
+import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {spawn,spawnSync} from 'node:child_process';import {createServer} from 'node:net';import {X509Certificate,randomBytes} from 'node:crypto';
+import {hash,digest} from '../../crypto.mjs';import {CHECKPOINT} from '../../checkpoint.mjs';
+import {sealSigningVault} from '../../research/exchange-signing-vault.mjs';import {ExchangeSigningAuthority} from '../../research/exchange-signing-authority.mjs';import {remotePreparation} from '../../research/exchange-signing-service.mjs';
+export async function vaultSession({out,f,orders,joint,btc,evm,abi,tools,coordinatorOptions}){
+ const dir=path.join(out,'vault-service');fs.mkdirSync(dir);const openssl=process.platform==='win32'?'C:/Program Files/Git/usr/bin/openssl.exe':'openssl';
+ const ssl=args=>assert.equal(spawnSync(openssl,args,{cwd:dir,windowsHide:true,stdio:'ignore'}).status,0);
+ ssl(['req','-x509','-newkey','rsa:2048','-nodes','-keyout','ca.key','-out','ca.pem','-days','1','-subj','/CN=Isolated exchange CA']);
+ for(const n of ['server','client']){ssl(['req','-newkey','rsa:2048','-nodes','-keyout',n+'.key','-out',n+'.csr','-subj','/CN='+n]);fs.writeFileSync(path.join(dir,n+'.ext'),n==='server'?'subjectAltName=IP:127.0.0.1\nextendedKeyUsage=serverAuth':'extendedKeyUsage=clientAuth');ssl(['x509','-req','-in',n+'.csr','-CA','ca.pem','-CAkey','ca.key','-CAcreateserial','-out',n+'.pem','-days','1','-extfile',n+'.ext']);}
+ const read=n=>fs.readFileSync(path.join(dir,n),'utf8'),fp=n=>new X509Certificate(read(n+'.pem')).fingerprint256;
+ const reservation=createServer();await new Promise(r=>reservation.listen(0,'127.0.0.1',r));const port=reservation.address().port;await new Promise(r=>reservation.close(r));
+ const genesisFile=path.join(joint.net.homes[0],'config/genesis.json'),genesisHash=hash(JSON.parse(fs.readFileSync(genesisFile))),key=randomBytes(32),password=randomBytes(32);
+ const inventory=path.join(dir,'inventory.sqlite'),dummy={authorize(){},plan(){},sign(){},inspect(){}};
+ new ExchangeSigningAuthority(inventory,{config:f.c,key,backend:dummy,create:true}).close();
+ const bitcoinSecrets={},publicOrders=orders.map(o=>{bitcoinSecrets[o.id]={refundKey:o.refundKey??null,refundRaw:o.refundRaw??null,cancelRaw:o.cancelRaw??null};return {id:o.id,q:o.q,plan:o.plan,outcome:o.outcome,fundingRaw:o.fundingRaw??null,cancelUnsigned:o.cancelUnsigned??null,externalPayer:o.externalPayer};});
+ const profile={config:f.c,inventory,backend:path.join(import.meta.dirname,'exchange-vault-backend.mjs'),backendConfig:{chainId:evm.chainId??31337,config:f.c,tools,orders:publicOrders,abi:abi.fragments.map(x=>x.format('full')),bitcoin:btc.connection,evmUrl:evm.urls[0],nativeUrl:'http://127.0.0.1:36001',checkpoint:joint.net.walletTrust.checkpoint,verifier:{home:path.join(dir,'verifier'),config:f.c,policy:{domain:CHECKPOINT+'/POLICY',network:f.c.chainId,genesisHash,...f.c.control.policy},genesisFile,binary:path.resolve(import.meta.dirname,'../../build/duebyte-abci'+(process.platform==='win32'?'.exe':'')),bounded:joint.net.walletTrust.bounded}},clients:[fp('client')],port};
+ const secrets={inventoryKey:key.toString('hex'),tlsKey:read('server.key'),tlsCert:read('server.pem'),tlsCA:read('ca.pem'),backendSecrets:{evmKey:evm.wallets[3].privateKey,bitcoin:bitcoinSecrets}};
+ if(coordinatorOptions){
+  const split=({key,cert,ca,continuity,...policy})=>({policy,credentials:{key,cert,ca,...(continuity?{continuity}:{})}});
+  if(coordinatorOptions.primary){
+   profile.backendConfig.coordinator={};secrets.backendSecrets.coordinator={};
+   for(const role of ['primary','witness',...(coordinatorOptions.recovery?['recovery']:[])]){
+    const c=split(coordinatorOptions[role]);profile.backendConfig.coordinator[role]=c.policy;secrets.backendSecrets.coordinator[role]=c.credentials;
+   }
+  }else{const c=split(coordinatorOptions);profile.backendConfig.coordinator=c.policy;secrets.backendSecrets.coordinator=c.credentials;}
+ }
+ const bytes=Buffer.from(JSON.stringify(sealSigningVault(secrets,profile,password))),file=path.join(dir,'keys.enc.json');fs.writeFileSync(file,bytes,{flag:'wx',mode:0o600});profile.vault={file,sha256:digest(bytes)};
+ const profileFile=path.join(dir,'profile.json');fs.writeFileSync(profileFile,JSON.stringify(profile));key.fill(0);
+ let child;const start=async()=>{child=spawn(process.execPath,[path.join(import.meta.dirname,'exchange-vault-child.mjs'),profileFile],{windowsHide:true,stdio:['ignore','pipe','pipe','pipe']});child.stdio[3].on('error',()=>{});child.stdio[3].end(password);await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>{child.kill();reject(Error('Vault signer startup timeout'));},20000);child.once('exit',()=>{clearTimeout(timeout);reject(Error('Vault signer startup refused'));});child.stdout.on('data',b=>{if(b.toString().includes('READY')){clearTimeout(timeout);resolve();}});});};
+ const stop=async()=>{if(!child||child.exitCode!==null)return;const done=new Promise(r=>child.once('exit',r));child.kill();await done;};
+ try{await start();child.stderr.on('data',b=>fs.appendFileSync(path.join(dir,'diagnostics.log'),b));}catch(e){await stop();password.fill(0);throw e;}
+ let preparations=0;const prepare=remotePreparation({url:'https://127.0.0.1:'+port+'/prepare',key:read('client.key'),cert:read('client.pem'),ca:read('ca.pem'),serverFingerprint:fp('server'),timeoutMs:30000});
+ return {prepare:async(...args)=>{const result=await prepare(...args);preparations++;return result;},get preparations(){return preparations;},restart:async()=>{await stop();await start();},close:async()=>{await stop();password.fill(0);}};
+}
