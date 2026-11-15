@@ -1,0 +1,13 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createAutoStart,startupName} from '../consumer-autostart.mjs';
+import {managedStartupArgs,parseStartup} from '../home-launch-entries.mjs';
+const old='C:\\Users\\Test User\\Old\\DueByte.exe',exe='C:\\Users\\Test User\\New\\DueByte.exe';
+function fixture({enabled=true,command='"'+old+'" --connect',isolated=false,oldVersion='0.3.39'}={}){let entry={...parseStartup(command),enabled};const writes=[],reads=[];
+ const app={getLoginItemSettings(o){reads.push(o);const matches=o.path==='"'+entry?.target+'"'&&o.args.join(' ')===entry?.args;return {openAtLogin:!!matches,launchItems:matches?[{name:startupName,scope:'user',enabled:entry.enabled}]:[]};},setLoginItemSettings(o){writes.push(o);entry=o.openAtLogin?{target:o.path,args:o.args.join(' '),enabled:o.enabled}:null;command=entry?'"'+entry.target+'" '+entry.args:'';}};
+ const readRelease=target=>({edition:'home',platform:'windows-x64',rootSha256:'trusted',version:target===exe?'0.3.71':oldVersion});
+ return {control:createAutoStart(app,{exe,platform:'win32',isolated,readCommand:()=>command,readRelease}),writes,reads};}
+test('startup waits for explicit post-health reconciliation then uses the same managed arguments for reads and writes',()=>{const f=fixture();assert.equal(f.writes.length,0);assert(f.control.get());assert(f.control.reconcile());assert.equal(f.writes[0].path,exe);assert.deepEqual(f.writes[0].args,managedStartupArgs);assert(f.control.get());f.control.set(false);assert(!f.control.get());f.control.set(true);assert(f.control.get());});
+test('Windows-disabled startup stays disabled and is never migrated implicitly',()=>{const f=fixture({enabled:false});assert.equal(f.control.reconcile(),false);assert.equal(f.writes.length,0);assert(!f.control.get());f.control.set(true);assert(f.control.get());});
+test('unrecognised startup command is not migrated',()=>{const f=fixture({command:'"'+old+'" --unexpected'});assert.equal(f.writes.length,0);assert(!f.control.get());});
+test('isolated data directory never changes real startup settings',()=>{const f=fixture({isolated:true});assert(!f.control.available);assert(!f.control.get());assert.throws(()=>f.control.set(true));assert.equal(f.writes.length,0);assert.equal(f.reads.length,0);});
+test('older program cannot take over a newer installed startup entry',()=>{const f=fixture({oldVersion:'0.3.72'});assert.equal(f.control.reconcile(),false);assert.throws(()=>f.control.set(true),/newer version/);assert.equal(f.writes.length,0);});
+test('managed argument is deliberately unrecognised by the legacy startup migrator',()=>{const f=fixture();f.control.reconcile();assert(!/^"([^"\r\n]+)"\s+--connect$/.test('"'+exe+'" '+f.writes[0].args.join(' ')));});
