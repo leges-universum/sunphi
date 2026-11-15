@@ -1,0 +1,4 @@
+UNPUBLISHED ISOLATED QUALIFICATION CANDIDATE 0.3.56
+Two-way exchange and separate test observers; qualification-only genesis gating remains.
+No production installation, selling, funding or issuance is authorized.
+No private key, password or test profile is bundled.
