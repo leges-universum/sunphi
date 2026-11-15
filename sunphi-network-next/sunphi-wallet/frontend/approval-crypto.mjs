@@ -1,0 +1,6 @@
+export function canonical(v){if(v===null||typeof v==='boolean'||typeof v==='string')return JSON.stringify(v);if(Number.isSafeInteger(v))return String(v);if(Array.isArray(v))return '['+v.map(canonical).join(',')+']';if(!v||Object.getPrototypeOf(v)!==Object.prototype)throw Error('Invalid signed object');return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}';}
+export const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
+export const bytes=s=>Uint8Array.from(atob(s.replaceAll('-','+').replaceAll('_','/')),c=>c.charCodeAt(0));
+export async function hash(v){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonical(v))))].map(x=>x.toString(16).padStart(2,'0')).join('');}
+export async function verify(body,signature,key){try{if(!/^[A-Za-z0-9_-]{43}$/.test(key)||!/^[A-Za-z0-9_-]{86}$/.test(signature))return false;const k=await crypto.subtle.importKey('raw',bytes(key),'Ed25519',false,['verify']);return await crypto.subtle.verify('Ed25519',k,bytes(signature),new TextEncoder().encode(canonical(body)));}catch{return false;}}
+export async function sign(body,key){return b64(await crypto.subtle.sign('Ed25519',key,new TextEncoder().encode(canonical(body))));}
