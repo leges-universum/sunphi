@@ -1,0 +1,37 @@
+// Exact production main/preload/UI/wallet service. Only the network-runner
+// boundary is replaced with an unsynchronised, loopback-only test process.
+import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';import {createServer} from 'node:net';
+import {hash} from '../crypto.mjs';import {prepareRewardIdentity} from '../reward-identity.mjs';
+const root=path.resolve(process.argv[2]),out=path.resolve(process.argv[3]);assert(!fs.existsSync(out));fs.mkdirSync(out,{recursive:true});
+const sub=root+'/sunphi-network-next/checkpoint-trial',profile=JSON.parse(fs.readFileSync(root+'/connection-profile.json')),userData=out+'/user-data',state=userData+'/'+profile.config.chainId,home=state+'/wallet';
+let free=false;for(let n=0;n<40&&!free;n++){profile.walletPort=20000+Math.floor(Math.random()*6000);const probe=createServer();try{await new Promise((r,j)=>{probe.once('error',j);probe.listen(profile.walletPort,'127.0.0.1',r);});await new Promise(r=>probe.close(r));free=true;}catch{}}assert(free,'No isolated test port available');
+fs.mkdirSync(home,{recursive:true});prepareRewardIdentity(state,profile.config);fs.mkdirSync(state+'/updates');fs.writeFileSync(state+'/updates/preferences.json',JSON.stringify({automatic:false}));
+for(const [name,value]of Object.entries({'app-config':profile.config,genesis:profile.genesis,'trust-policy':profile.policy,connections:{rpc:'http://127.0.0.1:1',workers:{}},checkpoint:{},'indexed-wallet':{bounded:{url:'http://127.0.0.1:1',source:{},certificate:{}}}}))fs.writeFileSync(home+'/'+name+'.json',JSON.stringify(value));
+const runner=out+'/network-fixture.mjs';
+fs.writeFileSync(runner,`import {fork} from 'node:child_process';import fs from 'node:fs';
+const port=${profile.walletPort},network=${JSON.stringify(profile.config.chainId)};
+const child=fork(${JSON.stringify(sub+'/wallet-server.mjs')},[${JSON.stringify(home)},String(port),${JSON.stringify(hash(profile.policy))}],{execPath:${JSON.stringify(root+'/runtime/node.exe')},windowsHide:true,stdio:['ignore','ignore','pipe','ipc']});child.stderr.on('data',b=>fs.appendFileSync(${JSON.stringify(out+'/wallet-diagnostic.log')},b));
+const rpc={chain:network,height:'0',time:'1970-01-01T00:00:00Z',votingPower:'0',peers:2,catchingUp:true};let stopping=false;
+child.on('message',m=>{if(m.ready===port)process.send({progress:'running',walletReady:true,walletPort:port,rpc});else if(Object.hasOwn(m,'rewards'))process.send({progress:'running',rewards:m.rewards,rewardWallets:m.rewardWallets,rpc});else process.send(m);});
+child.on('exit',code=>process.exit(stopping?0:code||1));process.on('message',m=>{if(m.command==='stop'){stopping=true;child.kill();}else child.send(m);});process.on('disconnect',()=>{stopping=true;child.kill();});`);
+const entry=out+'/launch.mjs';
+fs.writeFileSync(entry,`import {app} from 'electron';import cp from 'node:child_process';import fs from 'node:fs';import path from 'node:path';import {syncBuiltinESMExports} from 'node:module';
+app.on('browser-window-created',(_e,w)=>{w.show=()=>{};w.webContents.setBackgroundThrottling(false);});
+const read=fs.readFileSync;fs.readFileSync=function(file,...args){const p=path.resolve(String(file));if(p===path.resolve(${JSON.stringify(root+'/connection-profile.json')}))return Buffer.from(${JSON.stringify(JSON.stringify(profile))});if(p===path.resolve(${JSON.stringify(root+'/connection-pin.json')}))return Buffer.from(${JSON.stringify(JSON.stringify({sha256:hash(profile)}))});return read.call(this,file,...args);};
+const original=cp.fork;cp.fork=function(file,args,options){if(!String(file).endsWith('consumer-runner.mjs'))return original.call(this,file,args,options);const c=original.call(this,${JSON.stringify(runner)},args,{...options,execArgv:[],stdio:['ignore','ignore','pipe','ipc']});c.stderr.on('data',b=>fs.appendFileSync(${JSON.stringify(out+'/runner-diagnostic.log')},b));return c;};syncBuiltinESMExports();
+await import(${JSON.stringify(pathToFileURL(sub+'/consumer-main.mjs').href)});`);
+const {_electron}=await import(pathToFileURL('C:/Users/Leges Universum/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs'));
+const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;let app,page;const errors=[],checks=[];
+async function start(){app=await _electron.launch({executablePath:path.resolve(import.meta.dirname,'../../../sunphi-wander-lab/desktop/node_modules/electron/dist/electron.exe'),args:[entry,'--user-data-dir='+userData],env});page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));await page.locator('#connect').click();try{await page.waitForFunction(()=>!document.getElementById('wallet').disabled);}catch(e){fs.writeFileSync(out+'/failed-state.json',JSON.stringify(await page.evaluate(()=>sunphiNode.request('status')),null,2));throw e;}}
+async function rewards(label){await page.waitForFunction(()=>document.querySelector('.reward-wallet-row input')?.checked);const box=page.locator('.reward-wallet-row input');assert.equal(await box.count(),1);assert(await box.isEnabled());assert.equal(await page.locator('#history-time').innerText(),'—');const s=await page.evaluate(()=>sunphiNode.request('status'));assert.equal(s.value.rpc.height,'0');assert.equal(s.value.rewards,null);assert.equal(s.value.rewardWallets[0].name,'Restart test wallet');await page.locator('#reward-wallet-panel').screenshot({path:out+'/'+label+'.png'});checks.push(label);return s.value.rewardWallets[0];}
+try{
+ await start();assert.equal(await page.locator('.reward-wallet-row').count(),0);await page.locator('#wallet').click();await page.waitForURL('http://127.0.0.1:'+profile.walletPort+'/');
+ await page.locator('#tab-create').click();await page.locator('#wallet-name').fill('Restart test wallet');await page.locator('#password').fill('isolated-restart-test-password');await page.locator('#confirm-password').fill('isolated-restart-test-password');await page.locator('#create').click();await page.waitForFunction(()=>lastStatus?.locked===false);
+ const status=await page.evaluate(()=>api('/status'));assert.equal(status.checkedAt,null);assert.equal(status.height,null);
+ await page.locator('#duebyte-back').click();await page.waitForURL('**/consumer.html');const first=await rewards('after-create-and-exit');
+ await page.locator('#wallet').click();await page.waitForURL('http://127.0.0.1:'+profile.walletPort+'/');assert.equal((await page.evaluate(()=>api('/status'))).locked,true);await page.locator('#duebyte-back').click();await page.waitForURL('**/consumer.html');
+ await app.close();app=null;await start();const after=await rewards('after-full-application-restart');assert.deepEqual(after,first);
+ await page.locator('#wallet').click();await page.waitForURL('http://127.0.0.1:'+profile.walletPort+'/');const locked=await page.evaluate(()=>api('/status'));assert(locked.locked);assert.equal(locked.checkedAt,null);assert.equal(locked.wallets.length,1);await page.locator('#duebyte-back').click();await page.waitForURL('**/consumer.html');
+ assert.deepEqual(errors,[]);fs.writeFileSync(out+'/report.json',JSON.stringify({passed:true,at:new Date().toISOString(),version:'0.3.81',checks,productionMain:true,productionWalletService:true,networkBoundary:'synthetic unsynchronised runner, no verified history',lockedAfterRestart:true,selectionPreserved:true,errors},null,2));console.log('PASS native Home create, exit, full application restart with no verified history');
+}finally{if(app)await app.close();}
