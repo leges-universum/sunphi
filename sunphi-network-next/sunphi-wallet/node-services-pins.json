@@ -1,0 +1,52 @@
+{
+  "root": {
+    "domain": "DUEBYTE_CHECKPOINT_TRIAL_V1/POLICY",
+    "network": "duebyte-trial-fresh-20261109-v45",
+    "genesisHash": "0efcd99f18d870cb37ff53397922a81a8569870983e8fb1f7ad15bc8bd9295a2",
+    "version": 1,
+    "members": [
+      {
+        "key": "i3EhUgdLjwz0M0Jc-IAlbccCvBk31n0r4QlA9eW5hSA",
+        "group": "6b46099824fe2a0e185966b89e3872eb3c66b05ed2d1fcd85ac97a6b747639b7"
+      },
+      {
+        "key": "YZGqQJGECCs2p7CmH7SkYoLZJZJ3W-9XVVn0hLv42F8",
+        "group": "2aefa9797e3513a5f14456ac02238b2eb090cc14166820645e7f7b1817cbc149"
+      },
+      {
+        "key": "74c7zysZmRDgIhvglbx2_QjIaSTWzVxuLcWcf9dWK28",
+        "group": "7d860eceb80f19d468de471b7cf8766babcc2b07f93814f72febf45b4fb9be18"
+      },
+      {
+        "key": "eth7SmD1CHeVsxd91OEMRvP2bmSCIN5K4y6xATugRnE",
+        "group": "0b286d0907aa4c3866fb09367ec266734edc28631145b9c97869b5bd16d7fe67"
+      }
+    ],
+    "threshold": 3,
+    "maxAge": 3600,
+    "notAfter": 1796856947
+  },
+  "configHash": "5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c",
+  "indexedTransition": {
+    "domain": "DUEBYTE_INDEXED_SCHEMA_UPGRADE_V1",
+    "network": "duebyte-trial-fresh-20261109-v45",
+    "configHash": "5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c",
+    "genesisRoot": "e4dbb46ff9b540e1053c2b3fc513f17ff48137f438a8466d3e4522e473e92dcc",
+    "sourceSchema": "DUEBYTE_BOUNDED_NETWORK_V6",
+    "targetSchema": "DUEBYTE_BOUNDED_NETWORK_V15",
+    "sourceHeight": 35993,
+    "activationHeight": 35994,
+    "sourceRoot": "137101a7c117f2fcfd1ad1374e7d069ef837c01f0663517da20154059f6e7107",
+    "targetRoot": "64515229c94da26dc13c2f6a579f65c998a45ddea782af0d11561376a307c88f",
+    "sourceJournalHash": "93f096cf25bd50b588dbe183783b5700b7a6f210f46995254bdc35f3742b0c56",
+    "targetJournalHash": "b1a6c8b9ad9a265df101e74e2ae5bed6e1e2e5dc86b4090a2d4d4028df1a4471",
+    "stateHash": "c434e70e6e357d941090ed220ed0f674a1f87389575a994b9949697f405da6d8",
+    "historyDigest": "89b170bca8e029846baef9f5ca4adc6a376cfbdaf46d226f26a92856693dfee3",
+    "generation": 0,
+    "validatorSetHash": "5ae278e98fbdcb439b778baa15f07944a5fd1f98b6b4bec287412904d5da8907",
+    "issuance": false,
+    "kind": "indexed-schema-upgrade",
+    "genesisStateHash": "d6e7ebe8b1e07b561cb3f2bc9298cf664534839d0b05350b4cb72cab1b1eebbe",
+    "archive": null
+  }
+}
