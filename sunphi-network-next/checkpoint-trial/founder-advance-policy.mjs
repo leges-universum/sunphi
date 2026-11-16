@@ -1,0 +1,6 @@
+// Fixed initial conditions, denominated in integer micro-DUBYT.
+export const ISSUE_FOUNDER_ADVANCE='ISSUE_CENTURY_FOUNDER_ADVANCE_V1';
+export const FOUNDER_ADVANCE_MICRO='900000000';
+export const PERSONAL_COLLATERAL_MICRO='90000000';
+export const ONBOARDING_SUPPORT_MICRO='10000000';
+export const ZERO_STAGE_CEILING_MICRO='10000000000';

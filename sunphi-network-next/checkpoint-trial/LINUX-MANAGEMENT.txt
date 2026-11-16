@@ -1,0 +1,47 @@
+DueByte Linux node management
+
+Server: installation enables the local management service at
+http://127.0.0.1:28080/. For a remote server, forward that port with your normal
+SSH client and open the forwarded localhost address. The service is deliberately
+bound to localhost. Do not publish it through an unauthenticated reverse proxy.
+Initial management password:
+/var/lib/duebyte-server-updates/management/management-initial-password.txt
+Read it on the server with your administrator account; do not send it to support.
+The management password is separate from all wallet and node signing keys.
+
+First Server connection (0.3.72 and newer): sign in, choose Set up this node,
+review the network and confirm. The panel creates and starts the managed service;
+no separate node-initialization or service-adoption command is needed. Follow
+connection, archive preparation and synchronization in Node status. Ready means
+the local node has verified current blocks, not merely that installation started.
+If setup stops, choose Resume setup. Existing identity and verified downloaded
+archive objects are retained. After a process restart those objects are checked
+again before use. A resumed download does not receive authority from a saved
+progress counter. Superseded snapshot chunks are removed from temporary staging;
+the complete immutable history is retained.
+
+The first connection creates an ordinary full-history participant. It does not
+grant voting rights, register paid work or change the collateral/reward rules.
+Existing managed validator/server installations keep their established roles.
+
+Linux Home: start the installed Home application. It prints the local node
+management address and the path to its initial management password. The panel
+stays open while disconnected so you can reconnect, open the wallet, check the
+signed update channel and control automatic updates. Lock the wallet before
+disconnecting or installing an update. Home updates retain the existing data.
+
+Collateral: in the wallet choose My nodes, a registered server and an amount.
+Review and confirm. Open that server's management panel, verify the exact wallet
+address, node and amount, then approve the request. Keep the wallet unlocked;
+it submits and verifies confirmation automatically. Requests expire after five
+minutes. Before submission they can be cancelled in the wallet. A submitted
+transaction is retried with its saved bytes, never created again automatically.
+Server approval and pending submission are not confirmation of a deposit.
+Existing collateral and available funds remain separate in the wallet.
+
+Server updates: Check for updates -> Review update -> Confirm. The reviewed
+signed version is pinned. Services restart sequentially with quorum, node key
+and saved-history checks. A failed step stops the job and restores its prior
+service command. Completed earlier service upgrades remain recorded. The panel
+reports completion or failure; the local management-last-operation.log contains
+bounded diagnostic output. New version directories never overwrite old releases.
