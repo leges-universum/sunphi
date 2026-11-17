@@ -1,0 +1,400 @@
+{
+  "version": 1,
+  "config": {
+    "profile": "DUEBYTE_PUBLIC_CHECKPOINT_TRIAL_V1",
+    "chainId": "duebyte-trial-fresh-20261109-v45",
+    "trialOnly": true,
+    "obligationClock": "DUEBYTE_UTC_OBLIGATIONS_V1",
+    "initial": {
+      "domain": "DUEBYTE_TRANSITION_MODEL_V1",
+      "policy": "85f3ecc0a6664344c5e0c489b62c2c6720d280455eac2d8f4f37363c633a12aa",
+      "height": 0,
+      "epoch": 0,
+      "time": 1794178547,
+      "supply": "0",
+      "outputs": {},
+      "requests": {},
+      "nodes": {},
+      "fees": "0"
+    },
+    "control": {
+      "validators": [
+        {
+          "key": "tYhb0uOUfr6Wyypos1nyTFSYlEtG91WOcVBQNXTJvnI",
+          "group": "d38d4a6ce7af162725ceee90ef8bd4097e1901ec82c985241cbced35b24e874e"
+        },
+        {
+          "key": "1ekYfCsJKK8duREklg3aCKeqeyW3XbmJ6zuAbodvubc",
+          "group": "93d5d2715a72ec088ff8f6a90dfded9626770d87fb75346fef171ee89c470e3b"
+        },
+        {
+          "key": "j9j9ipmFd95zpngU-jIdbIRXsKxXvEIpjQrYaJD3puU",
+          "group": "54f09e73336b6ae3043793294dd8b04b47d1fee3a9d909ef0eebda023ea78952"
+        },
+        {
+          "key": "MaWMtss7fHya0HIAYZRsvSqns-vGWxA8-4HDix7Q-yk",
+          "group": "7291924b4b3a241056095d3e3ce398c0bf79fdb046c969618a8e3b1fd65b70bc"
+        },
+        {
+          "key": "jWfWMiusAWwn8U_YtTtUnivDRu0D07SjWbfw8SFRi8M",
+          "group": "b4b4613d387160caaf8e87c1c2569c6637822ce3c5c37adfe7127566375bb08f"
+        },
+        {
+          "key": "6bl4xcavFSpR573Sb-_Nr0cHYuPVRN5xjVRjSV2sLac",
+          "group": "cb6c93f83b2b3e97cd17cb5252ea8b69c4c8641994ba582e13d2e7c09ff5abed"
+        },
+        {
+          "key": "43h3d0l1Rl-8n6SujAoVuBN-iRcUdkq7rvJjrOGVqOc",
+          "group": "cbf843acd8570152adde8ae23b1aba7b4175dd0f4664c588812e571ef27ca412"
+        },
+        {
+          "key": "LJCcLQfOw0WOy4AkEh9n3ZNqyDO8H7e9UMp8VsFHLpA",
+          "group": "50e0b05811c5b982e18e27b9a764db338b15a1d5d49d6ad7819060956602a553"
+        },
+        {
+          "key": "hvecXXr8gDkRdRhUcbMif4zeUxOnBDzWpWXKcv91VoQ",
+          "group": "c58c03b55bd759cf0231f756889e656b05d0aa0c06da7cd7846d84aa1736671f"
+        },
+        {
+          "key": "una-2wdKKVd9e1phFfzqv3inG0ZnLvXNmIVGkS9uF8U",
+          "group": "f2c7b8fb6197d2f1a735c6e3a3d13fe300aee76da796a11a8cfdd4df0511b2d1"
+        }
+      ],
+      "policy": {
+        "version": 1,
+        "members": [
+          {
+            "key": "i3EhUgdLjwz0M0Jc-IAlbccCvBk31n0r4QlA9eW5hSA",
+            "group": "6b46099824fe2a0e185966b89e3872eb3c66b05ed2d1fcd85ac97a6b747639b7"
+          },
+          {
+            "key": "YZGqQJGECCs2p7CmH7SkYoLZJZJ3W-9XVVn0hLv42F8",
+            "group": "2aefa9797e3513a5f14456ac02238b2eb090cc14166820645e7f7b1817cbc149"
+          },
+          {
+            "key": "74c7zysZmRDgIhvglbx2_QjIaSTWzVxuLcWcf9dWK28",
+            "group": "7d860eceb80f19d468de471b7cf8766babcc2b07f93814f72febf45b4fb9be18"
+          },
+          {
+            "key": "eth7SmD1CHeVsxd91OEMRvP2bmSCIN5K4y6xATugRnE",
+            "group": "0b286d0907aa4c3866fb09367ec266734edc28631145b9c97869b5bd16d7fe67"
+          }
+        ],
+        "threshold": 3,
+        "maxAge": 3600,
+        "notAfter": 1796856947
+      }
+    }
+  },
+  "genesis": {
+    "genesis_time": "2026-11-08T22:55:47.000Z",
+    "chain_id": "duebyte-trial-fresh-20261109-v45",
+    "initial_height": "1",
+    "consensus_params": {
+      "block": {
+        "max_bytes": "1048576",
+        "max_gas": "-1"
+      },
+      "evidence": {
+        "max_age_num_blocks": "100000",
+        "max_age_duration": "172800000000000",
+        "max_bytes": "1048576"
+      },
+      "validator": {
+        "pub_key_types": [
+          "ed25519"
+        ]
+      },
+      "version": {
+        "app": "0"
+      },
+      "abci": {
+        "vote_extensions_enable_height": "0"
+      }
+    },
+    "validators": [
+      {
+        "address": "3679520361578CFB1A1BBB60C6B9B5FE6F840E65",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "tYhb0uOUfr6Wyypos1nyTFSYlEtG91WOcVBQNXTJvnI="
+        },
+        "power": "10",
+        "name": "founder-validator-0"
+      },
+      {
+        "address": "4B89B597A3EFC3599817CB48293CCF84EFCBB299",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "1ekYfCsJKK8duREklg3aCKeqeyW3XbmJ6zuAbodvubc="
+        },
+        "power": "10",
+        "name": "founder-validator-1"
+      },
+      {
+        "address": "862839CDF6B97F5A02BA07A3BBEF95387F934F77",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "j9j9ipmFd95zpngU+jIdbIRXsKxXvEIpjQrYaJD3puU="
+        },
+        "power": "10",
+        "name": "founder-validator-2"
+      },
+      {
+        "address": "516AFACFB0A61BD56E572D9941FC233161F9450A",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "MaWMtss7fHya0HIAYZRsvSqns+vGWxA8+4HDix7Q+yk="
+        },
+        "power": "10",
+        "name": "founder-validator-3"
+      },
+      {
+        "address": "81DE10974BE9C45BA662EDCA0A14B7841F9625B0",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "jWfWMiusAWwn8U/YtTtUnivDRu0D07SjWbfw8SFRi8M="
+        },
+        "power": "10",
+        "name": "founder-validator-4"
+      },
+      {
+        "address": "0C4C7E7A92397FF6E3A331FFFA66301ECDD5AB31",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "6bl4xcavFSpR573Sb+/Nr0cHYuPVRN5xjVRjSV2sLac="
+        },
+        "power": "10",
+        "name": "founder-validator-5"
+      },
+      {
+        "address": "15433255151FEB2D39B2484E7427BDCB091A3EAC",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "43h3d0l1Rl+8n6SujAoVuBN+iRcUdkq7rvJjrOGVqOc="
+        },
+        "power": "10",
+        "name": "founder-validator-6"
+      },
+      {
+        "address": "DF82014C219E92204198322F6DE2A43834669497",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "LJCcLQfOw0WOy4AkEh9n3ZNqyDO8H7e9UMp8VsFHLpA="
+        },
+        "power": "10",
+        "name": "founder-validator-7"
+      },
+      {
+        "address": "29DC3CEFBD30550892F298A5C316BDA28124A004",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "hvecXXr8gDkRdRhUcbMif4zeUxOnBDzWpWXKcv91VoQ="
+        },
+        "power": "10",
+        "name": "founder-validator-8"
+      },
+      {
+        "address": "8E7C46C10894CB11C7A25D0C88A1C9874999D4CE",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "una+2wdKKVd9e1phFfzqv3inG0ZnLvXNmIVGkS9uF8U="
+        },
+        "power": "10",
+        "name": "founder-validator-9"
+      }
+    ],
+    "app_hash": "",
+    "app_state": {
+      "profile": "DUEBYTE_PUBLIC_CHECKPOINT_TRIAL_V1",
+      "chainId": "duebyte-trial-fresh-20261109-v45",
+      "trialOnly": true,
+      "obligationClock": "DUEBYTE_UTC_OBLIGATIONS_V1",
+      "initial": {
+        "domain": "DUEBYTE_TRANSITION_MODEL_V1",
+        "policy": "85f3ecc0a6664344c5e0c489b62c2c6720d280455eac2d8f4f37363c633a12aa",
+        "height": 0,
+        "epoch": 0,
+        "time": 1794178547,
+        "supply": "0",
+        "outputs": {},
+        "requests": {},
+        "nodes": {},
+        "fees": "0"
+      },
+      "control": {
+        "validators": [
+          {
+            "key": "tYhb0uOUfr6Wyypos1nyTFSYlEtG91WOcVBQNXTJvnI",
+            "group": "d38d4a6ce7af162725ceee90ef8bd4097e1901ec82c985241cbced35b24e874e"
+          },
+          {
+            "key": "1ekYfCsJKK8duREklg3aCKeqeyW3XbmJ6zuAbodvubc",
+            "group": "93d5d2715a72ec088ff8f6a90dfded9626770d87fb75346fef171ee89c470e3b"
+          },
+          {
+            "key": "j9j9ipmFd95zpngU-jIdbIRXsKxXvEIpjQrYaJD3puU",
+            "group": "54f09e73336b6ae3043793294dd8b04b47d1fee3a9d909ef0eebda023ea78952"
+          },
+          {
+            "key": "MaWMtss7fHya0HIAYZRsvSqns-vGWxA8-4HDix7Q-yk",
+            "group": "7291924b4b3a241056095d3e3ce398c0bf79fdb046c969618a8e3b1fd65b70bc"
+          },
+          {
+            "key": "jWfWMiusAWwn8U_YtTtUnivDRu0D07SjWbfw8SFRi8M",
+            "group": "b4b4613d387160caaf8e87c1c2569c6637822ce3c5c37adfe7127566375bb08f"
+          },
+          {
+            "key": "6bl4xcavFSpR573Sb-_Nr0cHYuPVRN5xjVRjSV2sLac",
+            "group": "cb6c93f83b2b3e97cd17cb5252ea8b69c4c8641994ba582e13d2e7c09ff5abed"
+          },
+          {
+            "key": "43h3d0l1Rl-8n6SujAoVuBN-iRcUdkq7rvJjrOGVqOc",
+            "group": "cbf843acd8570152adde8ae23b1aba7b4175dd0f4664c588812e571ef27ca412"
+          },
+          {
+            "key": "LJCcLQfOw0WOy4AkEh9n3ZNqyDO8H7e9UMp8VsFHLpA",
+            "group": "50e0b05811c5b982e18e27b9a764db338b15a1d5d49d6ad7819060956602a553"
+          },
+          {
+            "key": "hvecXXr8gDkRdRhUcbMif4zeUxOnBDzWpWXKcv91VoQ",
+            "group": "c58c03b55bd759cf0231f756889e656b05d0aa0c06da7cd7846d84aa1736671f"
+          },
+          {
+            "key": "una-2wdKKVd9e1phFfzqv3inG0ZnLvXNmIVGkS9uF8U",
+            "group": "f2c7b8fb6197d2f1a735c6e3a3d13fe300aee76da796a11a8cfdd4df0511b2d1"
+          }
+        ],
+        "policy": {
+          "version": 1,
+          "members": [
+            {
+              "key": "i3EhUgdLjwz0M0Jc-IAlbccCvBk31n0r4QlA9eW5hSA",
+              "group": "6b46099824fe2a0e185966b89e3872eb3c66b05ed2d1fcd85ac97a6b747639b7"
+            },
+            {
+              "key": "YZGqQJGECCs2p7CmH7SkYoLZJZJ3W-9XVVn0hLv42F8",
+              "group": "2aefa9797e3513a5f14456ac02238b2eb090cc14166820645e7f7b1817cbc149"
+            },
+            {
+              "key": "74c7zysZmRDgIhvglbx2_QjIaSTWzVxuLcWcf9dWK28",
+              "group": "7d860eceb80f19d468de471b7cf8766babcc2b07f93814f72febf45b4fb9be18"
+            },
+            {
+              "key": "eth7SmD1CHeVsxd91OEMRvP2bmSCIN5K4y6xATugRnE",
+              "group": "0b286d0907aa4c3866fb09367ec266734edc28631145b9c97869b5bd16d7fe67"
+            }
+          ],
+          "threshold": 3,
+          "maxAge": 3600,
+          "notAfter": 1796856947
+        }
+      }
+    }
+  },
+  "policy": {
+    "domain": "DUEBYTE_CHECKPOINT_TRIAL_V1/POLICY",
+    "network": "duebyte-trial-fresh-20261109-v45",
+    "genesisHash": "0efcd99f18d870cb37ff53397922a81a8569870983e8fb1f7ad15bc8bd9295a2",
+    "version": 1,
+    "members": [
+      {
+        "key": "i3EhUgdLjwz0M0Jc-IAlbccCvBk31n0r4QlA9eW5hSA",
+        "group": "6b46099824fe2a0e185966b89e3872eb3c66b05ed2d1fcd85ac97a6b747639b7"
+      },
+      {
+        "key": "YZGqQJGECCs2p7CmH7SkYoLZJZJ3W-9XVVn0hLv42F8",
+        "group": "2aefa9797e3513a5f14456ac02238b2eb090cc14166820645e7f7b1817cbc149"
+      },
+      {
+        "key": "74c7zysZmRDgIhvglbx2_QjIaSTWzVxuLcWcf9dWK28",
+        "group": "7d860eceb80f19d468de471b7cf8766babcc2b07f93814f72febf45b4fb9be18"
+      },
+      {
+        "key": "eth7SmD1CHeVsxd91OEMRvP2bmSCIN5K4y6xATugRnE",
+        "group": "0b286d0907aa4c3866fb09367ec266734edc28631145b9c97869b5bd16d7fe67"
+      }
+    ],
+    "threshold": 3,
+    "maxAge": 3600,
+    "notAfter": 1796856947
+  },
+  "basePort": 28000,
+  "walletPort": 28800,
+  "hosts": [
+    {
+      "ip": "2.29.99.36",
+      "port": 2255,
+      "user": "duebytefollower",
+      "pin": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGTcsrGeJV/vq390qu7L6EfLRt/fSlkFxkzJUvd67P5",
+      "forwards": [
+        [
+          28100,
+          22000
+        ],
+        [
+          28101,
+          23001
+        ],
+        [
+          28105,
+          22005
+        ]
+      ]
+    },
+    {
+      "ip": "54.39.231.189",
+      "port": 2255,
+      "user": "duebytefollower",
+      "pin": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE7+ASGNPDIIFrFjZVew1ztZMTsQlxRpX1y6jcW+DJ0g",
+      "forwards": [
+        [
+          28110,
+          22010
+        ],
+        [
+          28111,
+          23011
+        ]
+      ]
+    }
+  ],
+  "peers": [
+    {
+      "id": "03d4f25259898b53924b3cb882119a273db38d7f",
+      "port": 28100
+    },
+    {
+      "id": "4ce93ea249516a810cf6480e5de48c43b8bede98",
+      "port": 28110
+    }
+  ],
+  "rpcServers": [
+    "http://127.0.0.1:28101",
+    "http://127.0.0.1:28111"
+  ],
+  "workers": {},
+  "fresh": {
+    "manifest": {
+      "domain": "DUEBYTE_FRESH_GENESIS_V2",
+      "network": "duebyte-trial-fresh-20261109-v45",
+      "configHash": "5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c",
+      "stateHash": "d6e7ebe8b1e07b561cb3f2bc9298cf664534839d0b05350b4cb72cab1b1eebbe",
+      "root": "e4dbb46ff9b540e1053c2b3fc513f17ff48137f438a8466d3e4522e473e92dcc",
+      "height": 0,
+      "issuance": false,
+      "imports": false,
+      "timing": {
+        "mode": "fixed",
+        "targetSeconds": 10,
+        "timeoutCommit": "10s",
+        "skipTimeoutCommit": false,
+        "createEmptyBlocks": true,
+        "createEmptyBlocksInterval": "0s"
+      }
+    },
+    "manifestHash": "2fcd8a15fa7e0b2b9b5ed3e0a04efa9919160f719b4f43ddcd15ab7391e3d268",
+    "readPort": 28005,
+    "url": "http://127.0.0.1:28105"
+  }
+}
