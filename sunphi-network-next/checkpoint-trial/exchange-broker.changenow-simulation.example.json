@@ -1,0 +1,20 @@
+{
+  "environment": "simulation",
+  "scope": "duebyte-changenow-simulation-v1",
+  "port": 9482,
+  "publicUrl": "https://YOUR-ISOLATED-TEST-HOST/exchange/v1",
+  "apiDatabase": "broker-simulation-requests.sqlite",
+  "providers": [
+    {
+      "id": "changenow-simulation",
+      "label": "ChangeNOW",
+      "adapter": "changenow-v2",
+      "environment": "simulation",
+      "simulationUrl": "http://127.0.0.1:9483/",
+      "scope": "duebyte-changenow-simulation-v1",
+      "database": "changenow-simulation-commands.sqlite",
+      "credentialFileEnv": "CHANGENOW_SIMULATION_CREDENTIAL_FILE",
+      "bindings": []
+    }
+  ]
+}
