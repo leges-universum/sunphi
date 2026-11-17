@@ -1,0 +1,19 @@
+{
+  "environment": "sandbox",
+  "scope": "duebyte-exchange-sandbox-v1",
+  "port": 9482,
+  "publicUrl": "https://YOUR-EXCHANGE-HOST/exchange/v1",
+  "apiDatabase": "broker-requests.sqlite",
+  "providers": [
+    {
+      "id": "payward-sandbox",
+      "label": "Kraken / Payward",
+      "adapter": "payward-v2",
+      "environment": "sandbox",
+      "scope": "duebyte-payward-sandbox-v1",
+      "database": "payward-commands.sqlite",
+      "credentialFileEnv": "PAYWARD_SANDBOX_CREDENTIAL_FILE",
+      "bindings": []
+    }
+  ]
+}

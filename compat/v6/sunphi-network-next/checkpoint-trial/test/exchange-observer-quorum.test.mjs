@@ -1,0 +1,24 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {hash,sign} from '../crypto.mjs';
+import {resolutionFixture} from './helpers/exchange-resolution-fixture.mjs';
+import {collectExchangeObservations,verifyObservationFinality} from '../research/exchange-observer-quorum.mjs';
+import {BASE_USDC,BTC_GENESIS} from '../research/exchange-finality.mjs';
+function fixture(){const f=resolutionFixture(),o=f.order(),body=o.resolve().receipt.body,request={kind:'PAYOUT',quote:o.q,arm:o.arm,transaction:body.transaction};
+ const clients=f.observers.map(k=>({observer:k.publicKey,read:async()=>({body,signature:{observer:k.publicKey,signature:sign(body,k.privateKey)}})}));
+ return {f,o,body,request,clients,run:()=>collectExchangeObservations({policy:f.p,request,clients,now:2000,timeoutMs:100})};}
+test('two valid observations complete while a third hangs and receives abort',async()=>{const x=fixture();let aborted=false;x.clients[2].read=async(r,{signal})=>new Promise(()=>signal.addEventListener('abort',()=>aborted=true));assert.equal((await x.run()).signatures.length,2);assert(aborted);});
+test('one offline observer does not block a valid pair',async()=>{const x=fixture();x.clients[0].read=async()=>{throw Error('offline');};assert.equal((await x.run()).signatures.length,2);});
+test('two unavailable observers cannot form a quorum',async()=>{const x=fixture();for(const c of x.clients.slice(0,2))c.read=async()=>{throw Error('offline');};await assert.rejects(x.run);});
+test('duplicate configured identities are rejected before requests',()=>{const x=fixture();x.clients[1].observer=x.clients[0].observer;assert.throws(x.run);});
+test('one key cannot impersonate two configured observers',async()=>{const x=fixture();x.clients[1].read=x.clients[0].read;x.clients[2].read=async()=>{throw Error('offline');};await assert.rejects(x.run);});
+test('conflicting signed block cannot poison an agreeing pair',async()=>{const x=fixture(),b={...x.body,block:hash('fork')},k=x.f.observers[0];x.clients[0].read=async()=>({body:b,signature:{observer:k.publicKey,signature:sign(b,k.privateKey)}});assert.equal((await x.run()).body.block,x.body.block);});
+test('three different blocks cannot form a quorum',async()=>{const x=fixture();x.clients.forEach((c,i)=>{const b={...x.body,block:hash(['fork',i])};c.read=async()=>({body:b,signature:{observer:c.observer,signature:sign(b,x.f.observers[i].privateKey)}});});await assert.rejects(x.run);});
+test('signed wrong amount, stale result and wrong request outcome are rejected',async()=>{for(const edit of [b=>b.amountAtomic='2',b=>b.expiresAt=1999,b=>b.status='REFUND',b=>b.transaction=hash('different')]){const x=fixture();edit(x.body);await assert.rejects(x.run);}});
+test('all hanging readers expire at a bounded deadline',async()=>{const x=fixture();for(const c of x.clients)c.read=async()=>new Promise(()=>{});await assert.rejects(x.run);});
+test('a forged signature is not counted',async()=>{const x=fixture();x.clients[0].read=async()=>({body:x.body,signature:{observer:x.clients[0].observer,signature:'invalid'}});x.clients[1].read=async()=>{throw Error('offline');};await assert.rejects(x.run);});
+
+function base(){const tx=hash('tx'),block=hash('block'),genesis=hash('genesis'),body={asset:'USDC',network:'base-mainnet',contract:BASE_USDC,genesis,transaction:tx,block},d={status:'0x1',finalized:true};
+ const rpc=async(m,a)=>{if(m==='eth_chainId')return '0x2105';if(m==='eth_getTransactionReceipt')return {status:d.status,transactionHash:'0x'+tx,blockHash:'0x'+block,blockNumber:'0x10'};if(a[0]==='0x0')return {hash:'0x'+genesis};if(a[0]==='finalized')return d.finalized?{hash:'0x'+block,number:'0x10',timestamp:'0x7c0'}:null;return {hash:'0x'+block};};
+ return {body,d,run:()=>verifyObservationFinality({body,rpc,now:2000,genesis})};}
+test('Base finality must refer to the exact inspected transaction block and native USDC',async()=>{await base().run();for(const edit of [x=>x.body.block=hash('other'),x=>x.body.contract='0x'+'1'.repeat(40),x=>x.body.network='ethereum-mainnet',x=>x.d.status='0x0',x=>x.d.finalized=false]){const x=base();edit(x);await assert.rejects(x.run);}});
+test('Bitcoin finality binds the inspected block and cannot downgrade to regtest',async()=>{const tx=hash('tx'),block=hash('block'),tip=hash('tip'),body={asset:'BTC',network:'bitcoin-mainnet',genesis:BTC_GENESIS,transaction:tx,block};const rpc=async(m,a)=>{if(m==='getblockchaininfo')return {chain:'main',blocks:20,headers:20,initialblockdownload:false,bestblockhash:tip};if(m==='getblockhash')return a[0]===0?BTC_GENESIS:block;if(m==='getrawtransaction')return {txid:tx,blockhash:block};return a[0]===tip?{time:1990}:{hash:block,height:15,confirmations:6};};const run=()=>verifyObservationFinality({body,rpc,now:2000,genesis:BTC_GENESIS});await run();body.block=hash('fork');await assert.rejects(run);body.block=block;body.network='bitcoin-regtest';await assert.rejects(run);});
