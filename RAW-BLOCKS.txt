@@ -1,0 +1,36 @@
+Full CometBFT block archive | DueByte Server 0.3.107 on Linux x86_64
+
+The node automatically verifies the complete application journal during
+initial synchronization. This optional tool also keeps the original CometBFT
+blocks locally, including blocks preceding the local state-sync boundary.
+
+Download duebyte-raw-history-linux-x64.gz, RAW-BLOCKS.txt and
+full-history-targets.json from the official Server release. Authenticate
+the supplemental files using the verification command in VALIDATOR-SETUP.txt.
+Use full-history-targets.json for the targets file and the two filenames
+above for the list of files. Then, from that download directory:
+
+  gzip -dc duebyte-raw-history-linux-x64.gz > duebyte-raw-history
+  chmod 0755 duebyte-raw-history
+
+Run the candidate status command in VALIDATOR-SETUP.txt. Take height and
+blockHash from the same result. With your synchronized node running, use
+the following command, substituting those two values. The output directory
+must be writable by your own account.
+
+  ./duebyte-raw-history -rpc http://127.0.0.1:28111 -height HEIGHT -hash BLOCK_HASH -out ./duebyte-blocks
+
+The tool reads one block at a time using the node's authenticated peer
+connection. The second peer in this profile is available on port 28101.
+Each gzip file stores up to 128 complete block responses (one result JSON
+per line). It checks chain ID, consecutive heights, previous block and
+commit references, transaction data, evidence, commit hash, block hash
+and part-set hash using the CometBFT version shipped with the network.
+It compares the terminal hash with the one you obtained from the node.
+Look for passed=true in the final JSON output.
+
+Repeat the command with the same output directory to resume. Completed
+files are read and verified again; partial downloads are never accepted
+as completed segments. To extend the archive, use a later height and its
+blockHash. You may stop the command at any time. This tool does not sign
+blocks or change the node's application database.
