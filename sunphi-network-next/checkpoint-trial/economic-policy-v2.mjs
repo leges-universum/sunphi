@@ -71,6 +71,12 @@ export function datedAllowance({ start, from, to, existingSupplyMicro, kind }) {
   return String(BigInt(datedCumulative({ start, at: to, existingSupplyMicro, kind })) -
     BigInt(datedCumulative({ start, at: from, existingSupplyMicro, kind })));
 }
+// Opt-in schedule for the ten automatic development credits. Historical plans
+// continue to use datedCumulative's first-anniversary rule.
+export function launchDevelopmentCumulative(start,at){
+  const old=BigInt(datedCumulative({start,at,kind:'development'}));
+  return at<start?0n:min(DEVELOPMENT,old+DEVELOPMENT/10n);
+}
 // Already-paid fees reduce the subsidy gap. Renewal and ordinary work are disjoint
 // accounting categories; callers must supply independently accepted service claims.
 export function emissionBudget({ calendar, supplyMicro, futureFixedReservedMicro,

@@ -9,7 +9,7 @@ import {exact,hash,hex,integer,publicKey,verify} from './crypto.mjs';
 import {validatorQuorum} from './authority.mjs';
 import {validateRecovery,developmentManager} from './reserve-recovery.mjs';
 import {memorialAware,centuryWarmupAccounts} from './economic-policy-v3.mjs';
-import {datedCumulative} from './economic-policy-v2.mjs';
+import {datedCumulative,launchDevelopmentCumulative} from './economic-policy-v2.mjs';
 import {auditCenturyIssuance} from './century-issuance.mjs';
 export const CENTURY_FUNDS_ACTION='PREPARE_CENTURY_FUNDS_V1';
 const address=(configHash,role)=>Buffer.from(hash({domain:CENTURY_FUNDS_ACTION,configHash,role}),'hex').toString('base64url');
@@ -51,7 +51,9 @@ export function centuryFundsReadiness(s){
 export function centuryFundAllowance(s,kind,{start,at}){
  auditCenturyFunds(s);assert(s.centuryFunds);assert(['warmup','development','founder'].includes(kind));
  // A preview requires an explicit hypothetical start. It never starts a clock.
- integer(start,1);integer(at);return datedCumulative({start,at,kind});
+ integer(start,1);integer(at);
+ if(kind==='development' && s.centuryFunds.mainProgramme?.developmentPayout)return String(launchDevelopmentCumulative(start,at));
+ return datedCumulative({start,at,kind});
 }
 export function checkCenturyFundsPayment(s,intent){
  guardSupportPayment(s,intent);

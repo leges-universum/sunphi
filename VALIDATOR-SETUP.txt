@@ -1,0 +1,115 @@
+DueByte Server 0.3.107 | Linux x64 validator candidate
+
+1. Download and verify the kit
+
+Use a separate Linux x86_64 machine with glibc, systemd, OpenSSH client,
+an accurate UTC clock and persistent SSD storage. Start with a clean data
+directory. The installation page links the current storage recommendations.
+Download these four files from the same official release into one directory:
+DueByte-Server-0.3.107-Linux-x64.tar.gz, validator-candidate.mjs,
+VALIDATOR-SETUP.txt and SHA256SUMS.txt. Run:
+
+  sha256sum -c SHA256SUMS.txt
+
+All three entries must show OK. The release also provides targets.json with
+two signatures under the DueByte release root. Operators with a previously
+trusted Server installation can authenticate the files before installation.
+Download targets.json to the same directory, then run:
+
+  TRUSTED=/opt/duebyte-server/current
+  "$TRUSTED/runtime/node" - "$TRUSTED" <<'VERIFY'
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { Metadata } = require(path.join(process.argv[2], 'node_modules/@tufjs/models'));
+  const read = f => JSON.parse(fs.readFileSync(f));
+  (async () => {
+    const root = Metadata.fromJSON('root', read(path.join(process.argv[2], 'update-root.json')));
+    const targets = Metadata.fromJSON('targets', read('targets.json'));
+    if (root.signed.isExpired() || targets.signed.isExpired()) throw Error('Expired metadata');
+    root.verifyDelegate('root', root);
+    root.verifyDelegate('targets', targets);
+    for (const name of ['DueByte-Server-0.3.107-Linux-x64.tar.gz','validator-candidate.mjs','VALIDATOR-SETUP.txt']) {
+      await targets.signed.targets[name].verify(fs.createReadStream(name));
+      console.log('Verified', name);
+    }
+  })().catch(e => { console.error(e.message); process.exitCode = 1; });
+VERIFY
+
+2. Install and synchronize
+
+  tar -xzf DueByte-Server-0.3.107-Linux-x64.tar.gz
+  (cd DueByte-Server-0.3.107-Linux-x64 && sudo sh install.sh)
+  sudo install -D -m 0644 validator-candidate.mjs /usr/local/lib/duebyte-107/validator-candidate.mjs
+
+Forward the management panel over SSH from your own computer:
+
+  ssh -L 28080:127.0.0.1:28080 operator@YOUR_SERVER
+
+Open http://127.0.0.1:28080/ locally. Read the initial password on your
+server using sudo cat /var/lib/duebyte-server-updates/management/management-initial-password.txt.
+Choose Set up this node, verify the network and confirm. Wait for Ready.
+Use Resume setup after an interruption. The node verifies the application
+journal from its first record and then follows new blocks. Comet state sync
+retains recent consensus blocks locally. For older raw consensus blocks use
+the authenticated peer RPCs in the active signed profile.
+
+3. Verify identity and request admission
+
+  NODE=/opt/duebyte-server/releases/0.3.107/runtime/node
+  TOOL=/usr/local/lib/duebyte-107/validator-candidate.mjs
+  STATE=/var/lib/duebyte-server-updates/archive-node
+  sudo "$NODE" "$TOOL" status "$STATE"
+
+The command compares the local block hash and application hash with the
+configured peer endpoints at a common height. Save the public JSON. Submit
+it to the DueByte network operator with your operator name and contact.
+It contains the peer ID, consensus public key, address and voting power.
+Initial votingPower is zero. Keep the validator private key and last-sign
+state on this machine. A running duplicate signer can double-sign.
+
+4. Prepare the candidate service before the membership vote
+
+This step is for an operator arranging admission with the network. Use the
+same synchronized state directory and the validatorKey from step 3. On a
+fresh machine installed as above, create /etc/systemd/system/duebyte-candidate.service:
+
+[Unit]
+Description=DueByte validator candidate
+After=network-online.target
+Wants=network-online.target
+Conflicts=duebyte-archive.service
+[Service]
+Type=simple
+ExecStart=/opt/duebyte-server/releases/0.3.107/runtime/node /usr/local/lib/duebyte-107/validator-candidate.mjs run /var/lib/duebyte-server-updates/archive-node REPLACE_WITH_PUBLIC_VALIDATOR_KEY
+Restart=on-failure
+RestartSec=10
+KillMode=control-group
+TimeoutStopSec=45
+UMask=0077
+NoNewPrivileges=yes
+[Install]
+WantedBy=multi-user.target
+
+Replace REPLACE_WITH_PUBLIC_VALIDATOR_KEY with the exact validatorKey, then:
+
+  sudo systemctl daemon-reload
+  sudo systemctl disable --now duebyte-archive.service
+  sudo systemctl enable --now duebyte-candidate.service
+  sudo journalctl -u duebyte-candidate.service -n 20
+  sudo "$NODE" "$TOOL" status "$STATE"
+
+Wait for a fresh common block and compare the public identity with step 3.
+If handover fails before admission, stop and disable the candidate service
+and enable and start duebyte-archive.service to resume with the same data.
+
+5. Confirm voting status
+
+Admission requires an on-chain membership decision under Authority V2. It
+requires approval from the current set, readiness from the new set and proof
+of possession of each new key. Agree the proposed public key, group and
+weight with the network operator before signing the specific proposal.
+If the decision is included at height H, the new set takes effect at H+2.
+Run the status command again and check votingPower. For evidence of an actual
+vote, request /commit?height=HEIGHT on http://127.0.0.1:28001 and check for
+your validatorAddress with block_id_flag 2 in signed_header.commit.signatures.
+A validator can miss a block. Check subsequent commits if needed.

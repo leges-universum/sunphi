@@ -1,18 +1,50 @@
 // One prospective authorization, one atomic UTC transition. Historical pilot
 // certificates, payments and support grants remain part of the same ledger.
 import assert from 'node:assert/strict';
-import {exact,hash,hex,integer,verify} from '../crypto.mjs';
+import {exact,hash,hex,integer,publicKey,verify} from '../crypto.mjs';
 import {amount} from '../payment-model.mjs';
 import {validatorQuorum} from '../authority.mjs';
 import {developmentManager} from '../reserve-recovery.mjs';
 import {supportIssued} from '../support-accounting.mjs';
-import {centuryFundOutputId} from '../century-issuance.mjs';
+import {centuryFundOutputId,creditDevelopmentTranche} from '../century-issuance.mjs';
+import {reserveAddresses} from '../network-reserves.mjs';
 import {closeUnusedCenturyInterval} from '../century-warmup.mjs';
 import {START,inspectAnnualPlan} from './calendar-node-emission-policy.mjs';
 import {prepareCalendarSource,calendarSource} from './calendar-service-custody.mjs';
 import {SERVICE_HEAD,serviceProfile} from './bounded-service-rewards.mjs';
 
 export const PREPARE_MAIN_PROGRAMME='PREPARE_MAIN_PROGRAMME_V1';
+export const SCHEDULE_DEVELOPMENT_PAYOUT='SCHEDULE_ANNUAL_DEVELOPMENT_PAYOUT_V1';
+function validatePayoutBody(s,b){
+ const f=s.centuryFunds;
+ exact(b,['domain','network','configHash','programmeHash','generation','managementEpoch','notBefore','expires','recipient']);
+ assert.equal(b.domain,SCHEDULE_DEVELOPMENT_PAYOUT);
+ assert.equal(b.network,f.mainProgramme.body.network);assert.equal(b.configHash,s.configHash);
+ assert.equal(b.programmeHash,f.mainProgramme.certificateHash);
+ integer(b.generation);integer(b.managementEpoch);integer(b.notBefore,1);integer(b.expires,b.notBefore+1);
+ assert(b.expires-b.notBefore<=600 && b.expires<=START);
+ publicKey(b.recipient);
+ const m=f.manifest;
+ assert(![m.development.account,m.founder.account,m.memorial.account,...m.warmup.accounts,...reserveAddresses(s.configHash)].includes(b.recipient),'ordinary receiving wallet required');
+}
+export function scheduleDevelopmentPayout(s,a){
+ exact(a,['type','certificate','founderConsent']);assert.equal(a.type,SCHEDULE_DEVELOPMENT_PAYOUT);
+ exact(a.certificate,['body','approvals']);
+ const f=s.centuryFunds,p=f?.mainProgramme,b=a.certificate.body;
+ assert(p && !p.activation && s.money.time<START,'requires the prepared programme before launch');
+ validatePayoutBody(s,b);
+ const access=s.networkReserves.development.access;
+ assert(!access.pending && !s.authority.pending);
+ assert.equal(b.generation,s.authority.generation);assert.equal(b.managementEpoch,access.epoch);
+ assert(![access.manager,...access.recovery.keys,s.economicPreparation.memorial.manager].includes(b.recipient),'separate receiving wallet required');
+ assert(s.money.time>=b.notBefore && s.money.time<b.expires,'payout authorization window');
+ validatorQuorum(b,a.certificate.approvals,s.authority.validators);
+ assert(verify(b,a.founderConsent,developmentManager(s.networkReserves)),'development payout consent');
+ const certificateHash=hash(b);
+ if(p.developmentPayout){assert.equal(p.developmentPayout.certificateHash,certificateHash,'payout already registered');return s;}
+ assert(f.execution.partialWarmupMicro && !f.execution.pending && f.execution.developmentSpentMicro==='0');
+ p.developmentPayout={body:structuredClone(b),certificateHash};return s;
+}
 export const mainProgrammeActive=s=>Boolean(s.centuryFunds?.mainProgramme?.activation);
 export const activeZeroStage=s=>mainProgrammeActive(s)?null:s.centuryFunds?.zeroStage;
 export const fixedFundTotal=s=>['warmup','development','founder','memorial'].reduce((n,k)=>n+amount(s.centuryFunds.manifest[k].totalMicro),0n);
@@ -54,7 +86,11 @@ export function auditMainProgramme(s){
  for(const k of ['partialWarmupMicro','issuedMicro','founderReleasedMicro','supportIssuedMicro'])amount(b.baseline[k]);
  assert.equal(amount(b.baseline.issuedMicro),amount(b.baseline.partialWarmupMicro)+amount(b.baseline.founderReleasedMicro));
  assert.equal(b.annualHash,inspectAnnualPlan(s.economicPreparation.plan.annualRegularMicro).annualHash);hex(b.profileHash);
- exact(p,['body','certificateHash','preparedHeight','activation','warmupRebased']);hex(p.certificateHash);assert.equal(hash(b),p.certificateHash);
+ exact(p,['body','certificateHash','preparedHeight','activation','warmupRebased',...(p.developmentPayout?['developmentPayout']:[])]);hex(p.certificateHash);assert.equal(hash(b),p.certificateHash);
+ if(p.developmentPayout){
+  const payout=p.developmentPayout;exact(payout,['body','certificateHash']);validatePayoutBody(s,payout.body);
+  assert.equal(hash(payout.body),payout.certificateHash);
+ }
  integer(p.preparedHeight,1);assert(p.preparedHeight<=s.height);assert.equal(b.start,START);assert.equal(b.configHash,s.configHash);
  assert.equal(b.planHash,s.economicPreparation.planHash);assert.equal(b.manifestHash,f.manifestHash);
  assert.equal(b.baseline.pilotCertificateHash,f.zeroStage.certificateHash);assert.equal(b.baseline.issuanceStart,x.start);
@@ -90,6 +126,7 @@ export function advanceMainProgramme(s){
   x.history=hash({previous:x.history,programme:p.certificateHash,activation:p.activation});w.fundedMicro=m.warmup.totalMicro;
   s.economicPreparation.memorial.issued=true;s.economicPreparation.memorial.balanceMicro=m.memorial.totalMicro;
  }
+ creditDevelopmentTranche(s);
  // A payment already in flight keeps its original deadline, escrow and work.
  // Only its controller's NEXT interval changes clock, after it has settled.
  if(!p.warmupRebased&&!w.pending){

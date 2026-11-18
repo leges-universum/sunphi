@@ -44,7 +44,7 @@ import {createCapacityIndex,updateCapacityIndex,auditCapacityIndex} from './boun
 import {BOUNDED_DOMAIN} from './bounded-schema.mjs';
 import {ZERO_STAGE_MINTS,productionIssuanceLimit} from './bounded-zero-stage-issuance.mjs';
 import {ENABLE_SERVICE,COMPLETE_SERVICE,PREPARE_MAIN_SERVICE,prepareMainService,enablePreissuedService,completeBaselineService,advanceServiceRewards,recordServicePaymentWork,auditServiceBinding,auditServiceRewards,isServiceRecord} from './bounded-service-rewards.mjs';
-import {PREPARE_MAIN_PROGRAMME,prepareMainProgramme,advanceMainProgramme} from './main-programme-transition.mjs';
+import {PREPARE_MAIN_PROGRAMME,prepareMainProgramme,advanceMainProgramme,SCHEDULE_DEVELOPMENT_PAYOUT,scheduleDevelopmentPayout} from './main-programme-transition.mjs';
 import {OPERATOR_ACTIONS,operatorPolicyAction,isOperatorRecord,auditOperatorRewards} from './operator-reward-policy.mjs';
 import {CASE_ACTIONS,protectionCaseAction,protectionCaseContext,isProtectionCaseRecord,auditProtectionCaseBinding,auditProtectionCases} from './bounded-protection-cases.mjs';
 import {validateConsensusContext,blockEventBytes} from '../consensus-context.mjs';
@@ -282,6 +282,7 @@ export class BoundedNetworkInterpreter{
   if(OPERATOR_ACTIONS.includes(a.type))return operatorPolicyAction(s,a,this.config,tx,author);
   if(a.type===ENABLE_SERVICE)return enablePreissuedService(s,a,this.config,tx);
   if(a.type===PREPARE_MAIN_PROGRAMME)return prepareMainProgramme(s,a,this.config,tx);
+  if(a.type===SCHEDULE_DEVELOPMENT_PAYOUT)return scheduleDevelopmentPayout(s,a);
   if(a.type===PREPARE_MAIN_SERVICE)return prepareMainService(s,a,this.config,tx);
   if(a.type===COMPLETE_SERVICE)return completeBaselineService(s,a,author,tx);
   // A worker need not wait for the background zero-account enrollment sweep

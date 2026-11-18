@@ -1,0 +1,6 @@
+DueByte 0.3.107
+Existing profiles, keys, wallets and balances are retained.
+Run the included installer as administrator. Node management: http://127.0.0.1:28080/
+For remote access, forward this loopback port with your SSH client.
+Initial management password: /var/lib/duebyte-server-updates/management/management-initial-password.txt
+See sunphi-network-next/checkpoint-trial/LINUX-MANAGEMENT.txt for the collateral and update workflow.

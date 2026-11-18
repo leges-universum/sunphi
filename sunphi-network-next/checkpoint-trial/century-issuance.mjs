@@ -9,7 +9,7 @@ import {exact,hash,hex,integer,publicKey,verify} from './crypto.mjs';
 import {amount} from './payment-model.mjs';
 import {validatorQuorum} from './authority.mjs';
 import {developmentManager} from './reserve-recovery.mjs';
-import {datedCumulative} from './economic-policy-v2.mjs';
+import {datedCumulative,launchDevelopmentCumulative} from './economic-policy-v2.mjs';
 import {ECONOMIC_POLICY_VERSION_V4} from './economic-policy-v3.mjs';
 import {initialCenturyWarmup} from './century-warmup.mjs';
 import {reserveAddresses} from './network-reserves.mjs';
@@ -43,6 +43,10 @@ export function centuryVested(s,kind){
  assert(['development','founder'].includes(kind));const x=s.centuryFunds?.execution;assert(x,'funds unissued');
  const advance=kind==='founder'&&x.founderAdvance?amount(FOUNDER_ADVANCE_MICRO):0n;
  if(x.partialWarmupMicro)return advance;
+ const programme=s.centuryFunds.mainProgramme;
+ if(kind==='development' && programme?.developmentPayout){
+  return programme.activation?launchDevelopmentCumulative(programme.body.start,s.money.time):0n;
+ }
  const dated=amount(datedCumulative({start:s.centuryFunds.mainProgramme?.body.start??x.start,at:s.money.time,kind}));
  return dated>advance?dated:advance;
 }
@@ -50,6 +54,18 @@ function transfer(s,kind,to,value,sequence){
  recipient(s,to);assert(value>0n&&value<=balance(s,kind),'available fund balance');
  const id=hash({domain:ISSUE_CENTURY+'/RELEASE',configHash:s.configHash,kind,sequence});assert(!s.money.outputs[id],'release already exists');
  write(s,kind,s.centuryFunds.manifest[kind].account,balance(s,kind)-value);s.money.outputs[id]={owner:to,value:String(value),unlock:0};
+}
+export function creditDevelopmentTranche(s){
+ const programme=s.centuryFunds.mainProgramme;
+ if(!programme?.developmentPayout || !programme.activation)return;
+ const x=s.centuryFunds.execution,paid=amount(x.developmentSpentMicro);
+ const due=centuryVested(s,'development');
+ assert(due>=paid,'development payout exceeds schedule');
+ if(due===paid)return;
+ const destination=programme.developmentPayout.body.recipient;
+ transfer(s,'development',destination,due-paid,'annual-'+due);
+ x.developmentSpentMicro=String(due);
+ x.history=hash({previous:x.history,programme:programme.developmentPayout.certificateHash,recipient:destination,cumulativeMicro:String(due),at:s.money.time});
 }
 export function applyCenturyIssuance(base,a,c,author){
  guardZeroStageAction(base,a);
@@ -110,6 +126,7 @@ export function applyCenturyIssuance(base,a,c,author){
    assert.equal(target,centuryVested(s,'founder'),'release the complete vested tranche');
    transfer(s,'founder',m.founder.recipient,target-old,a.cumulativeMicro);x.founderReleasedMicro=a.cumulativeMicro;
   }else if(a.type==='QUEUE_CENTURY_DEVELOPMENT_V1'){
+   assert(!f.mainProgramme?.developmentPayout,'development reserve uses scheduled credits');
    exact(a,['type','managementEpoch','sequence','recipient','valueMicro','purpose','reference']);const access=custody(s);
    assert.equal(author,access.manager);assert.equal(a.managementEpoch,access.epoch);assert.equal(a.sequence,x.sequence+1);assert(!x.pending,'cancel prior instruction first');
    recipient(s,a.recipient);hex(a.reference);assert(typeof a.purpose==='string'&&a.purpose.trim().length>0&&a.purpose.length<=512&&!/[\u0000-\u001f]/.test(a.purpose));
