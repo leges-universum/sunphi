@@ -31,6 +31,7 @@ export function auditPosPolicy(get,s,{observedHeight=s.height}={}){
 export function posPolicyAction(s,a,c,tx,author){
  assert.equal(s.authority?.version,2,'PoS requires committed variable authority');
  if(a.type===PREPARE_POS){
+  assert(!s.authority.rotatingSeat,'rotating-seat pilot in progress');
   const b=certificate(s,a,c,['policy']);assert(!s.authority.posSlashing);validateSlashingPolicy(b.policy);
   // Use the selected standard parameters, not a discretionary economic model.
   for(const [key,value]of Object.entries(STANDARD_SLASHING))assert.equal(b.policy[key],value,'standard slashing parameter');

@@ -1,3 +1,4 @@
+import {OPEN_SEAT,JOIN_SEAT,advanceSeat,applySeat} from '../rotating-seat.mjs';
 // Protocol candidate: sparse blocks, a versioned indexed root and retained journal.
 // Production issuance requires a committed, bounded zero-stage mandate.
 import assert from 'node:assert/strict';
@@ -230,6 +231,7 @@ export class BoundedNetworkInterpreter{
   return raw=>{const source=boundedRecordReads(raw),readKeys=new Set(),guarded={...source,get:key=>{readKeys.add(key);if(readKeys.size>16384)throw new StorageReadError('block read budget');try{const value=source.get(key);observeRead?.(key,value);return value;}catch(e){throw new StorageReadError('authenticated storage read failed',{cause:e});}}},staged=overlay(guarded),decoded=decodedSections(staged),head=staged.get('meta/blockHead');if(request.height===head.height){assert.equal(head.requestDigest,requestDigest,'conflicting committed block replay');return {duplicate:true,codes:head.codes};}assert.equal(head.height+1,request.height,'consecutive block height');let readCount=0;
    const archive=staged.get('meta/anchor').archive;if(archive)assert.equal(archive.status,'READY','incomplete archive migration');
    readCount+=this._frame(decoded,(s,rules,tx,context)=>{assert.equal(s.height,head.height);const baseHeight=s.height,lastValidators=s.authority?.validators??[];assert(request.time>=s.money.time&&request.time-s.money.time<=31*86400,'block time bounds');s.money.height=integer(s.money.height+Math.max(1,Math.ceil((request.time-s.money.time)/policy.maxAdvance)));s.money.time=request.time;s.height=request.height;s.blockHash=request.blockHash;if(s.authority)s.authority=activate(s.authority,s.height);s=beginRewards({height:baseHeight},s,{...context,anchorRoot:expectedRoot});if(s.rewards){const book=tx.get('meta/economics');book.seed=emptySeed();tx.set('meta/economics',book);}s=advanceSpendPolicies(s);executeLiabilityAdvance(s);
+    advanceSeat(s.authority,s.height);
     applyPosBlock(tx,s,request,lastValidators);
     s=advanceMainProgramme(s);s=advanceServiceRewards(s,tx,expectedRoot,head.height);
     if(delayedPaymentsEnabled(s))for(const pid of Object.keys(rules.active).sort()){const r=rules.active[pid];if(r.status==='SCHEDULED'&&r.executeAt<=s.money.time){const before=structuredClone(s.money.requests[pid]);executeScheduledRelease(s.money,pid);s=this._settled(s,pid,before,tx);}}
@@ -278,6 +280,7 @@ export class BoundedNetworkInterpreter{
  }
  _action(s,t,rules,tx){let a=t.body.action;const author=t.body.author;
   guardPreparedEconomy(s,a.type);
+  if(a.type===OPEN_SEAT||a.type===JOIN_SEAT)return applySeat(s,a,author,this.config.chainId);
   if(POS_ACTIONS.includes(a.type))return posPolicyAction(s,a,this.config,tx,author);
   if(OPERATOR_ACTIONS.includes(a.type))return operatorPolicyAction(s,a,this.config,tx,author);
   if(a.type===ENABLE_SERVICE)return enablePreissuedService(s,a,this.config,tx);

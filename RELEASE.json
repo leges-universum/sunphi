@@ -1,1 +1,26 @@
-{"version":"0.3.107","edition":"server","bytes":188831807,"sha256":"b9c04587863d4230d7f8186cad898cb7569e745e7df23ca4fd4d9f130a2534c5","manifestSha256":"4f29c55f8d1e13e5172e9c4076c657b76a9d10eef3fdcd351a53aa40ee605497"}
+{
+  "version": "0.3.108",
+  "downloads": [
+    {
+      "edition": "server",
+      "platform": "linux-x64",
+      "bytes": 188832627,
+      "sha256": "158bb23d1974d9ea1d989d6d695e0299e2159dfb178f52be402ac88104d39ee2",
+      "manifestSha256": "ebe18f3b273339c5bc883f1ce1423048bbd16dbde8cb67053266322341a6d8e1"
+    },
+    {
+      "edition": "home",
+      "platform": "windows-x64",
+      "bytes": 333560990,
+      "sha256": "4aa4f195439b3716d97687bbf53fa7754f709a4a32a96f319f1f0c97560442c4",
+      "manifestSha256": "242d4c5ef28ac28c0425a0a288f6d9b49a66f035bab03859c327c23257e198a3"
+    },
+    {
+      "edition": "home",
+      "platform": "linux-x64",
+      "bytes": 188836731,
+      "sha256": "20e3492108eb22140ed8cc1cbd566cabd225532355f84211cb322bc7a8c02ce2",
+      "manifestSha256": "36ef350a9234cfe895bdffce9048ca74e3e207dfbb5fdab62639c946ced3f069"
+    }
+  ]
+}

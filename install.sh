@@ -3,7 +3,7 @@ set -eu
 test "$(id -u)" = 0 || { echo 'Run sudo sh install.sh'; exit 1; }
 cd "$(dirname "$0")"
 version=$(./runtime/node -p "JSON.parse(require('fs').readFileSync('release-config.json')).version")
-case "$version" in 0.3.18|0.3.19|0.3.20|0.3.21|0.3.22|0.3.23|0.3.24|0.3.25|0.3.26|0.3.27|0.3.28|0.3.29|0.3.30|0.3.31|0.3.32|0.3.33|0.3.34|0.3.35|0.3.36|0.3.37|0.3.38|0.3.39|0.3.41|0.3.42|0.3.43|0.3.44|0.3.45|0.3.46|0.3.107) ;; *) echo 'Unsupported server release'; exit 1;; esac
+case "$version" in 0.3.18|0.3.19|0.3.20|0.3.21|0.3.22|0.3.23|0.3.24|0.3.25|0.3.26|0.3.27|0.3.28|0.3.29|0.3.30|0.3.31|0.3.32|0.3.33|0.3.34|0.3.35|0.3.36|0.3.37|0.3.38|0.3.39|0.3.41|0.3.42|0.3.43|0.3.44|0.3.45|0.3.46|0.3.108) ;; *) echo 'Unsupported server release'; exit 1;; esac
 dest="/opt/duebyte-server/releases/$version"
 test ! -e "$dest" || { echo "Already exists: $dest. Nothing overwritten."; exit 1; }
 ./runtime/node --version

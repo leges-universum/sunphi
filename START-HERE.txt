@@ -1,4 +1,4 @@
-DueByte 0.3.107
+DueByte 0.3.108
 Existing profiles, keys, wallets and balances are retained.
 Run the included installer as administrator. Node management: http://127.0.0.1:28080/
 For remote access, forward this loopback port with your SSH client.

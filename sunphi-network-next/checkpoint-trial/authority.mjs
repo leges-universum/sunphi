@@ -1,3 +1,4 @@
+import {seatUpdates} from './rotating-seat.mjs';
 // Ordered control-plane transitions; never move money or authorize monetary work.
 import assert from 'node:assert/strict';
 import {INPUT_FEATURE,INPUT_ACTION} from './payment-input-policy.mjs';
@@ -74,7 +75,8 @@ export function applyControl(a,action,{config,height,time,reusableKeys=[]}){
  validatorQuorum(b,cert.approvals,a.validators);assert(verify(b,cert.possession,b.newKey),'new signer possession');
  const out=structuredClone(a),validators=structuredClone(a.validators);validators[b.slot]={key:b.newKey,group:b.group};out.pending={activation:height+2,validators,oldKey:b.oldKey,newKey:b.newKey,certificate:hash(cert)};out.usedKeys.push(b.newKey);out.usedKeys.sort();assert(out.usedKeys.length<=2048,'trial rotation archive capacity');return out;
 }
-export function validatorUpdates(state,height){if(state.authority?.posSlashing)return posValidatorUpdates(state.authority,height);const p=state.authority?.pending;return p?.activation===height+2?(state.authority.version===2?structuredClone(p.updates):[{key:p.oldKey,power:0},{key:p.newKey,power:10}]):[];}
+export function validatorUpdates(state,height){return originalValidatorUpdates(state,height).concat(seatUpdates(state.authority,height));}
+function originalValidatorUpdates(state,height){if(state.authority?.posSlashing)return posValidatorUpdates(state.authority,height);const p=state.authority?.pending;return p?.activation===height+2?(state.authority.version===2?structuredClone(p.updates):[{key:p.oldKey,power:0},{key:p.newKey,power:10}]):[];}
 export function documentPolicy(root,renewals,configHash){
  let fields=policyFields(root),lastHeight=0,lastTime=0;
  assert(Array.isArray(renewals)&&renewals.length<=256);

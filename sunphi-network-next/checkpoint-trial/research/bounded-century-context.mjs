@@ -1,3 +1,4 @@
+import {OPEN_SEAT,JOIN_SEAT} from '../rotating-seat.mjs';
 import assert from 'node:assert/strict';
 import {controllerContext} from '../controller-context.mjs';
 import {REGISTER_HOMES,homeRegistrationCount,homePeerKey} from './bounded-home-registration.mjs';
@@ -40,7 +41,7 @@ export function parseBoundedTx(bytes,c){
  assert(bytes.length>0&&bytes.length<=65536);const t=JSON.parse(bytes.toString('utf8'));
  if(t?.body?.action?.type===PURCHASE_ACTION)assert(c.purchaseLab,'protected purchase admission disabled');
  if(t?.body?.action?.type===EXCHANGE_ACTION)assert(c.exchangeLab,'two-way exchange admission disabled');
- if(![...POS_ACTIONS,...RECOVERY_ACTIONS,...CASE_ACTIONS,...OPERATOR_ACTIONS,PREPARE_MAIN_PROGRAMME,SCHEDULE_DEVELOPMENT_PAYOUT,PREPARE_MAIN_SERVICE,ENABLE_SERVICE,COMPLETE_SERVICE,EXPEDITE_ZERO_STAGE_HOME,HOME_FEE_WORK,REGISTER_HOMES,SCHEDULE_PAID_ADMISSION,EXCHANGE_ACTION,PURCHASE_ACTION,PREPARE_WORKERS,INITIAL_PRECISION,NODE_LINK_ACTION,...COLLATERAL_ACTIONS].includes(t?.body?.action?.type)&&!CENTURY_ACTIONS.includes(t?.body?.action?.type))return parseTx(bytes,c);
+ if(![OPEN_SEAT,JOIN_SEAT,...POS_ACTIONS,...RECOVERY_ACTIONS,...CASE_ACTIONS,...OPERATOR_ACTIONS,PREPARE_MAIN_PROGRAMME,SCHEDULE_DEVELOPMENT_PAYOUT,PREPARE_MAIN_SERVICE,ENABLE_SERVICE,COMPLETE_SERVICE,EXPEDITE_ZERO_STAGE_HOME,HOME_FEE_WORK,REGISTER_HOMES,SCHEDULE_PAID_ADMISSION,EXCHANGE_ACTION,PURCHASE_ACTION,PREPARE_WORKERS,INITIAL_PRECISION,NODE_LINK_ACTION,...COLLATERAL_ACTIONS].includes(t?.body?.action?.type)&&!CENTURY_ACTIONS.includes(t?.body?.action?.type))return parseTx(bytes,c);
  // Century clocks are committed UTC; legacy funded controllers stay outside this route.
  // Production issuance requires the interpreter's committed zero-stage mandate.
  exact(t,['body','signature']);exact(t.body,['domain','configHash','action','author']);assert(c.control);assert.equal(t.body.domain,PROFILE+'/TX');assert.equal(t.body.configHash,hash(c));assert(verify(t.body,t.signature,t.body.author),'tx signature');return t;
