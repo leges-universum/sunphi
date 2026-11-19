@@ -15,8 +15,8 @@ export function walletNodeOverview(s,owner){
 export class WalletNodeLinks extends WalletCollateral {
  async options(){const {state}=await this.current();return walletNodeOverview(state,this.wallet.key.publicKey);}
  async review(q){exact(q,['node','operation']);hex(q.node);
-  if(q.operation==='receive'){
-   this.pending.clear();
+  if(q.operation==='receive'||q.operation==='receipt'){
+   if(q.operation==='receive')this.pending.clear();
    const {state,certificate}=await this.current({rewardIds:[q.node]});
    const body=walletConsent(state.configHash,q.node,this.wallet.key.publicKey);
    const account=state.rewards?.nodes[q.node];
@@ -24,6 +24,7 @@ export class WalletNodeLinks extends WalletCollateral {
     assert(account.payouts.length===1&&account.payouts[0].wallet===body.wallet,'This server already has a different reward recipient.');
     return {confirmed:true,height:state.height,body};
    }
+   if(q.operation==='receipt')return {confirmed:false,height:state.height,body};
    if(!account)return {waiting:true,body,height:state.height,reason:'Waiting for the server to register its reward account.'};
    const offer=await this.wallet.client.serverRecipient(certificate.appHash,q.node);
    if(!offer)return {waiting:true,body,height:state.height,reason:'Waiting for the server to invite your wallet.'};

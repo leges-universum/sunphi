@@ -52,8 +52,11 @@ button:focus-visible,summary:focus-visible,input[type=checkbox]:focus-visible{ou
 input{width:100%;min-width:0;margin:5px 0 12px;padding:6px 10px;line-height:20px}
 input:not([type=checkbox]):focus{outline:0;box-shadow:none;border-color:var(--accent)}
 input[type=checkbox]{width:15px;height:15px;min-height:15px;margin:0;accent-color:var(--accent);flex-shrink:0}
-input[type=file]{font-size:12px;padding:5px 6px}
-input::file-selector-button{font:inherit;color:var(--ink);background:var(--section);border:0;border-right:1px solid var(--border);margin:-5px 8px -5px -6px;padding:7px 10px}
+.file-picker{position:relative;display:flex;align-items:center;gap:10px;min-height:var(--control-height);margin:5px 0 12px;border:1px solid var(--strong);border-radius:2px;font-size:12px}
+.file-picker:focus-within{outline:1px solid var(--accent)}
+.file-picker>span:first-child{flex:none;padding:6px 10px;background:var(--section)}
+.file-picker-name{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--muted)}
+.file-picker input[type=file]{position:absolute;inset:0;width:100%;height:100%;padding:0;margin:0;opacity:0;cursor:pointer}
 label{display:block;font-size:12px;font-weight:500}
 .check{display:flex;gap:8px;align-items:flex-start;font-weight:400}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -148,8 +151,13 @@ li small{font-size:11px}
 .analytics-table .numeric{width:18%;text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 .analytics-table thead th:nth-child(2){text-align:right}
 .analytics-table .description{font-size:11px;color:var(--muted)}
-#history-chart{display:block;width:100%;height:60px;color:var(--accent);margin:12px 0}
-#history-chart polyline{fill:none;stroke:currentColor;stroke-width:2;vector-effect:non-scaling-stroke}
+.history-plot{display:block;width:100%;height:104px;margin:12px 0}
+#verification-activity{--bars:#286da5;--trend:#1c7545}
+[data-theme=graphite] #verification-activity{--bars:#79b6f2;--trend:#75d69a}
+.history-plot .chart-grid{stroke:var(--border)}.history-plot .chart-axis{fill:var(--muted);font-size:9px}.history-plot .chart-point{fill:var(--bars)}.history-plot .chart-target{fill:transparent}.history-plot .chart-line{fill:none;stroke:var(--bars);stroke-width:2}
+#verification-activity .bar-label{color:var(--bars)}
+#verification-activity .trend-label{color:var(--trend)}
+#average-chart .chart-point,.history-plot .chart-point.chart-secondary{fill:var(--trend)}#average-chart .chart-line,.history-plot .chart-line.chart-secondary{stroke:var(--trend)}.history-plot .chart-line.chart-secondary{stroke-dasharray:4 3}#verification-activity .plot-heading{display:flex;align-items:baseline;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:12px;margin-bottom:0}#verification-activity .plot-heading strong{margin-left:auto;white-space:nowrap;color:var(--ink);font-variant-numeric:tabular-nums}
 dialog{color:var(--ink);background:var(--surface);border:1px solid var(--strong);border-radius:2px;width:calc(100% - 32px);max-width:520px;padding:var(--panel-space)}
 #collateral-form{max-width:720px;margin-top:24px}
 #collateral-picker{margin:8px 0 0;border:1px solid var(--border)}
@@ -242,14 +250,14 @@ button:not(:disabled):is(:hover,:active){background:#000;color:#fff;border-color
 @media(max-width:700px){body>main{padding:24px 16px}header{padding:12px 16px}footer{padding-inline:16px}#entry-layout{grid-template-columns:1fr;gap:24px}#entry-intro{padding:0}#entry-intro>h1{font-size:28px}#entry-intro>.hint{margin-top:14px}#entry{padding:20px}.entry-tabs button{font-size:12px!important}}
 /* Wallet planes share the node screen's graphite hierarchy. */
 html:root[data-theme] body:not(.consumer) .screen-grid{padding:0;border:0;background:transparent;gap:24px;align-items:start}
-html:root body:not(.consumer) .screen>section{padding:16px;border-radius:4px}
+html:root body:not(.consumer) .screen>section{--card-inset:16px;padding:var(--card-inset);border-radius:4px}
 html:root body:not(.consumer) .screen h2{font-size:15px;line-height:1.4;margin-bottom:12px}
 html:root body:not(.consumer) .screen h3{font-size:13px;line-height:1.5;margin:0 0 8px}
 html:root body:not(.consumer) .screen p{font-size:12px;line-height:1.6}
 html:root body:not(.consumer) .screen .eyebrow{display:block;margin-bottom:8px;font-size:11px;letter-spacing:.08em}
 html:root body:not(.consumer) .screen .hint{font-size:12px}
 html:root body:not(.consumer) .screen label{font-size:12px}
-html:root body:not(.consumer) .screen .section-help{margin:24px -24px -24px;padding:20px 24px;background:var(--section);border-top:1px solid var(--border);border-radius:0 0 7px 7px;font-size:12px}
+html:root body:not(.consumer) .screen .section-help{margin:24px calc(0px - var(--card-inset)) calc(0px - var(--card-inset));padding:20px 24px;background:var(--section);border-top:1px solid var(--border);border-radius:0 0 3px 3px;font-size:12px}
 html:root body:not(.consumer) .screen>section.panel{padding:0}
 .panel-head,.panel-body,.panel-band{padding:16px;min-width:0}
 .panel-head{border-bottom:1px solid var(--border)}
@@ -282,7 +290,7 @@ html:root body:not(.consumer) #nodes-list .node-rewards strong,html:root body:no
 .nodes-overview>.panel-head p{margin:0}
 .nodes-overview>.panel-body{padding:20px 24px}
 #collateral-history{margin-top:24px}
-#node-alert-approval{max-width:600px;display:block;margin-top:8px}
+label[for=node-alert-approval]+.file-picker{max-width:600px;margin-top:8px}
 label[for=node-alert-approval]{margin-top:24px}
 #collateral-form{padding-top:20px;border-top:1px solid var(--border)}
 html:root body:not(.consumer) #collateral-picker{padding:0}
@@ -304,7 +312,7 @@ html:root body:not(.consumer) .payment-options .check{color:var(--ink);font-weig
 html:root body:not(.consumer) [data-screen=activity]>section{padding-bottom:24px}
 #payments li{padding:14px 16px;margin:0;border:1px solid var(--border);background:var(--section)}
 #payments li+li{border-top:0}
-html:root body:not(.consumer) #empty-payments{padding:32px 24px;margin:24px -24px -24px;background:var(--section);border-radius:0 0 7px 7px}
+html:root body:not(.consumer) #empty-payments{padding:18px var(--card-inset);margin:24px calc(0px - var(--card-inset)) calc(0px - var(--card-inset));background:var(--section);border-radius:0 0 3px 3px}
 .record-heading{font-size:14px}.record-id{margin:12px 0}
 html:root body:not(.consumer) .analytics-table th,html:root body:not(.consumer) .analytics-table td{padding:16px;font-size:13px}
 html:root body:not(.consumer) .analytics-table .description{font-size:12px}
@@ -320,9 +328,9 @@ header #theme,header #payment-sound{display:inline-flex;align-items:center;justi
 html:root body:not(.consumer) .screen .verification-details .section-help{margin:16px 0 0;padding:16px;max-width:none;border-radius:0}
 html:root body:not(.consumer) [data-screen=security] a:not(.sunphi-actions a){color:var(--muted);text-underline-offset:3px}
 html:root body:not(.consumer) [data-screen=security] a:not(.sunphi-actions a):is(:hover,:focus-visible){color:var(--accent)}
-html:root body:not(.consumer) [data-screen=security]>section>h2{margin:0 -24px 20px;padding:0 24px 18px;border-bottom:1px solid var(--border)}
+html:root body:not(.consumer) [data-screen=security]>section>h2{margin:0 calc(0px - var(--card-inset)) 20px;padding:0 var(--card-inset) 18px;border-bottom:1px solid var(--border)}
 html:root body:not(.consumer) [data-screen=security]>section>button,html:root body:not(.consumer) [data-screen=security] .sunphi-actions{margin-block:16px}
-html:root body:not(.consumer) [data-screen=security]>section>.hint:last-child{margin:20px -24px -24px;padding:18px 24px;background:var(--section);border-top:1px solid var(--border);border-radius:0 0 7px 7px}
+html:root body:not(.consumer) [data-screen=security]>section>.hint:last-child{margin:20px calc(0px - var(--card-inset)) calc(0px - var(--card-inset));padding:14px var(--card-inset);background:var(--section);border-top:1px solid var(--border);border-radius:0 0 3px 3px}
 #purchase-status,#purchase-result{padding:20px;background:var(--section);border:1px solid var(--border);border-radius:4px}
 #purchase-status{min-block-size:calc(3lh + 40px)}
 .exchange-choice{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
@@ -348,7 +356,7 @@ html:root body:not(.consumer) dialog .actions{margin-top:24px;padding-top:20px;b
  [data-screen=security]>section:not(.sunphi-connection)>.eyebrow{grid-row:1}
  [data-screen=security]>section:not(.sunphi-connection)>h2{grid-row:2}
  [data-screen=security]>section:not(.sunphi-connection)>h2+p{grid-row:3}
- [data-screen=security]>section:not(.sunphi-connection)>button{grid-row:4;justify-self:start;align-self:start}
+ [data-screen=security]>section:not(.sunphi-connection)>:is(button,.actions){grid-row:4;justify-self:start;align-self:start}
  [data-screen=security]>section:not(.sunphi-connection)>button+p{grid-row:5}
  [data-screen=security]>section:not(.sunphi-connection)>button+p+p{grid-row:6}
  [data-screen=security]>section:not(.sunphi-connection)>a{grid-row:7}
@@ -356,7 +364,7 @@ html:root body:not(.consumer) dialog .actions{margin-top:24px;padding-top:20px;b
 }}
 @media(min-width:801px){html:root[data-theme] body:not(.consumer) [data-screen=overview]>section{align-self:stretch}}
 @media(max-width:800px){html:root body:not(.consumer) .screen-grid{grid-template-columns:1fr}#nodes-list{grid-template-columns:1fr}}
-@media(max-width:480px){html:root body:not(.consumer) .screen>section{padding:20px}.panel-head,.panel-body,.panel-band{padding:20px}html:root body:not(.consumer) .screen .section-help{margin:20px -20px -20px;padding:18px 20px}html:root body:not(.consumer) .panel-band .section-help{margin:0 0 20px;padding:0}html:root body:not(.consumer) [data-screen=security]>section>h2{margin-inline:-20px;padding-inline:20px}html:root body:not(.consumer) [data-screen=security]>section>.hint:last-child,html:root body:not(.consumer) #empty-payments{margin:20px -20px -20px;padding:18px 20px}#wallet-rewards dl{grid-template-columns:1fr;gap:20px}#wallet-rewards dl>div+div{border-top:1px solid var(--border);padding-top:16px}.payment-options{padding:16px}html:root body:not(.consumer) .analytics-table th,html:root body:not(.consumer) .analytics-table td{padding:12px 8px}}
+@media(max-width:480px){#wallet-rewards dl{grid-template-columns:1fr;gap:20px}#wallet-rewards dl>div+div{border-top:1px solid var(--border);padding-top:16px}.payment-options{padding:16px}html:root body:not(.consumer) .analytics-table th,html:root body:not(.consumer) .analytics-table td{padding:12px 8px}}
 /* Receipt hierarchy: direction remains explicit; colour supplements labels. */
 #funds,.receipt-lines,dialog{font-variant-numeric:tabular-nums lining-nums}
 .financial-number,.nodes-totals strong,#nodes-list .node-rewards strong,#nodes-list .node-own-collateral strong,#wallet-rewards dd,#collateral-review-values dd,#asset-cards .asset-value{font-family:ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:0}
@@ -373,7 +381,7 @@ html:root body:not(.consumer) dialog .actions{margin-top:24px;padding-top:20px;b
 #broker-terms dd{font-size:12px}
 .receipt-lines>div:last-child{padding-top:12px;border-bottom:0;font-weight:600}
 .receipt-lines>div:last-child dt{color:var(--ink)}
-html:root body:not(.consumer) .screen .section-help{margin:16px -16px -16px;padding:14px 16px}
+html:root body:not(.consumer) .screen .section-help{margin:16px calc(0px - var(--card-inset)) calc(0px - var(--card-inset));padding:14px 16px}
 html:root body:not(.consumer) .panel-band .section-help{margin:0 0 12px;padding:0}
 #collateral-review-values>div{font-size:13px;padding:10px 0}
 #collateral-review-values dd{color:var(--success)}
@@ -454,14 +462,21 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="screen screen-grid" data-screen="overview"><section><small class="eyebrow">Available balance · DUBYT</small><div class="value" id="available">—</div><p id="held"></p><div class="actions"><button data-go="send" class="primary">Send payment</button><button data-go="receive">Receive</button><button data-go="activity">View activity</button></div><p class="section-help">Only verified balances are shown. Reserved and recipient-locked amounts cannot be spent.</p></section><section><h2>Your wallet</h2><p class="eyebrow">Public address</p><p id="owner"></p><p class="hint">This address receives payments on the DueByte network. Your private key stays encrypted on this computer.</p><button data-go="security">Backup &amp; security</button></section><details id="wallet-rewards"><summary>Rewards</summary><dl aria-label="Rewards in DUBYT"><div><dt>Accrued · DUBYT</dt><dd aria-label="Accrued amount unavailable">—</dd></div><div><dt>Awaiting payment</dt><dd aria-label="Pending amount unavailable">—</dd></div><div><dt>Paid · DUBYT</dt><dd aria-label="Paid amount unavailable">—</dd></div></dl><p class="hint">No confirmed reward statement is available for this wallet yet. Amounts are unavailable, not zero.</p></details></div>
 <div class="screen" data-screen="send" hidden><section><h2>Send payment</h2><form id="payment" novalidate><label for="recipient">Recipient public address</label><input id="recipient" autocomplete="off" spellcheck="false" aria-describedby="recipient-help"><p id="recipient-help" class="hint">Use a DueByte public address. Verify it with the recipient before confirming.</p><label for="amount">Amount · DUBYT</label><input id="amount" inputmode="decimal" aria-describedby="fee-help"><div class="payment-options"><label class="check"><input id="delayed-send" type="checkbox" disabled aria-describedby="delayed-help">Send after 24 hours</label><p id="delayed-help" class="hint">Checking network availability.</p><label class="check"><input id="protection" type="checkbox" aria-describedby="lock-help">Lock recipient spending for 24 hours</label><p id="lock-help" class="hint">The recipient can spend the funds 24 hours after execution. With delayed sending, this clock starts after the sending delay. This limits onward transfers; it does not allow cancellation after execution.</p></div><p id="fee-help" class="hint">The verified network tariff and exact total are shown before you sign.</p><p id="payment-available" class="hint"></p><p id="payment-readiness" class="hint" role="status" aria-live="polite"></p><button class="primary" id="send" aria-describedby="payment-readiness payment-available">Review and send</button></form></section></div>
 <div class="screen" data-screen="receive" hidden><section><h2>Receive DUBYT</h2><p class="hint">Share your public address with the sender.</p><p id="receive-address" class="address"></p><button id="copy-address">Copy address</button><p class="section-help">Check the network and address before sharing. Your password and encrypted backup are never needed to receive a payment.</p></section>
-<section><h2>Server rewards</h2><form id="server-receive-form"><label for="server-receive-id">Reward node ID from your Linux installer</label>
-<input id="server-receive-id" required pattern="[a-f0-9]{64}" maxlength="64" autocomplete="off" spellcheck="false"><button type="submit">Review server</button></form>
-<dialog id="server-receive-dialog"><h2>Receive this server’s rewards</h2><p id="server-receive-review" class="address"></p>
-<p>Your signature allows this server to name this wallet as a recipient of future rewards.</p>
-<button id="server-receive-sign" class="primary" type="button">Sign reward consent</button><button id="server-receive-back" type="button">Back</button></dialog>
-<p id="server-receive-status" role="status"></p></section></div>
+<section><h2>Server rewards</h2><button id="open-server-rewards" type="button">Connect a server to this wallet</button></section></div>
 <div class="screen" data-screen="activity" hidden><section><h2 id="history-heading" tabindex="-1">Payment activity</h2><p class="hint">Up to 200 recent records available in the verified state and this wallet’s local outbox. A queued payment is not yet confirmed. Do not resend it while its outcome is pending.</p><button id="history-refresh" type="button" hidden></button><ul id="payments"></ul><nav id="history-pagination" class="history-pagination" aria-label="Payment history pages" hidden><div id="history-pages" class="history-page-actions"></div><p id="history-range" aria-live="polite" aria-atomic="true"></p></nav><p id="empty-payments">No payment records yet.</p></section></div>
-<div class="screen" data-screen="network" hidden><table id="network-metrics" class="analytics-table" aria-label="Verified network metrics"></table><details class="verification-details"><summary>Verification details</summary><p id="analytics-scope" class="hint">Waiting for a verified network snapshot.</p><p id="verified-hash" class="address"></p><p class="section-help">Logical validator and worker records do not establish independent ownership. The current deployment has two server hosts under one administrator. This installed node does not vote or earn validator rewards.</p></details></div>
+<div class="screen" data-screen="network" hidden><table id="network-metrics" class="analytics-table" aria-label="Verified network metrics"></table><details class="verification-details"><summary>Verification details</summary><p id="analytics-scope" class="hint">Waiting for a verified network snapshot.</p><p id="verified-hash" class="address"></p><p class="section-help">The block hash and checkpoint identify the snapshot verified by this wallet.</p></details></div>
+<div class="screen" data-screen="external" hidden>
+<section><h2>Reference prices in USD</h2>
+<table class="analytics-table" aria-label="Latest spot trades in USD"><thead><tr><th>Asset</th><th>Price · USD</th><th>Source and trade time</th></tr></thead><tbody id="external-prices"></tbody></table>
+<p id="price-status" class="hint" role="status"></p></section>
+<section><h2>Check an incoming transfer</h2>
+<form id="external-lookup">
+<label for="external-route">Asset and network</label><select id="external-route"><option value="btc-bitcoin">BTC · Bitcoin</option><option value="usdc-ethereum">USDC · Ethereum</option><option value="usdt-ethereum">USDT · Ethereum</option></select>
+<label for="external-tx">Transaction ID</label><input id="external-tx" required maxlength="66" autocomplete="off" spellcheck="false">
+<label for="external-address">Expected receiving address</label><input id="external-address" required maxlength="90" autocomplete="off" spellcheck="false">
+<p class="hint">The transaction ID is sent to the public network provider. Your receiving address is compared locally.</p>
+<button type="submit" id="external-check">Check transfer</button></form>
+<p id="external-result" role="status" aria-live="polite"></p></section></div>
 <div class="screen" data-screen="exchange" hidden>
 <section id="exchange-chooser" aria-labelledby="exchange-choice-title">
 <h2 id="exchange-choice-title">Choose your exchange</h2>
@@ -518,6 +533,16 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="purchase-refresh" type="button">Refresh</button><button data-go="receive">Receive DUBYT</button></div>
 </section></div>
 <div class="screen screen-grid nodes-workspace" data-screen="collateral" hidden>
+<section class="panel"><h2>Connect a server to this wallet</h2>
+<p class="hint" id="server-receive-help">Paste the reward node ID shown by your Linux installer. The wallet will find the invitation and ask you to approve it.</p>
+<form id="server-receive-form"><label for="server-receive-id">Reward node ID</label>
+<input id="server-receive-id" required pattern="[a-fA-F0-9]{64}" aria-describedby="server-receive-help server-receive-status" autocomplete="off" spellcheck="false" placeholder="64-character reward node ID">
+<button type="submit" id="server-receive-check">Check invitation</button></form>
+<p id="server-receive-status" role="status" aria-live="polite"></p>
+<dialog id="server-receive-dialog" aria-labelledby="server-receive-title"><h2 id="server-receive-title">Receive rewards from this server?</h2>
+<p>Server</p><p id="server-receive-review" class="address"></p><p>Wallet receiving future rewards</p><p id="server-receive-wallet" class="address"></p>
+<p>Check the server ID and wallet address. If both are yours, select <strong>Sign and connect</strong> to approve future rewards to this wallet.</p>
+<button id="server-receive-sign" class="primary" type="button">Sign and connect</button><button id="server-receive-back" type="button">Back</button></dialog></section>
 <section class="panel nodes-overview"><div class="panel-head"><h2>Your nodes, collateral &amp; rewards</h2><p class="hint">Nodes funded by this wallet or connected to it for payouts. Amounts update automatically after verification. Rewards show each node’s lifetime totals across its payout wallets.</p></div>
 <div class="panel-body"><p id="nodes-status" role="status">Loading verified nodes and collateral…</p><button id="nodes-refresh" type="button" hidden>Retry loading nodes</button><div id="collateral-summary" hidden></div><div id="nodes-list"></div><div id="collateral-history"></div></div></section>
 <section class="panel node-pairing" hidden><div class="panel-head"><small class="eyebrow">Wallet connection</small><h2>Link or unlink a server</h2><p class="hint">Use this wallet in Home or your browser. Your spending key stays off the server.</p></div><div class="panel-body">
@@ -546,13 +571,23 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <label for="node-alert-approval">Enable notices with server approval</label><input type="file" id="node-alert-approval" accept="application/json,.json"><p id="node-alert-message" class="hint" role="status">Choose a node above and connect your account in Messenger settings. Enabling requires your wallet signature and the server matching code.</p>
 </div></details>
 </div>
-<div class="screen screen-grid" data-screen="security" hidden><section><h2>Encrypted backup</h2><p class="hint">Save a backup separately from this computer. It contains your encrypted private key, not your password. Keep the password in a safe place; there is no reset service.</p><button id="backup" class="primary">Save encrypted backup</button><p class="hint">A backup restores this DueByte wallet on the same network. Keep old Sun·Phi backups separately; their format and network are different.</p></section><section><h2>Lock your wallet</h2><p class="hint">Lock the wallet when you step away. Network verification can continue while it is locked.</p><button id="lock">Lock wallet</button></section>
+<div class="screen screen-grid" data-screen="security" hidden><section><h2>Encrypted backup</h2><p class="hint">Save a backup separately from this computer. It contains your encrypted private key, not your password. Keep the password in a safe place; there is no reset service.</p><button id="backup" class="primary">Save encrypted backup</button><p class="hint">A backup restores this DueByte wallet on the same network. Keep old Sun·Phi backups separately; their format and network are different.</p></section><section><h2>Wallet access</h2><p class="hint">Lock the wallet when you step away. Network verification can continue while it is locked.</p><div class="actions"><button id="open-password-change">Change password</button><button id="lock">Lock wallet</button></div></section>
 <section><small class="eyebrow">Payment protection</small><h2>Recipient spending lock</h2><p class="hint">Apply a 24-hour spending lock to an individual payment. The recipient receives the funds at settlement, but cannot move the locked amount until the delay ends.</p><button data-go="send">Set up a payment</button><p class="hint">This option does not reverse a payment or protect other unlocked funds.</p></section>
 <section><small class="eyebrow">Payment protection</small><h2>Send after 24 hours</h2><p class="hint">Hold an outgoing payment before execution, with time to cancel it.</p><button id="setup-delayed" data-go="send" disabled>Set up delayed payment</button><p class="hint">This is a separate option from the recipient spending lock.</p></section>
 <section class="sunphi-connection"><small class="eyebrow"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span> Messenger</small><h2>Your account connection</h2><p id="sunphi-status" class="hint">Connect your account at ai-agent-online.com to use messenger options with this wallet.</p><div id="sunphi-pairing" hidden><p class="hint">Open Sun·Phi and check that this code matches. Then return here to finish.</p><p class="sunphi-code" id="sunphi-code"></p></div><div class="sunphi-actions"><button id="sunphi-start">Connect Sun·Phi</button><a id="sunphi-open" target="_blank" rel="noopener noreferrer" hidden>Open Sun·Phi</a><button id="sunphi-check" hidden>Check connection</button><button id="sunphi-confirm" class="primary" hidden>Confirm connection</button><button id="sunphi-disconnect" hidden>Disconnect account</button></div><p id="sunphi-message" class="hint" role="status"></p><p class="hint">Connecting does not turn on either option. Your wallet password and private key stay on this computer.</p></section>
 <section><h2 id="notifications-title">Payment notifications</h2><p class="hint">Optional payment updates in your Sun·Phi messenger. Off by default.</p><button id="sunphi-notifications" class="messenger-toggle" role="switch" aria-checked="false" aria-labelledby="notifications-title" disabled>Off</button><p id="notifications-help" class="hint">Connect your Sun·Phi account first.</p></section>
 <section><h2 id="approval-title">Additional payment approval</h2><p class="hint">Optionally require your approval in the messenger before sending a payment. Off by default.</p><button id="sunphi-approval" class="messenger-toggle" role="switch" aria-checked="false" aria-labelledby="approval-title" disabled>Off</button><p id="approval-help" class="hint">Connect your Sun·Phi account first.</p><p class="hint">Works independently of payment notifications.</p><a href="https://ai-agent-online.com/Messages" target="_blank" rel="noopener noreferrer">Open Sun·Phi messenger</a></section></div>
 </div>
+<dialog id="password-dialog" aria-labelledby="password-title">
+<form id="password-change-form">
+<h2 id="password-title">Change wallet password</h2>
+<label>Current password<input id="old-secret" type="password" autocomplete="current-password" required></label>
+<label>New password (at least 12 characters)<input id="new-secret" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
+<label>Confirm new password<input id="repeat-secret" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
+<p class="hint">Existing backups still use their original password. Save a new encrypted backup after changing your password.</p>
+<p id="password-error" role="alert"></p>
+<div class="actions"><button type="submit" class="primary" id="save-password">Change password</button><button type="button" id="cancel-password">Cancel</button></div>
+</form></dialog>
 <dialog id="cancel-review" aria-labelledby="cancel-title"><h2 id="cancel-title">Cancel delayed payment?</h2><p id="cancel-copy"></p><p class="hint">Cancellation must be confirmed by the network before execution. Closing this window does not cancel the payment.</p><p id="cancel-error" role="alert"></p><div class="actions"><button id="confirm-cancel">Confirm cancellation</button><button id="keep-payment">Keep payment</button></div></dialog>
 <dialog id="payment-review" aria-labelledby="review-title"><h2 id="review-title">Review payment</h2><p id="review-recipient" class="address"></p><dl id="review-amount" class="receipt-lines"></dl><p id="review-protection"></p><p id="review-error" role="alert"></p><div class="actions"><button id="confirm-payment" class="primary">Confirm payment</button><button id="cancel-payment">Back</button></div></dialog>
 <dialog id="bond-dialog" aria-labelledby="bond-title"><h2 id="bond-title">Confirm validator bond</h2>
@@ -561,11 +596,74 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.109</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.110</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+<script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
 let token=sessionStorage.getItem('duebyte-session')||newSession();sessionStorage.setItem('duebyte-session',token);
 const $=id=>document.getElementById(id);let creating=false,entryMode='open',submitting=false,lastStatus=null,feedback='';
+// The native input handles selection and keyboard access. The wallet supplies its English caption.
+for(const file of document.querySelectorAll('input[type=file]')){
+ const picker=document.createElement('div'),name=element('span','No file selected','file-picker-name');
+ picker.className='file-picker';
+ name.setAttribute('aria-hidden','true');
+ const choose=element('span','Choose file');
+ choose.setAttribute('aria-hidden','true');
+ file.title=file.labels[0].textContent.trim();
+ file.before(picker);
+ picker.append(choose,name,file);
+ file.addEventListener('change',()=>{name.textContent=file.files[0]?.name||'No file selected';});
+ file.form?.addEventListener('reset',()=>{name.textContent='No file selected';});
+}
+function clearPickedFile(id){
+ const file=$(id);
+ file.value='';
+ file.previousElementSibling.textContent='No file selected';
+}
+// Keep HTML constraints active, with wallet-owned feedback in every browser locale.
+for(const form of document.forms){
+ if(form.noValidate)continue;
+ for(const field of form.querySelectorAll('input[required],input[pattern],input[minlength]')){
+  if(!field.title)field.title=field.labels?.[0]?.textContent.trim()||'Enter a value.';
+ }
+ const message=document.createElement('p');
+ message.id=form.id+'-field-error';
+ message.className='hint';
+ message.setAttribute('role','alert');
+ let activeField=null;
+ function clearFieldError(){
+  if(!activeField)return;
+  const ids=(activeField.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id&&id!==message.id);
+  if(ids.length)activeField.setAttribute('aria-describedby',ids.join(' '));
+  else activeField.removeAttribute('aria-describedby');
+  activeField.removeAttribute('aria-invalid');
+  message.remove();
+  activeField=null;
+ }
+ form.addEventListener('invalid',event=>{
+  event.preventDefault();
+  const field=event.target;
+  if(field!==form.querySelector(':invalid'))return;
+  clearFieldError();
+  const label=field.labels?.[0]?.textContent.trim()||'Field';
+  let hint='Check the value entered.';
+  if(field.validity.valueMissing){
+   const prompts={'external-tx':'Enter the transaction ID.','external-address':'Enter the expected receiving address.'};
+   hint=prompts[field.id]||label+' is required.';
+  }
+  else if(field.validity.tooShort)hint='Enter at least '+field.minLength+' characters.';
+  else if(field.validity.patternMismatch&&field.id==='node-link-id')hint='Enter 64 lowercase hexadecimal characters (0–9, a–f).';
+  message.textContent=hint;
+  (field.closest('label')||field).after(message);
+  activeField=field;
+  field.setAttribute('aria-invalid','true');
+  field.setAttribute('aria-describedby',[field.getAttribute('aria-describedby'),message.id].filter(Boolean).join(' '));
+  field.focus();
+ },true);
+ form.addEventListener('input',event=>{if(event.target===activeField)clearFieldError();});
+ form.addEventListener('reset',clearFieldError);
+ form.addEventListener('submit',clearFieldError,true);
+}
 // Keep native values and change events as the form contract; render the menu
 // ourselves so Windows/WebView selection colours cannot override the theme.
 function enhanceWalletSelect(select){
@@ -686,8 +784,8 @@ function renderWaiting(){
  if(operation){$('connection-help').hidden=false;$('connection-help').textContent=operation;}
  else if(s?.checkedAt&&!s.error){$('connection-help').hidden=!s.working;$('connection-help').textContent=s.working?'Checking current network data…':'';}
 }
-function operationLabel(path){return ({'/send':'Sending your payment…','/quote':'Preparing your payment…','/history':'Loading payment history…','/assets':'Loading balances…','/unlock':'Opening your wallet…','/create':'Creating your wallet…','/restore':'Restoring your wallet…','/lock':'Finishing the current operation…','/select-wallet':'Switching wallet…','/backup':'Preparing your encrypted backup…','/nodes':'Loading your nodes…'})[path]||'Processing your request…';}
-async function api(path,data){const pending=Symbol();if(!['/status','/authorize-action'].includes(path)){pendingOperations.set(pending,operationLabel(path));renderWaiting();}try{const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(['/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund','/seller/start'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok){const e=Error(v.error);if(v.paymentOutcome==='not_created')e.paymentOutcome=v.paymentOutcome;throw e;}if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}finally{pendingOperations.delete(pending);renderWaiting();}}
+function operationLabel(path){return ({'/send':'Sending your payment…','/quote':'Preparing your payment…','/history':'Loading payment history…','/assets':'Loading balances…','/unlock':'Opening your wallet…','/create':'Creating your wallet…','/restore':'Restoring your wallet…','/lock':'Finishing the current operation…','/select-wallet':'Switching wallet…','/change-password':'Updating your wallet password…','/backup':'Preparing your encrypted backup…','/nodes':'Loading your nodes…'})[path]||'Processing your request…';}
+async function api(path,data){const pending=Symbol();if(!['/status','/authorize-action','/external/prices','/external/receipt'].includes(path)){pendingOperations.set(pending,operationLabel(path));renderWaiting();}try{const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(path==='/status'&&!document.querySelector('[data-screen="network"]').hidden)headers['X-DueByte-Analytics']='1';if(['/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund','/seller/start'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok){const e=Error(v.error);if(v.paymentOutcome==='not_created')e.paymentOutcome=v.paymentOutcome;throw e;}if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}finally{pendingOperations.delete(pending);renderWaiting();}}
 function renderPaymentTariff(s){const t=s.paymentTariff,p=t?.active,fmt=n=>(Number(n)/1000000).toFixed(6).replace(/0+$/,'').replace(/\.$/,'');let text=!t?'Waiting for the verified network tariff.':!p?'Current legacy network fee: 3%, rounded up to the smallest supported unit.':p.version==='DUEBYTE_PAYMENT_FEE_006_V2'?'Network fee: 0.06% of the payment, with a minimum of '+fmt(p.baseMicro)+' DUBYT. The larger amount applies; there is no upper fee cap or extra fee for coverage parts. Amounts round up to 0.000001 DUBYT. The initial minimum uses $1 per DUBYT as a planning reference, not a promised exchange rate. On expiry or cancellation, '+fmt(String(Math.ceil(Number(p.baseMicro)/10)))+' DUBYT of the quoted fee is retained; the remaining quoted fee is released.':'Legacy network fee: 0.001%, minimum '+fmt(p.baseMicro)+', base-fee cap '+fmt(p.capMicro)+' DUBYT, plus '+fmt(p.additionalPartMicro)+' DUBYT per additional coverage part.';if(t?.pending)text+=' A new tariff is scheduled for '+new Date(t.pending.activation*1000).toISOString()+'.';$('fee-help').textContent=text+' Review the exact total before signing. BTC and Ethereum fees are separate.';}
 function moneyText(record,key){return record?.display?.[key]??((record?.unitScale??'1')==='1'?record?.[key]:'—');}
 function connectionHealth(health){const verified=health==='verified',text=verified?'Data verified':health==='attention'?'Data not verified':'Verifying data',help=health==='attention'?'Check the node connection. Verification will retry automatically.':'Please wait for the first verification to finish.';$('sync').dataset.health=health;if($('phase').textContent!==text)$('phase').textContent=text;$('connection-help').hidden=verified;if($('connection-help').textContent!==help)$('connection-help').textContent=help;}
@@ -717,6 +815,7 @@ function renderEntry(s){
  $('password-help').textContent=fresh?'Use at least 12 characters. Keep this password separate from your encrypted backup.':'Enter the password for the selected wallet. There is no password reset service.';
  $('create').hidden=!fresh;$('unlock').hidden=!open||!s.hasVault;$('cancel-create').hidden=!fresh;for(const id of ['create','unlock','cancel-create','restore-wallet','restore-back','choose-file'])$(id).disabled=submitting;
  $('create').textContent=submitting?'Creating wallet…':'Create wallet';
+ if($('password-dialog').open&&(s.locked||s.activeWallet!==passwordWallet))$('password-dialog').close();
  if(!s.locked){clearEntrySecrets();creating=false;}
 }
 function clearEntrySecrets(){for(const id of ['password','confirm-password','restore-password']){$(id).value='';$(id).removeAttribute('aria-invalid');}resetPasswordVisibility();}
@@ -759,7 +858,32 @@ $('switch-wallet').title='Lock this wallet and choose another saved wallet';$('l
 const screens={overview:['Wallet overview','Check your available balance, then send or receive a payment.'],send:['Send payment','Enter the recipient and amount, review the total, then confirm.'],receive:['Receive','Share your public address. Your password and private key stay private.'],activity:['Payment activity','Follow the original payment until it is confirmed or its reservation is released.'],exchange:['Exchange','Buy DUBYT with Bitcoin or USDC when an offer is available.'],network:['Network analytics','Inspect the latest verified snapshot. These figures are not live market prices or speed estimates.'],security:['Security','Protect access to your wallet and understand each payment option.']};
 screens.collateral=['My nodes','See your nodes, deposited collateral and rewards.'];
 const collateralTab=document.createElement('button');collateralTab.dataset.tab='collateral';collateralTab.textContent='My nodes';document.querySelector('[data-tab=security]').before(collateralTab);
-function selectTab(name){if(!screens[name])return;const changed=document.querySelector('nav [data-tab][aria-current=page]')?.dataset.tab!==name;for(const b of document.querySelectorAll('[data-tab]')){if(b.dataset.tab===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}for(const p of document.querySelectorAll('[data-screen]'))p.hidden=p.dataset.screen!==name;$('screen-title').textContent=screens[name][0];$('screen-help').textContent=name==='exchange'&&lastStatus?.features?.twoWayExchange?'Buy or sell DUBYT with Bitcoin or USDC on the supported test route.':screens[name][1];delete $('notice').dataset.kind;$('notice').textContent='';if(changed)document.querySelector('main').scrollTop=0;if(name==='collateral'&&changed)void loadNodeConnections();}
+screens.external=['External assets','View reference prices and check transfers on their original networks.'];
+const externalTab=document.createElement('button');externalTab.dataset.tab='external';externalTab.textContent='External assets';document.querySelector('[data-tab=exchange]').before(externalTab);
+const passwordDialog=$('password-dialog'),passwordForm=$('password-change-form');
+let passwordWallet=null;
+$('open-password-change').onclick=()=>{
+ if(!lastStatus?.activeWallet||lastStatus.locked)return;
+ passwordWallet=lastStatus.activeWallet;passwordForm.reset();$('password-error').textContent='';
+ passwordDialog.showModal();$('old-secret').focus();
+};
+passwordDialog.onclose=()=>{passwordWallet=null;passwordForm.reset();$('password-error').textContent='';};
+passwordDialog.oncancel=event=>{if($('save-password').disabled)event.preventDefault();};
+$('cancel-password').onclick=()=>passwordDialog.close();
+passwordForm.onsubmit=async event=>{
+ event.preventDefault();
+ if($('save-password').disabled)return;
+ const walletId=passwordWallet,newPassword=$('new-secret').value;
+ if(newPassword!==$('repeat-secret').value){$('password-error').textContent='The new passwords do not match.';$('repeat-secret').focus();return;}
+ $('save-password').disabled=true;$('cancel-password').disabled=true;
+ try{
+  const result=await api('/change-password',{walletId,currentPassword:$('old-secret').value,newPassword});
+  if(result.changed!==true)throw Error('The wallet did not confirm the password change.');
+  if(passwordDialog.open&&passwordWallet===walletId){passwordDialog.close();$('notice').textContent='Password changed. Save a new encrypted backup.';}
+ }catch(error){if(passwordDialog.open&&passwordWallet===walletId)$('password-error').textContent=error.message;}
+ finally{$('save-password').disabled=false;$('cancel-password').disabled=false;}
+};
+function selectTab(name){if(!screens[name])return;if(name!=='security'&&passwordDialog.open)passwordDialog.close();const changed=document.querySelector('nav [data-tab][aria-current=page]')?.dataset.tab!==name;for(const b of document.querySelectorAll('[data-tab]')){if(b.dataset.tab===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}for(const p of document.querySelectorAll('[data-screen]'))p.hidden=p.dataset.screen!==name;$('screen-title').textContent=screens[name][0];$('screen-help').textContent=name==='exchange'&&lastStatus?.features?.twoWayExchange?'Buy or sell DUBYT with Bitcoin or USDC on the supported test route.':screens[name][1];delete $('notice').dataset.kind;$('notice').textContent='';if(changed)document.querySelector('main').scrollTop=0;if(name==='collateral'&&changed)void loadNodeConnections();}
 for(const b of document.querySelectorAll('[data-tab],[data-go]')){b.onclick=()=>selectTab(b.dataset.tab||b.dataset.go);if(b.dataset.tab){const icon=document.createElement('span');icon.className='nav-icon';icon.setAttribute('aria-hidden','true');const paths={overview:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M9 10h12"/>',send:'<path d="M6 18 18 6M6 6h12v12"/>',receive:'<path d="M18 6 6 18M6 6v12h12"/>',activity:'<path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/>',exchange:'<path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/>',network:'<circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="m11 7-5 10m7-10 5 10M7 19h10"/>',security:'<path d="m12 3 8 3v5c0 5-8 10-8 10S4 16 4 11V6Z"/><path d="m8 12 3 3 5-6"/>'};icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+paths[b.dataset.tab]+'</svg>';b.prepend(icon);}}
 collateralTab.querySelector('.nav-icon').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>';
 function resetPasswordVisibility(){for(const id of ['password','confirm-password','restore-password']){const input=$(id),b=input.parentElement.querySelector('.password-toggle');input.type='password';b?.setAttribute('aria-label','Show password');if(b)b.title='Show password';b?.setAttribute('aria-pressed','false');}}
@@ -796,8 +920,35 @@ function renderHistoryPager(total,pages,pending){
 }
 function renderDelayAvailability(s){const enabled=!!s.features?.delayedPayments&&!s.error&&!!s.checkedAt;$('delayed-send').disabled=!enabled;$('setup-delayed').disabled=!enabled;$('delayed-help').textContent=enabled?'After preparation, the network reserves this payment for 24 hours. Cancel it in Activity before execution. The release fee is shown before confirmation and never exceeds the network fee or 1 DUBYT.':s.features?.delayedPayments?'Verification is unavailable. Delayed sending is paused.':'Delayed sending awaits activation of the network upgrade.';}
 function utc(seconds){return new Date(seconds*1000).toLocaleString('en-GB',{timeZone:'UTC'})+' UTC';}
-const chartPanel=document.createElement('section');chartPanel.innerHTML='<h2>Verified history</h2><p id="history-summary" class="hint">Successful verification checks will appear here.</p><svg id="history-chart" viewBox="0 0 800 100" preserveAspectRatio="none" role="img" aria-label="Verified block height at successful checks in this session"><path d="M0 10H800 M0 50H800 M0 90H800" stroke="var(--border)" fill="none" stroke-width="0.5"/><polyline id="history-line"></polyline><circle id="history-point" r="3" fill="currentColor" cx="4" cy="90"/></svg><p class="hint">Last 60 successful checks · this session. Block height, not transaction throughput.</p>';$('network-metrics').after(chartPanel);const samples=[];
-function historySample(s){if(!s.analytics||!s.checkedAt||s.error||samples.at(-1)?.at===s.checkedAt)return;samples.push({at:s.checkedAt,height:Number(s.analytics.height)});if(samples.length>60)samples.shift();const min=Math.min(...samples.map(x=>x.height)),max=Math.max(...samples.map(x=>x.height));$('history-line').setAttribute('points',samples.map((x,i)=>(i*800/Math.max(1,samples.length-1))+','+(90-(x.height-min)*80/Math.max(1,max-min))).join(' '));const last=samples.at(-1);$('history-point').setAttribute('cx',samples.length===1?'4':'796');$('history-point').setAttribute('cy',String(90-(last.height-min)*80/Math.max(1,max-min)));$('history-summary').textContent=samples.length+' successful check'+(samples.length===1?'':'s')+' · blocks '+min.toLocaleString('en-US')+'–'+max.toLocaleString('en-US');}
+const chartPanel=document.createElement('section');
+chartPanel.id='verification-activity';
+chartPanel.innerHTML=`<h2>Network activity</h2><p id="history-summary" class="hint" aria-live="off"></p>
+<p class="plot-heading">Observed block rate <strong id="block-rate"></strong></p>
+<svg id="history-chart" class="history-plot" role="img"></svg>
+<p class="plot-heading">Five-interval average <strong id="block-average"></strong></p>
+<svg id="average-chart" class="history-plot" role="img"></svg>
+<p class="plot-heading">My node traffic <strong id="transfer-rate"></strong></p>
+<svg id="wallet-traffic" class="history-plot" role="img"></svg>
+<p class="hint"><span class="bar-label">— Incoming</span> · <span class="trend-label">┄ Outgoing</span><br><span id="traffic-scope"></span></p>`;
+$('network-metrics').after(chartPanel);
+let plottedActivity='';
+function historySample(s){
+ if(!chartPanel.clientWidth)return;
+ const data=s.nodeActivity,points=data?.points??[],last=points.at(-1);
+ const paused=!!s.error||data?.visible===false;
+ const key=[data?.revision,last?.at,chartPanel.clientWidth,paused].join('/');
+ if(key===plottedActivity)return;
+ plottedActivity=key;
+ const {drawChart,formatValue}=globalThis.DueBytePlots;
+ $('history-summary').textContent=paused?'Verification paused.':last?'Rates use elapsed time between verified checks. Up to five minutes, shown in local time.':'Waiting for the first measured interval.';
+ $('block-rate').textContent=last?formatValue(last.rate)+' blocks/min':'—';
+ $('block-average').textContent=Number.isFinite(last?.average)?formatValue(last.average)+' blocks/min':points.length+' / 5 intervals';
+ $('transfer-rate').textContent=formatValue(last?.incoming)+' ↓ / '+formatValue(last?.outgoing)+' ↑ KiB/s';
+ $('traffic-scope').textContent=data?.mode==='peers'?'Peer traffic measured on this device.':'Incoming and outgoing verification HTTP traffic on this device.';
+ drawChart($('history-chart'),points,['rate'],'blocks/min','Block production rate');
+ drawChart($('average-chart'),points,['average'],'blocks/min','Average block rate over five intervals');
+ drawChart($('wallet-traffic'),points,['incoming','outgoing'],'KiB/s','This node’s measured traffic');
+}
 function renderRecords(rows){
  if(historyOwner!==lastStatus?.owner||lastStatus?.locked){historyOwner=lastStatus?.owner;remoteHistory=null;historyPage=1;historyIds=[];}
  const remote=remoteHistory??lastStatus?.indexedHistory;
@@ -842,7 +993,7 @@ function paymentRecordElement(p){
   if(p.canCancel&&!p.cancellationPending){const button=element('button','Cancel payment');button.type='button';button.disabled=submitting||!!lastStatus?.error||!lastStatus?.checkedAt;button.onclick=()=>{cancelReview=p;$('cancel-copy').textContent='Payment: '+moneyText(p,'value')+' DUBYT. Release fee: '+moneyText(p,'cancelFee')+' DUBYT. The remaining reserved funds return to your wallet.';$('cancel-error').textContent='';$('cancel-review').showModal();};li.append(button);}
   if(p.cancellationPending)li.append(element('p','Waiting for network confirmation. The payment is not cancelled yet.','hint'));return li;
 }
-function renderAnalytics(s){historySample(s);const a=s.analytics,k=JSON.stringify([a,!!s.error]);if(k===analyticsKey)return;analyticsKey=k;$('network-metrics').replaceChildren();if(!a){$('analytics-scope').textContent='Waiting for a verified network snapshot.';$('verified-hash').textContent='';return;}const head=document.createElement('thead'),tr=document.createElement('tr');for(const label of ['Metric','Value','Description'])tr.append(element('th',label));head.append(tr);const body=document.createElement('tbody');$('network-metrics').append(head,body);for(const [label,value,hint] of [['Verified block',a.height,'Confirmed consensus header'],['State block',a.appHeight,'State certified by that header'],['Confirmed payments',a.settled,'Records in the retained state'],['Confirmed volume',a.volume,'DUBYT in retained payment records'],['Reserved payments',a.reserved,'Awaiting finalization or expiry'],['Released reservations',a.expired,'Records in the retained state'],['Worker records',a.workerSeats,'Logical entries, not physical servers'],['Live outputs',a.outputs,'Unspent balance records'],['Issued supply',a.supply,'DUBYT in the verified state']]){const row=element('tr','','metric'),name=element('th',a.scope==='owner'&&['Reserved payments','Live outputs'].includes(label)?'Your '+label.toLowerCase():label);name.scope='row';row.append(name,element('td',value==null?'—':label==='Confirmed volume'?moneyText(a,'volume'):label==='Issued supply'?moneyText(a,'supply'):BigInt(value).toLocaleString('en-US'),'numeric'),element('td',hint,'description'));body.append(row);}$('analytics-scope').textContent=(s.error?'Last verified snapshot; current verification is unavailable. ':'')+(a.scope==='owner'?'Balances and active payments cover this wallet. Supply covers the network. Network worker counts and historical totals are unavailable in this view.':'Counts describe retained verified records, not a complete lifetime archive. Updated after successful verification.');$('verified-hash').textContent='Block hash: '+a.blockHash+'\nCheckpoint: '+a.checkpoint;}
+function renderAnalytics(s){historySample(s);const a=s.analytics,k=JSON.stringify([a,!!s.error]);if(k===analyticsKey)return;analyticsKey=k;$('network-metrics').replaceChildren();if(!a){$('analytics-scope').textContent='Waiting for a verified network snapshot.';$('verified-hash').textContent='';return;}const head=document.createElement('thead'),tr=document.createElement('tr');for(const label of ['Metric','Value','Description'])tr.append(element('th',label));head.append(tr);const body=document.createElement('tbody');$('network-metrics').append(head,body);for(const [label,value,hint] of [['Verified block',a.height,'Confirmed consensus header'],['State block',a.appHeight,'State certified by that header'],['Confirmed payments',a.settled,'Payments settled across the network'],['Confirmed volume',a.volume,'DUBYT transferred across the network'],['Reserved payments',a.reserved,'Awaiting finalization or expiry'],['Live outputs',a.outputs,'Unspent balance records'],['Issued supply',a.supply,'DUBYT in the verified state']]){const row=element('tr','','metric'),name=element('th',a.scope==='owner'&&['Reserved payments','Live outputs'].includes(label)?'Your '+label.toLowerCase():label);name.scope='row';row.append(name,element('td',value==null?(a.networkStatus==='retry'?'Retrying…':'Updating…'):label==='Confirmed volume'?moneyText(a,'volume'):label==='Issued supply'?moneyText(a,'supply'):BigInt(value).toLocaleString('en-US'),'numeric'),element('td',hint,'description'));body.append(row);}$('analytics-scope').textContent=(s.error?'Last verified snapshot; current verification is unavailable. ':'')+(a.scope==='owner'?'Reserved payments and live outputs cover this wallet. The other figures cover the verified network.':'Counts describe retained verified records, not a complete lifetime archive. Updated after successful verification.');$('verified-hash').textContent='Block hash: '+a.blockHash+'\nCheckpoint: '+a.checkpoint;}
 async function copyPublicText(address){
  if(typeof address!=='string'||!/^[A-Za-z0-9_-]{14,196}$/.test(address))throw Error('Invalid public address');
  if(window.sunphiNode?.request){const result=await window.sunphiNode.request('copy-public-address',{address});if(!result?.ok)throw Error(result?.error||'Copy unavailable');return;}
@@ -880,7 +1031,7 @@ $('restore-wallet').onclick=async()=>{
  submitting=true;renderEntry(lastStatus);$('restore-message').textContent='Restoring your encrypted backup…';
  try{let backup;try{backup=JSON.parse(await f.text());}catch{throw Error('This file is not valid JSON. Select a DueByte encrypted backup.');}
  const previousIds=(lastStatus.wallets||[]).map(w=>w.id),s=await api('/restore',{backup,password,name:$('restore-name').value});
- entryMode='open';clearEntrySecrets();$('restore-file').value='';paint(s);$('form-message').textContent=previousIds.includes(s.selectedWallet)?'This wallet is already saved. Enter its current password to unlock it.':'Backup restored. Enter its password to unlock the selected wallet.';
+ entryMode='open';clearEntrySecrets();clearPickedFile('restore-file');paint(s);$('form-message').textContent=previousIds.includes(s.selectedWallet)?'This wallet is already saved. Enter its current password to unlock it.':'Backup restored. Enter its password to unlock the selected wallet.';
  }catch(e){$('restore-message').textContent=e.message.includes('authenticate')?'Incorrect password or damaged backup.':e.message;}
  finally{submitting=false;if(lastStatus)renderEntry(lastStatus);}
 };
@@ -947,7 +1098,7 @@ function showBondTerms(amount,p){
 }
 async function openBond(node){
  const seq=++bondSequence,current=noticeContext();
- bondNode=node;resetBondReview();$('bond-file').value='';$('bond-recover').hidden=true;
+ bondNode=node;resetBondReview();clearPickedFile('bond-file');$('bond-recover').hidden=true;
  showBondLine('Worker',node,'address');$('bond-status').textContent='Open the request for this server to review its bond.';
  $('bond-dialog').showModal();
  try{const info=await api('/bond/overview',{node});if(seq===bondSequence&&current()){showBondTerms(info.amount,info.policy);$('bond-recover').hidden=!info.hasSaved;}}
@@ -987,7 +1138,7 @@ $('bond-recover').onclick=async()=>{
  }}catch(e){if(seq===bondSequence&&current())$('bond-status').textContent=e.message;}
 };
 $('bond-back').onclick=()=>$('bond-dialog').close();
-$('bond-dialog').onclose=()=>{++bondSequence;bondNode=null;resetBondReview();$('bond-file').value='';};
+$('bond-dialog').onclose=()=>{++bondSequence;bondNode=null;resetBondReview();clearPickedFile('bond-file');};
 
 function collateralLine(label,value){return element('p',label+': '+(value===null?'Not verified':value+' DUBYT'),'hint');}
 function nodeAmount(value){const amount=element('strong',value==null?'Not verified':value);if(value!=null)amount.append(document.createTextNode(' '),element('span','DUBYT','amount-unit'));return amount;}
@@ -1019,32 +1170,80 @@ async function loadNodeConnections(){if(lastStatus?.locked)return;if(lastStatus?
 async function openCollateral(node){$('collateral-editor').open=true;await loadCollateral();if(node&&collateralData?.nodes.some(n=>n.id===node)){collateralChoice=node;$('collateral-selected').textContent='Server '+node.slice(0,12);$('collateral-node-id').textContent=node;$('collateral-picker').open=false;renderCollateralState(lastStatus);}$('collateral-editor').scrollIntoView({block:'start'});}
 $('collateral-editor').addEventListener('toggle',()=>{if($('collateral-editor').open&&!collateralData&&!submitting)void loadCollateral();});
 $('nodes-refresh').onclick=loadNodeConnections;
-let serverConsentReview=null;
+let serverConsentReview=null,serverReceipt=null,serverReceiptTimer;
+$('open-server-rewards').onclick=()=>{selectTab('collateral');$('server-receive-id').focus();};
 function clearServerConsent(){
- serverConsentReview=null;
+ clearTimeout(serverReceiptTimer);serverConsentReview=null;serverReceipt=null;
+ $('server-receive-check').textContent='Check invitation';
  $('server-receive-status').textContent='';$('server-receive-dialog').close();
 }
-$('server-receive-id').oninput=clearServerConsent;
+const serverId=$('server-receive-id');
+serverId.oninput=()=>{
+ clearServerConsent();
+ serverId.value=serverId.value.trim().toLowerCase();
+ if(/^[a-f0-9]{64}$/.test(serverId.value))$('server-receive-form').requestSubmit();
+ else if(serverId.value)$('server-receive-status').textContent='Copy the complete 64-character reward node ID from your Linux installer.';
+};
+async function checkServerReceipt(receipt,attempt=0){
+ clearTimeout(serverReceiptTimer);
+ const current=()=>serverReceipt===receipt&&!lastStatus?.locked&&lastStatus?.owner===receipt.wallet&&serverId.value===receipt.node;
+ if(!current()||receipt.checking)return;
+ receipt.checking=true;
+ try{
+  const result=await api('/nodes/review',{node:receipt.node,operation:'receipt'});
+  if(!current())return;
+  if(result.confirmed&&result.body.wallet===receipt.wallet){
+   $('server-receive-status').textContent='Connected at block '+result.height+'. Future rewards go to '+receipt.wallet+'.';
+   $('server-receive-check').textContent='Check connection';void loadNodeConnections();return;
+  }
+  $('server-receive-status').textContent='Signature submitted. Waiting for confirmation in a block.';
+ }catch(e){if(current())$('server-receive-status').textContent='Signature submitted. '+e.message;}
+ finally{receipt.checking=false;}
+ if(!current())return;
+ if(attempt<4)serverReceiptTimer=setTimeout(()=>void checkServerReceipt(receipt,attempt+1),5000);
+ else $('server-receive-status').textContent='Confirmation is still pending. Select Check connection to verify again.';
+}
 $('server-receive-form').onsubmit=async event=>{
- event.preventDefault();if(submitting||lastStatus?.locked)return;clearServerConsent();submitting=true;
+ event.preventDefault();
+ if(serverReceipt&&serverReceipt.wallet===lastStatus?.owner){void checkServerReceipt(serverReceipt);return;}
+ if(submitting||lastStatus?.locked){$('server-receive-status').textContent='Finish the current wallet action, then select Check invitation.';return;}
+ clearServerConsent();submitting=true;serverId.readOnly=true;
  try{
   const node=$('server-receive-id').value.trim(),owner=lastStatus.owner;
+  $('server-receive-status').textContent='Checking your wallet and the server invitation…';
   const review=await api('/nodes/review',{node,operation:'receive'});
   if(lastStatus.locked||owner!==lastStatus.owner||review.body.wallet!==owner||node!==$('server-receive-id').value.trim())throw Error('Review the server again.');
   if(review.confirmed){$('server-receive-status').textContent='Verified at block '+review.height+': '+owner+' receives rewards for '+node+'.';return;}
-  if(review.waiting){$('server-receive-status').textContent=review.reason+' Checked at block '+review.height+'.';return;}
+  if(review.waiting){$('server-receive-status').textContent=review.reason+' Checked at block '+review.height+'. Select Check invitation after the installer shows the invitation for this wallet.';return;}
   serverConsentReview=review;
-  $('server-receive-review').textContent=review.network+' · Node '+node+' · Wallet '+owner+' · '+(review.registered?'Registered':'Awaiting server registration')+' at block '+review.height;
+  $('server-receive-status').textContent='Review the server and wallet address in the confirmation window.';
+  $('server-receive-review').textContent=node;
+  $('server-receive-wallet').textContent=owner;
+  if(serverId.closest('[data-screen]').hidden){clearServerConsent();return;}
   $('server-receive-dialog').showModal();
- }catch(e){$('server-receive-status').textContent=e.message;}finally{submitting=false;}
+ }catch(e){$('server-receive-status').textContent=e.message;}finally{submitting=false;serverId.readOnly=false;}
 };
-$('server-receive-back').onclick=clearServerConsent;
+function dismissServerReview(){
+ if(submitting)return;
+ clearServerConsent();
+ $('server-receive-status').textContent='Review closed. Select Check invitation when you are ready to sign.';
+}
+$('server-receive-back').onclick=dismissServerReview;
+$('server-receive-dialog').oncancel=e=>{e.preventDefault();dismissServerReview();};
 $('server-receive-sign').onclick=async()=>{
- if(submitting||!serverConsentReview)return;const review=serverConsentReview;submitting=true;
+ if(submitting||!serverConsentReview)return;const review=serverConsentReview;
+ if(lastStatus?.locked||lastStatus?.owner!==review.body.wallet){clearServerConsent();return;}
+ submitting=true;
  try{
   const result=await api('/nodes/confirm',{id:review.id});
   if(lastStatus.locked||review.body.wallet!==lastStatus.owner||review!==serverConsentReview)throw Error('Wallet changed. Review again.');
-  if(result.submitted)$('server-receive-status').textContent='Submitted. Select Review server again to verify the recipient in a committed block.';
+  if(result.submitted){
+   serverReceipt={node:review.body.node,wallet:review.body.wallet};
+   $('server-receive-check').textContent='Check connection';
+   $('server-receive-status').textContent='Signature submitted. Checking the blockchain…';
+   const receipt=serverReceipt;
+   serverReceiptTimer=setTimeout(()=>void checkServerReceipt(receipt),1000);
+  }
  }catch(e){$('server-receive-status').textContent=e.message;}finally{serverConsentReview=null;submitting=false;$('server-receive-dialog').close();}
 };
 async function reviewNodeLink(operation){if(submitting||lastStatus?.locked)return;submitting=true;nodeLinkReview=null;const owner=lastStatus.owner;try{const r=await api('/nodes/review',{node:$('node-link-id').value.trim(),operation});if(lastStatus.locked||lastStatus.owner!==owner)throw Error('Wallet changed. Review again.');nodeLinkReview=r;$('node-link-summary').textContent=operation.toUpperCase()+' | '+r.body.node+' | Wallet '+r.body.wallet;$('node-link-code').textContent=r.code;$('node-link-warning').textContent=r.lastWallet?'This is the last payout wallet. Confirmed future earnings will wait until a wallet is linked. Collateral remains with the server.':'Current balances and collateral ownership stay unchanged.';$('node-link-error').textContent='';$('node-link-confirm').disabled=false;$('node-link-dialog').showModal();}catch(e){$('nodes-status').textContent=e.message;}finally{submitting=false;}}
@@ -1054,8 +1253,8 @@ $('node-link-confirm').onclick=async()=>{if(submitting||!nodeLinkReview)return;s
 $('node-alert-review').onclick=async()=>{if(submitting||lastStatus?.locked)return;submitting=true;const current=noticeContext();try{const r=await api('/node-alerts/review',{node:$('node-link-id').value.trim()});if(!current())return;nodeLinkReview={...r,kind:'alerts'};$('node-link-summary').textContent='SERVER NOTICES | '+r.body.node+' | Account '+r.body.account;$('node-link-code').textContent=r.code;$('node-link-warning').textContent='Allow server notices in this account. This does not allow spending, change payouts or move collateral. Notices stay on after payout unlink.';$('node-link-error').textContent='';$('node-link-confirm').disabled=false;$('node-link-dialog').showModal();}catch(e){if(current())$('node-alert-message').textContent=e.message;}finally{submitting=false;}};
 $('node-alert-status').onclick=async()=>{if(submitting||lastStatus?.locked)return;submitting=true;const current=noticeContext();nodeAlertStatus=null;$('node-alert-stop').disabled=true;try{const node=$('node-link-id').value.trim(),r=await api('/node-alerts/status',{node});if(!current())return;nodeAlertStatus={node,revision:r.revision};$('node-alert-message').textContent=r.enabled?'Server notices are on. Observer state: '+r.status:'Server notices are off. '+r.status;$('node-alert-stop').disabled=!r.enabled;}catch(e){if(current())$('node-alert-message').textContent=e.message;}finally{submitting=false;}};
 $('node-alert-stop').onclick=async()=>{if(submitting||!nodeAlertStatus||lastStatus?.locked)return;submitting=true;const current=noticeContext();try{await api('/node-alerts/stop',nodeAlertStatus);if(!current())return;$('node-alert-message').textContent='Server notices are off. Payouts and collateral are unchanged.';$('node-alert-stop').disabled=true;nodeAlertStatus=null;}catch(e){if(current())$('node-alert-message').textContent=e.message;}finally{submitting=false;}};
-$('node-alert-approval').onchange=async()=>{const f=$('node-alert-approval').files[0];$('node-alert-approval').value='';if(!f||submitting||lastStatus?.locked)return;submitting=true;const current=noticeContext();try{if(f.size>12000)throw Error('Approval file is too large.');const approval=JSON.parse(await f.text());if(!current())return;const r=await api('/node-alerts/activate',{approval});if(!current())return;$('node-alert-message').textContent=r.enabled?'Server notices enabled. The server observer will check conditions independently of this computer.':'Server notices remain off.';}catch(e){if(current())$('node-alert-message').textContent=e.message;}finally{submitting=false;}};
-$('node-link-approval').onchange=async()=>{const f=$('node-link-approval').files[0];$('node-link-approval').value='';if(!f||submitting||lastStatus?.locked)return;submitting=true;const owner=lastStatus.owner;try{if(f.size>12000)throw Error('Approval file is too large.');const r=await api('/nodes/check',{action:JSON.parse(await f.text())});if(lastStatus.locked||lastStatus.owner!==owner)return;$('nodes-status').textContent='Both signatures verified for '+r.node+'. '+r.reason+' Nothing has been submitted.';}catch(e){$('nodes-status').textContent=e.message;}finally{submitting=false;}};
+$('node-alert-approval').onchange=async()=>{const f=$('node-alert-approval').files[0];clearPickedFile('node-alert-approval');if(!f||submitting||lastStatus?.locked)return;submitting=true;const current=noticeContext();try{if(f.size>12000)throw Error('Approval file is too large.');const approval=JSON.parse(await f.text());if(!current())return;const r=await api('/node-alerts/activate',{approval});if(!current())return;$('node-alert-message').textContent=r.enabled?'Server notices enabled. The server observer will check conditions independently of this computer.':'Server notices remain off.';}catch(e){if(current())$('node-alert-message').textContent=e.message;}finally{submitting=false;}};
+$('node-link-approval').onchange=async()=>{const f=$('node-link-approval').files[0];clearPickedFile('node-link-approval');if(!f||submitting||lastStatus?.locked)return;submitting=true;const owner=lastStatus.owner;try{if(f.size>12000)throw Error('Approval file is too large.');const r=await api('/nodes/check',{action:JSON.parse(await f.text())});if(lastStatus.locked||lastStatus.owner!==owner)return;$('nodes-status').textContent='Both signatures verified for '+r.node+'. '+r.reason+' Nothing has been submitted.';}catch(e){$('nodes-status').textContent=e.message;}finally{submitting=false;}};
 function renderCollateralState(s){
  renderFundingRequests(s.locked?[]:(s.collateralRequests??[]));
  const signature=s.locked?'':JSON.stringify((s.collateralRequests??[]).map(r=>[r.id,r.status]));if(signature!==fundingSignature){fundingSignature=signature;if(!s.locked&&(s.collateralRequests??[]).some(r=>r.status==='COMMITTED')&&!submitting&&!s.working&&!document.querySelector('[data-screen=collateral]').hidden)void loadCollateral();}
@@ -1225,6 +1424,19 @@ function drawBrokerOrders(){
    if(r?.refundAmount!=null)item.append(element('p','Provider reports refunded · '+r.refundAmount+' '+t.from.symbol,'financial-number'));
    if(r?.amountMismatch)item.append(element('p','The reported payout differs from the fixed-rate review. Keep this order for reconciliation.','hint'));
    for(const [key,label] of [['payinHash','Deposit transaction'],['payoutHash','Payout transaction'],['refundHash','Refund transaction']])if(r?.[key])item.append(element('p',label+' · '+r[key],'hint address'));
+   if(o.review.provider?.endsWith(':production')){
+    for(const [hash,leg,address,label] of [[r?.payoutHash,t.to,t.address,'Check payout on network'],[r?.refundHash,t.from,t.refundAddress,'Check refund on network']]){
+     const route=({'BTC:btc':'btc-bitcoin','USDC:eth':'usdc-ethereum','USDT:eth':'usdt-ethereum'})[leg.symbol+':'+leg.network];
+     if(!hash||!route||!address)continue;
+     const check=element('button',label);check.type='button';
+     check.onclick=()=>{
+      clearReceipt();externalTab.click();$('external-route').value=route;$('external-route').dispatchEvent(new Event('change'));
+      $('external-tx').value=hash;$('external-address').value=address;
+      expectedReceipt=hash===r.payoutHash?r.actualReceive:r.refundAmount;
+      $('external-lookup').requestSubmit();
+     };item.append(check);
+    }
+   }
    const ready=!o.fundingPid&&o.state==='SWAP_WAITING'&&r?.canDeposit&&d?.validUntil>Date.now()&&o.checkedAt>Date.now()-60000&&!o.errorCode;
    if(o.fundingPid)item.append(element('p','Deposit payment saved · '+o.fundingPid+' · Follow this payment in Activity; do not pay again.','hint address'));
    if(ready){
@@ -1356,7 +1568,47 @@ const loadingStyle=document.createElement('style');loadingStyle.textContent=`
 // Keep one bounded request per wallet session; stale responses cannot repaint it.
 let assetsBusy=false,assetsContext=null,assetsAt=0,assetsRows=[],assetsRequest=null,assetsVerification='';
 const emptyAssets=()=>['DUBYT','BTC','USDC','USDT','XMR'].map(asset=>({asset,status:asset==='XMR'?'not-supported':asset==='DUBYT'?'unavailable':'checking',available:null}));
-function resetAssets(){assetsRequest?.abort();assetsRequest=null;assetsBusy=false;assetsContext=null;assetsAt=0;assetsVerification='';drawAssets(emptyAssets());}
+let receiptRevision=0,priceBusy=false,expectedReceipt=null;
+const externalPanel=document.querySelector('[data-screen=external]');
+function clearReceipt(){receiptRevision++;expectedReceipt=null;$('external-result').textContent='';$('external-check').disabled=false;}
+$('external-lookup').addEventListener('input',clearReceipt);
+$('external-route').addEventListener('change',clearReceipt);
+function resetAssets(){clearReceipt();$('external-lookup').reset();$('external-route').dispatchEvent(new Event('change'));assetsRequest?.abort();assetsRequest=null;assetsBusy=false;assetsContext=null;assetsAt=0;assetsVerification='';drawAssets(emptyAssets());}
+async function refreshMarketPrices(){
+ if(priceBusy||externalPanel.hidden||document.hidden||lastStatus?.locked!==false)return;
+ priceBusy=true;
+ try{
+  const {prices}=await api('/external/prices',{});
+  if(!Array.isArray(prices))throw Error();
+  const rows=prices.map(p=>{
+   const tr=document.createElement('tr');
+   const time=p.quotedAt?new Date(p.quotedAt).toISOString().replace('T',' ').slice(0,19)+' UTC':'';
+   const info=[p.source,time,p.status==='stale'?'Older than 5 min':'',p.status==='unavailable'?'Unavailable':''].filter(Boolean).join(' · ');
+   for(const text of [p.asset,p.price??'—',info]){const td=document.createElement('td');td.textContent=text;tr.append(td);}
+   return tr;
+  });
+  $('external-prices').replaceChildren(...rows);$('price-status').textContent='';
+ }catch{$('external-prices').replaceChildren();$('price-status').textContent='Price source unavailable.';}
+ finally{priceBusy=false;}
+}
+externalTab.querySelector('.nav-icon').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>';
+externalTab.addEventListener('click',refreshMarketPrices);
+setInterval(refreshMarketPrices,60000);
+$('external-lookup').onsubmit=async event=>{
+ event.preventDefault();
+ const revision=++receiptRevision,context=purchaseContext();
+ $('external-check').disabled=true;$('external-result').textContent='Checking the external network…';
+ try{
+  const r=await api('/external/receipt',{route:$('external-route').value,txid:$('external-tx').value.trim(),address:$('external-address').value.trim()});
+  if(revision!==receiptRevision||context!==purchaseContext())return;
+  const states={'not-seen':'Transaction not found',pending:'Pending inclusion',confirming:'Awaiting confirmations',confirmed:'Confirmed',failed:'Transaction failed','no-match':'No matching transfer to this address',unavailable:'Source unavailable'};
+  const detail=r.required?r.confirmations+' / '+r.required+' confirmations':r.status==='confirmed'?'Finalized':'';
+  const normalize=value=>String(value).replace(/(\.\d*?[1-9])0+$|\.0+$/,'$1');
+  const comparison=expectedReceipt!=null&&r.received&&normalize(expectedReceipt)!==normalize(r.received)?'Provider reported '+expectedReceipt+' '+r.asset+'; on-chain amount differs':'';
+  $('external-result').textContent=[states[r.status],r.received?r.received+' '+r.asset:r.asset,r.network,detail,comparison,r.source,new Date(r.checkedAt).toISOString().replace('T',' ').slice(0,19)+' UTC'].filter(Boolean).join(' · ');
+ }catch(e){if(revision===receiptRevision)$('external-result').textContent=e.message;}
+ finally{if(revision===receiptRevision)$('external-check').disabled=false;}
+};
 function drawAssets(rows){assetsRows=rows;$('asset-cards').replaceChildren(...rows.map(a=>{const row=element('tr');row.setAttribute('role','row');row.dataset.asset=a.asset;const name=element('th',a.asset==='XMR'?'Monero · XMR':a.asset);name.scope='row';name.setAttribute('role','rowheader');name.className='asset-name';if(a.network&&a.asset!=='DUBYT'){const network=element('span',a.network);network.className='asset-network';name.append(network);}const balance=element('td');balance.setAttribute('role','cell');balance.className='asset-amount';const loading=a.status==='loading'&&a.available==null,value=element('span',a.available??'—');value.className='asset-value'+(loading?' balance-loading':'');value.setAttribute('aria-busy',String(loading));if(loading)value.setAttribute('aria-label','Loading '+a.asset+' balance');balance.append(value);if(a.pending&&a.pending!=='0'){const pending=element('span','Pending: '+a.pending);pending.className='asset-pending';balance.append(pending);}const labels={loading:'Checking balance…',checking:'Checking connection…','not-supported':'Connection not available yet','not-connected':'Wallet not connected',unavailable:'Balance unavailable',stale:'Observation out of date',observed:'Observed on external network',verified:'Verified by DueByte'},status=element('td',labels[a.status]??'Balance unavailable');status.setAttribute('role','cell');status.className='asset-status';const address=element('td');address.setAttribute('role','cell');address.className='asset-address-cell';address.dataset.empty=String(!a.address);if(a.address){const wrap=element('div');wrap.className='asset-address';const text=element('p',a.address);text.className='address';const copy=element('button','Copy');copy.type='button';copy.className='asset-copy';copy.setAttribute('aria-label','Copy '+a.asset+' public address');copy.onclick=()=>copyAddressButton(copy,a.address,$('asset-message'),a.asset+' public address copied.');wrap.append(text,copy);address.append(wrap);}else address.textContent='—';row.append(name,balance,status,address);return row;}));}
 async function loadAssets(force=false){
  const s=lastStatus;if(!s||s.locked){resetAssets();return;}
@@ -1375,5 +1627,5 @@ async function loadAssets(force=false){
  finally{clearTimeout(timeout);pendingOperations.delete(pending);renderWaiting();if(request===assetsRequest){assetsRequest=null;assetsBusy=false;}}
 }
 $('asset-refresh').onclick=()=>void loadAssets(true);
-let polling=false;async function poll(){if(polling)return;polling=true;const session=token;try{const result=await api('/status');if(token!==session)return;paint(result);void loadSeller();void loadAssets();}catch(e){if(token!==session)return;connectionHealth('attention');clearPurchase();$('purchase-prepare').disabled=true;$('send').disabled=true;$('message').textContent='Local wallet unavailable. Check that the node is running.';resetAssets();}finally{polling=false;}}setInterval(poll,1500);void poll();
+let polling=false;async function poll(){if(polling)return;polling=true;const session=token;try{const result=await api('/status');if(token!==session)return;paint(result);void loadSeller();void loadAssets();}catch(e){if(token!==session)return;historySample({error:true});connectionHealth('attention');clearPurchase();$('purchase-prepare').disabled=true;$('send').disabled=true;$('message').textContent='Local wallet unavailable. Check that the node is running.';resetAssets();}finally{polling=false;}}setInterval(poll,1500);void poll();
 </script></body></html>

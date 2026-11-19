@@ -1,17 +1,16 @@
 import assert from 'node:assert/strict';
 
-// One foreground payment waits for the current verifier, then owns the lane.
-// No persisted/autonomous payment queue: expiry or session loss executes nothing.
+// Reserve the next foreground operation while the verifier finishes.
 export class WalletPaymentLane {
  pending=false;
- async run({busy,valid,execute,timeoutMs=10000,pause=ms=>new Promise(r=>setTimeout(r,ms)),now=Date.now}){
-  assert(!this.pending,'A payment operation is already in progress.');
+ async run({busy,valid,execute,timeoutMs=10000,timeoutMessage='Verification is still finishing. No new payment was created. Try again shortly.',pause=ms=>new Promise(r=>setTimeout(r,ms)),now=Date.now}){
+  assert(!this.pending,'A wallet operation is already in progress.');
   this.pending=true;
   try{
    const end=now()+timeoutMs;
    while(busy()){
     assert(valid(),'Wallet session or confirmation changed. Review again.');
-    assert(now()<end,'Verification is still finishing. No new payment was created. Try again shortly.');
+    assert(now()<end,timeoutMessage);
     await pause(50);
    }
    assert(valid(),'Wallet session or confirmation changed. Review again.');

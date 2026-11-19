@@ -19,7 +19,9 @@ import {WalletSessionDrain,WalletPaymentLane} from './wallet-session-drain.mjs';
 const sessionDrain=new WalletSessionDrain(),paymentLane=new WalletPaymentLane();
 import {RewardWorker} from './reward-worker.mjs';
 import {homeAdmissionClient} from './home-admission-service.mjs';
-import {homeVerification} from './home-verification.mjs';
+import {verificationTraffic} from './verification-traffic.mjs';
+import {NetworkActivity} from './consumer-view.mjs';
+import {BOUNDED_HOME,homeVerification} from './home-verification.mjs';
 import {recoveryPresentation} from './home-recovery.mjs';
 import {SunPhiConnection} from './sunphi-connection.mjs';
 import {SunPhiApproval} from './sunphi-approval.mjs';
@@ -42,6 +44,9 @@ import {WalletBroker} from './wallet-broker.mjs';
 let broker=null;
 import {WalletSeller} from './wallet-seller.mjs';
 import {portfolio,checkAssetProfile,observePortfolio} from './wallet-assets.mjs';
+import {referencePriceFeed,checkPublicReceipt} from './wallet-public-markets.mjs';
+const marketPrices=referencePriceFeed();
+let checkingPublicReceipt=false;
 let assetCache=null;
 let seller=null;
 let recoveryProgress=null;
@@ -51,6 +56,10 @@ client.onProgress=p=>{recoveryProgress=p;if(bounded)process.send?.({recoveryProg
 let updateDrainUntil=0;
 const sunphi=new SunPhiConnection({config,store});
 let approval=null,approvalError=null;
+const verifierActivity=new NetworkActivity();
+const trafficMeter=bounded?verificationTraffic([connection.rpc,historyUrl,bounded.url]):null;
+let nodeActivity=null;
+process.on('message',m=>{if(!bounded&&m?.command==='node-activity')nodeActivity=m.activity;});
 const admissionUrls=connection.homeAdmission?.urls??[...new Set([connection.rpc,...(bounded&&historyUrl?[historyUrl]:[])])];
 const rewardWorker=new RewardWorker({home,config,store,url:connection.rpc,historyUrl:historyUrl??connection.rpc,recordProofReader:(root,key)=>client.homeRecordProof(root,key),serviceWorkReader:(certificate,node)=>client.serviceWorkView(certificate,node),admissionTransport:homeAdmissionClient(admissionUrls)});let rewardStatus=null;
 // Saved payout choices are local metadata; their visibility must not depend on
@@ -62,6 +71,22 @@ process.on('message',m=>{if(m?.command!=='prepare-update'||typeof m.request!=='s
 // only after password verification; GET / never reveals another client's token.
 let authWindow=Date.now(),authAttempts=0;const actionPermits=new Map();
 let presentation=null,verifiedHeight=null;
+let analyticsRead=null,analyticsCache=null;
+async function networkPresentation(current,account){
+ const root=current.certificate.appHash;
+ const present=totals=>({...walletAnalytics(current,totals),networkStatus:totals.networkStatus});
+ if(analyticsCache?.root===root && (analyticsCache.complete||Date.now()<analyticsCache.retryAt))return present(analyticsCache.totals);
+ if(analyticsRead)return analyticsRead.root===root?present(await analyticsRead.promise):walletAnalytics(current);
+ const promise=(async()=>{
+  let totals;
+  try{totals=await client.networkTotals(current,account);}
+  catch{totals={networkStatus:'retry'};}
+  analyticsCache={root,totals,complete:totals.settled!==undefined,retryAt:Date.now()+2000};
+  return totals;
+ })();
+ analyticsRead={root,promise};
+ try{return present(await promise);}finally{analyticsRead=null;}
+}
 function summarize(v){
  return walletAnalytics(v);
 }
@@ -77,32 +102,50 @@ function records(){
 }
 function userError(e){const detail=e.message??'verification failed';if(detail!==lastDiagnostic){console.error(detail);lastDiagnostic=detail;}if(/expired|future trust/.test(detail))return 'The checkpoint has expired. Waiting for an update from the trusted signers.';if(/local history is not ready yet|source behind retained history/.test(detail))return 'Your node is downloading verified history. Keep it connected; verification will retry automatically.';if(/fetch failed|post failed|connect|Command failed/i.test(detail))return 'Node connection temporarily unavailable. Your last verified data is retained; sending will resume after verification.';return 'Verification incomplete. Sending is paused; details are saved in the local log.';}
 async function refresh(){if(working||sessionDrain.pending||paymentLane.pending)return;working=true;const epoch=sessionEpoch,active=wallet;if(active)walletBusy=true;try{const next=bounded&&active?await active.view():await client.sync(read('checkpoint.json'),connection.rpc,bounded?{service:true,rewardIds:rewardWorker.identity?[rewardWorker.identity.node]:[]}:{});if(epoch!==sessionEpoch)return;assert(Number.isSafeInteger(next.certificate.height)&&next.certificate.height>0,'verified block height required');if(active||!bounded)view=next;verifiedHeight=next.certificate.height;checkedAt=Date.now();error=null;
- if(bounded)process.send?.({verification:homeVerification(next,config.chainId)});
+ if(bounded){
+  const verification=homeVerification(next,config.chainId);
+  verifierActivity.observe({progress:'running',network:config.chainId,homeVerification:BOUNDED_HOME,verification,trafficCounters:trafficMeter.snapshot()});
+  nodeActivity={points:verifierActivity.points,visible:verifierActivity.visible,revision:verifierActivity.revision,mode:'verification'};
+  process.send?.({verification,nodeActivity});
+ }
  try{rewardStatus=await rewardWorker.tick(next);}catch{rewardStatus={...rewardStatus,message:'Reward synchronisation will retry automatically. Saved earnings are retained.'};}publishRewards();
  if(active){if(collateral?.wallet!==active){collateral?.clear();collateral=new WalletFunding(active);}if(collateral.rows().some(r=>collateral.present(r).canRetry))await collateral.sync();active.recoverPending(view);try{await approval?.sync();approvalError=null;}catch{approvalError='Sun\u00b7Phi approval is pending. Your wallet will retry without bypassing the required signature.';}let processed=0,nextPaymentNotice=null;for(const row of active.db.prepare('SELECT pid,body FROM outgoing ORDER BY pid').all()){const status=outgoingStatus(view.state,JSON.parse(row.body).body.action.signed.intent);if(status!=='SETTLED'&&status!=='EXPIRED'&&status!=='CANCELLED'&&status!=='NOT_SUBMITTED'&&status!=='HISTORY_UNAVAILABLE'&&status!=='REVIEW_REQUIRED'&&(status!=='SCHEDULED'||active.db.prepare('SELECT 1 FROM cancellations WHERE pid=?').get(row.pid))){if(processed++>=16)break;try{await active.resume(row.pid);}catch(e){if(e instanceof WalletWorkError)nextPaymentNotice=e.message;else error=userError(e);}}}paymentNotice=nextPaymentNotice;}}catch(e){if(epoch===sessionEpoch)error=userError(e);}finally{walletBusy=false;working=false;}}
-function status(){if(view&&(presentation?.source!==view||presentation?.owner!==owner))presentation={source:view,owner,value:summarize(view),nodes:owner?walletNodeOverview(view.state,owner):null};return {recovery:recoveryPresentation(recoveryProgress),trialOnly:true,network:config.chainId,locked:!wallet,hasVault:store.list().length>0,wallets:store.list(),selectedWallet:store.selected()?.id??null,activeWallet:activeId,owner,working,paymentPending:paymentLane.pending,checkedAt,error,paymentNotice,height:verifiedHeight,unitScale:view?String(unitScale(view.state)):null,balance:view&&owner?{...balances(view.state,owner),display:displayAmounts(balances(view.state,owner),String(unitScale(view.state)))}:null,analytics:presentation?.value??null,nodesSnapshot:presentation?.nodes??null,payments:records(),collateralRequests:collateral?.wallet===wallet?collateral.rows().map(r=>collateral.present(r)):[],indexedHistory:indexedHistory(),rewards:rewardStatus,sunphi:activeId?{...sunphi.view(activeId,view?spendPolicy(view.state,owner):null),requests:approval?.rows()??[],message:approvalError}:null,features:{twoWayExchange:!!config.exchangeLab,sunphiNotifications:true,sunphiApproval:!!view&&protectionEnabled(view.state),delayedPayments:!!view&&delayedPaymentsEnabled(view.state),spendProtection:!!view&&protectionEnabled(view.state)},paymentTariff:view?paymentTariffStatus(view.state.money):null,networkTime:view?.state.money.time??null};}
-const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`127.0.0.1:${port}`,'host');res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+function status(){if(view&&(presentation?.source!==view||presentation?.owner!==owner))presentation={source:view,owner,value:summarize(view),nodes:owner?walletNodeOverview(view.state,owner):null};return {nodeActivity,recovery:recoveryPresentation(recoveryProgress),trialOnly:true,network:config.chainId,locked:!wallet,hasVault:store.list().length>0,wallets:store.list(),selectedWallet:store.selected()?.id??null,activeWallet:activeId,owner,working,paymentPending:paymentLane.pending,checkedAt,error,paymentNotice,height:verifiedHeight,unitScale:view?String(unitScale(view.state)):null,balance:view&&owner?{...balances(view.state,owner),display:displayAmounts(balances(view.state,owner),String(unitScale(view.state)))}:null,analytics:presentation?.value??null,nodesSnapshot:presentation?.nodes??null,payments:records(),collateralRequests:collateral?.wallet===wallet?collateral.rows().map(r=>collateral.present(r)):[],indexedHistory:indexedHistory(),rewards:rewardStatus,sunphi:activeId?{...sunphi.view(activeId,view?spendPolicy(view.state,owner):null),requests:approval?.rows()??[],message:approvalError}:null,features:{twoWayExchange:!!config.exchangeLab,sunphiNotifications:true,sunphiApproval:!!view&&protectionEnabled(view.state),delayedPayments:!!view&&delayedPaymentsEnabled(view.state),spendProtection:!!view&&protectionEnabled(view.state)},paymentTariff:view?paymentTariffStatus(view.state.money):null,networkTime:view?.state.money.time??null};}
+const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`127.0.0.1:${port}`,'host');res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+ if(req.method==='GET'&&req.url==='/activity-plots.js'){res.setHeader('Content-Type','text/javascript');res.end(readFileSync(join(import.meta.dirname,'activity-plots.js')));return;}
  if(req.method==='GET'&&req.url==='/'){res.setHeader('Content-Type','text/html; charset=utf-8');res.end(readFileSync(join(import.meta.dirname,'wallet.html'),'utf8'));return;}
  if(req.method==='GET'&&req.url.startsWith('/brand/')){const name=req.url.slice(7);assert(['sunphi-windows.png','sunphi-mark.svg','sunphi-mark-light.svg','duebyte-window.css','duebyte-app.png','duebyte-brand.css','duebyte-coin.css','duebyte-coin-v1.png','duebyte-coin-v2.png','duebyte-coin-back-v1.png','duebyte-light-v1.png','duebyte-dark-v1.png','duebyte-wordmark-dark-20261103.png','duebyte-wordmark-light-20261103.png','inter.woff2'].includes(name));res.setHeader('Content-Type',name.endsWith('.css')?'text/css':name.endsWith('.png')?'image/png':name.endsWith('.svg')?'image/svg+xml':'font/woff2');res.end(readFileSync(join(import.meta.dirname,'../desktop/brand',name)));return;}
  const token=req.headers['x-duebyte-token'];assert(typeof token==='string'&&/^[a-f0-9]{64}$/.test(token),'local session');if(req.headers.origin)assert.equal(req.headers.origin,`http://127.0.0.1:${port}`,'origin');
  assert(!req.headers['sec-fetch-site']||['same-origin','none'].includes(req.headers['sec-fetch-site']),'cross-site request');
- if(wallet)assert.equal(token,sessionToken,'Wallet is open in another session. Lock it there first.');
+ if(wallet && token !== sessionToken) throw new Error('Wallet is open in another session. Lock it there first.');
  if(!wallet)assert(['/status','/unlock','/create','/restore','/select-wallet','/lock'].includes(req.url),'unlock your wallet first');
  if(req.method==='GET'&&req.url==='/backup'){assert(wallet,'unlock your wallet first');res.setHeader('Content-Type','application/json');res.end(JSON.stringify(store.backup(activeId),null,2));return;}
- if(req.method==='GET'&&req.url==='/status'){res.setHeader('Content-Type','application/json');res.end(JSON.stringify({...status(),indexedHistory:indexedHistory()}));return;}
+ if(req.method==='GET'&&req.url==='/status'){
+  const snapshot=status(),epoch=sessionEpoch;
+  if(wallet&&bounded&&view&&req.headers['x-duebyte-analytics']==='1'){
+   snapshot.analytics=await networkPresentation(view,owner);
+   assert.equal(sessionEpoch,epoch,'Wallet session changed.');
+  }
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify(snapshot));return;
+ }
  // Reading the request body yields to lock/unlock and wallet-selection requests.
  // Bind admission to this session lifetime, including when the same token is reused.
  const admittedEpoch=sessionEpoch;
  assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=16384);chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
  assert.equal(admittedEpoch,sessionEpoch,'Wallet session changed. Retry the action in the current session.');
  assert(!sessionDrain.pending,'Wallet switching is in progress. Please wait.');
- assert(!paymentLane.pending||['/lock','/select-wallet','/assets'].includes(req.url),'A payment operation is already in progress.');
+ assert(!paymentLane.pending||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
  assert(Date.now()>=updateDrainUntil,'The node is installing an update. Please reopen the wallet after it restarts.');
- if(wallet)assert.equal(token,sessionToken,'Wallet is open in another session. Lock it there first.');
+ if(wallet && token !== sessionToken) throw new Error('Wallet is open in another session. Lock it there first.');
  if(!wallet)assert(['/status','/unlock','/create','/restore','/select-wallet','/lock'].includes(req.url),'unlock your wallet first');
- if(['/unlock','/create','/restore'].includes(req.url)){
+ if(['/unlock','/create','/restore','/change-password'].includes(req.url)){
   if(Date.now()-authWindow>=60000){authWindow=Date.now();authAttempts=0;}
   assert(++authAttempts<=20,'Too many password attempts. Wait one minute.');
+ }
+ if(req.url==='/change-password'){
+  assert(wallet&&activeId&&q.walletId===activeId,'Open the wallet whose password you want to change.');
+  store.changePassword(activeId,q.currentPassword,q.newPassword);
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify({changed:true}));return;
  }
  if(req.url==='/history'){
   assert(bounded&&wallet&&!working&&!walletBusy,'Wait for wallet verification to finish.');
@@ -169,6 +212,18 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
    }finally{working=false;walletBusy=false;}
   }});
   res.setHeader('Content-Type','application/json');res.end(JSON.stringify(req.url==='/quote'?result:status()));return;
+ }
+ if(req.url==='/external/prices'||req.url==='/external/receipt'){
+  let result;
+  if(req.url==='/external/prices'){
+   assert.deepEqual(q,{});result={prices:await marketPrices()};
+  }else{
+   assert(!checkingPublicReceipt,'Another receipt check is in progress.');
+   checkingPublicReceipt=true;
+   try{result=await checkPublicReceipt(q);}finally{checkingPublicReceipt=false;}
+  }
+  assert.equal(sessionEpoch,admittedEpoch,'Wallet session changed.');
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;
  }
  if(req.url==='/assets'){
   assert(wallet,'Unlock your wallet first.');assert.deepEqual(q,{});
@@ -248,17 +303,24 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   }finally{working=false;walletBusy=false;}
  }
  if(req.url.startsWith('/nodes/')){
-  assert(wallet&&!working&&!walletBusy,'Wait for current wallet verification.');
-  const active=wallet;if(nodeLinks?.wallet!==active){nodeLinks?.clear();nodeLinks=new WalletNodeLinks(active);}
-  working=true;walletBusy=true;
-  try{let result;
-   if(req.url==='/nodes/options'){assert.deepEqual(q,{});result=await nodeLinks.options();}
-   else if(req.url==='/nodes/review')result=await nodeLinks.review(q);
-   else if(req.url==='/nodes/confirm')result=await nodeLinks.confirm(q,()=>wallet===active&&sessionEpoch===admittedEpoch&&!sessionDrain.pending&&Date.now()<=actionExpires);
-   else if(req.url==='/nodes/check')result=await nodeLinks.check(q);
-   else assert.fail('Unknown node link action.');
-   assert.equal(sessionEpoch,admittedEpoch,'Wallet session changed.');res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;
-  }finally{working=false;walletBusy=false;}
+  const active=wallet;
+  assert(active,'Unlock the wallet to review a server.');
+  const valid=()=>wallet===active&&sessionEpoch===admittedEpoch&&!sessionDrain.pending&&!res.destroyed&&(actionExpires===null||Date.now()<=actionExpires);
+  const result=await paymentLane.run({busy:()=>working||walletBusy,valid,timeoutMs:60000,
+   timeoutMessage:'Wallet verification is still running. Check Network, then select Review server again.',
+   execute:async()=>{
+    if(nodeLinks?.wallet!==active){nodeLinks?.clear();nodeLinks=new WalletNodeLinks(active);}
+    working=true;walletBusy=true;
+    try{
+     if(req.url==='/nodes/review')return await nodeLinks.review(q);
+     if(req.url==='/nodes/confirm')return await nodeLinks.confirm(q,valid);
+     if(req.url==='/nodes/check')return await nodeLinks.check(q);
+     assert.equal(req.url,'/nodes/options','Unknown node link action.');
+     assert.deepEqual(q,{});return await nodeLinks.options();
+    }finally{working=false;walletBusy=false;}
+   }});
+  assert.equal(sessionEpoch,admittedEpoch,'Wallet session changed.');
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;
  }
  if(req.url.startsWith('/node-alerts/')){
   assert(wallet&&!working&&!walletBusy,'Wait for current wallet verification.');
