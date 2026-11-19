@@ -596,7 +596,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.110</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.111</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -1160,14 +1160,30 @@ function renderMyNodes(data){if(!data)return;
   review.onclick=()=>openBond(n.id);panel.append(review);
  }
  const rewards=element('div','','node-rewards');for(const [key,label]of [['earned','Rewards earned'],['paid','Rewards paid'],['pending','Awaiting payment']]){const metric=element('p',label,'hint');metric.dataset.reward=key;metric.append(nodeAmount(n.display[key]));rewards.append(metric);}panel.append(rewards);
- if(n.kind==='server'){const add=element('button','Add collateral');add.type='button';add.onclick=()=>void openCollateral(n.id);panel.append(add);}
+ if(n.kind==='server'){
+  if(d?.total==='0')panel.append(element('p','This server has no collateral. Add DUBYT to cover penalties if the network proves a violation. Choose Add collateral, enter an amount and review it before confirming.','hint'));
+  const add=element('button','Add collateral');add.type='button';add.onclick=()=>void openCollateral(n.id);panel.append(add);
+ }
  const details=element('details','');details.append(element('summary','Node details'),element('p',n.id,'address'));
  if(c){details.append(collateralLine('Deposited by this wallet',d.deposited),collateralLine('Returned to this wallet',d.withdrawn),collateralLine('Reserved for consensus',d.consensus),collateralLine('Held for payments',d.tasks),collateralLine('Unreserved node collateral',d.capacity));if(c.release)details.append(element('p','Release requested: '+c.release.amount+' DUBYT; earliest '+utc(c.release.readyAt)+', subject to outstanding obligations.','hint'));}
  for(const a of n.alerts){const message=element('p',a.message,'hint');details.append(message);}
  if(n.kind==='server'){const notices=element('button','Server notices');notices.type='button';notices.onclick=()=>{$('node-link-id').value=n.id;$('node-notices-editor').hidden=false;$('node-notices-editor').open=true;$('node-notices-editor').scrollIntoView({block:'start'});};details.append(notices);}panel.append(details);return panel;}));
 }
 async function loadNodeConnections(){if(lastStatus?.locked)return;if(lastStatus?.nodesSnapshot){renderMyNodes(lastStatus.nodesSnapshot);return;}if(submitting)return;const current=noticeContext();try{const data=await api('/nodes/options',{});if(current())renderMyNodes(data);}catch(e){if(current()){$('nodes-status').textContent=e.message;$('nodes-refresh').hidden=false;}}}
-async function openCollateral(node){$('collateral-editor').open=true;await loadCollateral();if(node&&collateralData?.nodes.some(n=>n.id===node)){collateralChoice=node;$('collateral-selected').textContent='Server '+node.slice(0,12);$('collateral-node-id').textContent=node;$('collateral-picker').open=false;renderCollateralState(lastStatus);}$('collateral-editor').scrollIntoView({block:'start'});}
+async function openCollateral(node){
+ if(submitting||lastStatus?.locked)return;
+ const owner=lastStatus.owner;
+ $('collateral-editor').open=true;await loadCollateral();
+ if(lastStatus?.locked||lastStatus?.owner!==owner)return;
+ const target=collateralData?.nodes.find(n=>n.id===node);
+ if(target&&collateralData.enabled&&!target.releasePending&&target.connected!==false){
+  collateralChoice=node;$('collateral-selected').textContent='Server '+node.slice(0,12);$('collateral-node-id').textContent=node;$('collateral-picker').open=false;renderCollateralState(lastStatus);
+  $('collateral-amount').focus({preventScroll:true});
+ }else if(collateralData?.enabled){
+  $('collateral-status').textContent='This server is currently unavailable for a collateral deposit.';
+ }
+ $('collateral-editor').scrollIntoView({block:'start'});
+}
 $('collateral-editor').addEventListener('toggle',()=>{if($('collateral-editor').open&&!collateralData&&!submitting)void loadCollateral();});
 $('nodes-refresh').onclick=loadNodeConnections;
 let serverConsentReview=null,serverReceipt=null,serverReceiptTimer;
