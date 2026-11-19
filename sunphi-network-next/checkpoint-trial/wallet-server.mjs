@@ -254,7 +254,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   try{let result;
    if(req.url==='/nodes/options'){assert.deepEqual(q,{});result=await nodeLinks.options();}
    else if(req.url==='/nodes/review')result=await nodeLinks.review(q);
-   else if(req.url==='/nodes/confirm')result=await nodeLinks.confirm(q);
+   else if(req.url==='/nodes/confirm')result=await nodeLinks.confirm(q,()=>wallet===active&&sessionEpoch===admittedEpoch&&!sessionDrain.pending&&Date.now()<=actionExpires);
    else if(req.url==='/nodes/check')result=await nodeLinks.check(q);
    else assert.fail('Unknown node link action.');
    assert.equal(sessionEpoch,admittedEpoch,'Wallet session changed.');res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;

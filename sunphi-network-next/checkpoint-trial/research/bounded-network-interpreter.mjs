@@ -1,3 +1,4 @@
+import {OPEN_SERVER_ENROLLMENT,REGISTER_SERVER,ENROLLMENT_HEAD,serverRewardRegistration,NOMINATE_RECIPIENT,ACCEPT_RECIPIENT,serverRecipient,auditServerRegistration} from './server-reward-registration.mjs';
 import {OPEN_SEAT,JOIN_SEAT,advanceSeat,applySeat} from '../rotating-seat.mjs';
 // Protocol candidate: sparse blocks, a versioned indexed root and retained journal.
 // Production issuance requires a committed, bounded zero-stage mandate.
@@ -76,6 +77,7 @@ const ownerKey=owner=>'owners/'+hash(owner),active=r=>['RESERVED','SCHEDULED'].i
 function section(tx,key){const v=tx.get(key);assert(v,'missing section');if(v.kind==='json'){exact(v,['kind','value']);return v.value;}exact(v,['kind','count','digest']);assert.equal(v.kind,'chunks');integer(v.count,1);assert(v.count<=128);const parts=[];for(let i=0;i<v.count;i++){const part=tx.get(key+'/chunk/'+i);exact(part,['data']);const bytes=Buffer.from(part.data,'base64');assert.equal(bytes.toString('base64'),part.data);assert(bytes.length<=24000);parts.push(bytes);}const value=JSON.parse(Buffer.concat(parts).toString());assert.equal(hash(value),v.digest);return value;}
 function putSection(tx,key,value){const old=tx.get(key),bytes=Buffer.from(canonical(value));let count=0;if(bytes.length<60000)tx.set(key,{kind:'json',value});else{count=Math.ceil(bytes.length/24000);assert(count<=128,'bounded controller section');tx.set(key,{kind:'chunks',count,digest:hash(value)});for(let i=0;i<count;i++)tx.set(key+'/chunk/'+i,{data:bytes.subarray(i*24000,(i+1)*24000).toString('base64')});}for(let i=count;i<(old?.kind==='chunks'?old.count:0);i++)tx.delete(key+'/chunk/'+i);}
 function auditNamespaces(records){for(const key of records.keys()){
+ if(key===ENROLLMENT_HEAD||/^server-enrollment\/recipient\/[a-f0-9]{64}$/.test(key))continue;
  if(isServiceRecord(key)||isOperatorRecord(key)||isProtectionCaseRecord(key)||isPosRecord(key))continue;
  if(/^paid-admission\/(head|records\/[a-f0-9]{64}|(index|homes)\/(root|[a-f0-9]{1,64}))$/.test(key))continue;
  if(/^home-registration\/(nodes\/[a-f0-9]{64}|peers\/[a-f0-9]{40}|index\/(root|[a-f0-9]{1,64}))$/.test(key))continue;
@@ -280,6 +282,8 @@ export class BoundedNetworkInterpreter{
  }
  _action(s,t,rules,tx){let a=t.body.action;const author=t.body.author;
   guardPreparedEconomy(s,a.type);
+  if(a.type===OPEN_SERVER_ENROLLMENT||a.type===REGISTER_SERVER)return serverRewardRegistration(s,a,author,this.config,tx);
+  if(a.type===NOMINATE_RECIPIENT||a.type===ACCEPT_RECIPIENT)return serverRecipient(s,a,author,this.config,tx,rewardContext(s,tx.get('meta/economics')));
   if(a.type===OPEN_SEAT||a.type===JOIN_SEAT)return applySeat(s,a,author,this.config.chainId);
   if(POS_ACTIONS.includes(a.type))return posPolicyAction(s,a,this.config,tx,author);
   if(OPERATOR_ACTIONS.includes(a.type))return operatorPolicyAction(s,a,this.config,tx,author);
@@ -328,6 +332,7 @@ export class BoundedNetworkInterpreter{
    if(s.centurySubsidy)s.centurySubsidy=auditEconomicRecords(records,s.centurySubsidy);else auditEconomicRecords(records,null);
    auditPaidAdmission(records,s);
    auditHomeRegistration(records,s);
+   auditServerRegistration(records,s,this.config);
    auditOperatorRewards(records,s);
    auditProtectionCases(records,s);
    auditPosPolicy(tx.get,s);auditPosRecords(records,s);

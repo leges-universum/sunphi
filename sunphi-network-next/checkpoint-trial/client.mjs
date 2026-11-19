@@ -173,6 +173,10 @@ export class VerifiedClient{
   assert(this.bounded&&(key==='meta/blockHead'||/^nodes\/[a-f0-9]{64}$/.test(key)||/^payment-events\/(0|[1-9][0-9]*)$/.test(key)));const request=key==='meta/blockHead'?{type:'block-head',id:null}:key.startsWith('payment-events/')?{type:'payment-events',id:{offset:Number(key.slice(15)),limit:1}}:{type:'node',id:key.slice(6)};
   return boundedHttpQuery(this.bounded.url).withLease(root,async query=>{const response=await query(request,root);verifyBoundedQuery(response,request,root,hash(this.config));const proof=response.proofs.find(p=>p.key===key);assert(proof?.found);return proof;});
  }
+ async serverRecipient(root,node){
+  const request={type:'server-recipient',id:hex(node)};
+  return boundedHttpQuery(this.bounded.url).withLease(root,async query=>verifyBoundedQuery(await query(request,root),request,root,hash(this.config)).data);
+ }
  async serviceWorkView(certificate,node){
   assert(this.bounded);hex(node);assert.equal(hash(certificate),this.verifiedServiceCertificate,'current verified service certificate');
   const request={type:'service-work',id:node},root=certificate.appHash;

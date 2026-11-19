@@ -15,7 +15,7 @@ const load = name => import(pathToFileURL(path.join(modules, name + '.mjs')));
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 const {loadRelease} = await load('update-core');
 const release = loadRelease(root);
-assert.equal(release.version, '0.3.108');
+assert.equal(release.version, '0.3.109');
 assert.equal(release.edition, 'server');
 const {homeLaunchProfile} = await load('consumer-launch-profile');
 const {consumerNodeHome, assertConsumerStopped} = await load('consumer-home');

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 umask 077
-release=/opt/duebyte-server/releases/0.3.108
+release=/opt/duebyte-server/releases/0.3.109
 state=/var/lib/duebyte-server-updates/archive-node
 tools=/usr/local/lib/duebyte-connect
 command_name=${1:-install}
 case "$command_name" in
-  install|status|join|wallet|apply-wallet) ;;
+  install|status|join|wallet|apply-wallet|register-rewards) ;;
   *) echo 'Usage: duebyte-connect [install | status | join | wallet]'; exit 2 ;;
 esac
 [[ $(id -u) == 0 ]] || { echo 'Run this program with sudo on your Linux server.'; exit 1; }
@@ -31,12 +31,13 @@ if [[ $command_name != install ]]; then
   case "$command_name" in
     status) observe ;;
     join) facts=$(identity); assistant join "$facts" ;;
-    wallet) assistant wallet; if [[ -s $state/receive-only.json ]]; then systemctl enable --now duebyte-connect-wallet.timer >/dev/null; assistant apply-wallet; fi ;;
+    wallet) assistant wallet "${2:-}"; if [[ -s $state/receive-only.json ]]; then systemctl enable --now duebyte-connect-wallet.timer >/dev/null; assistant apply-wallet; elif [[ -s $state/requested-recipient.json ]]; then assistant register-rewards; fi ;;
+    register-rewards) assistant register-rewards ;;
     apply-wallet) assistant apply-wallet ;;
   esac
   exit
 fi
-root=https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.108
+root=https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.109
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT
 fetch() {
@@ -49,14 +50,14 @@ elif [[ -e $release || -e /usr/local/bin/duebyte-server || -e /etc/duebyte-serve
   echo 'An existing or incomplete installation needs review before setup can continue.'; exit 1
 else
   echo 'Downloading and checking DueByte Server for Linux…'
-  name=DueByte-Server-0.3.108-Linux-x64.tar.gz
-  fetch "$name" 158bb23d1974d9ea1d989d6d695e0299e2159dfb178f52be402ac88104d39ee2
+  name=DueByte-Server-0.3.109-Linux-x64.tar.gz
+  fetch "$name" ac1b9606c318531daba1261c7f9830dabf072d57d575e3974664ff4befcce7f7
   tar -xzf "$tmp/$name" -C "$tmp"
   # The packaged installer creates shared program directories and a service user.
   # Its configuration and key directories have their own restrictive permissions.
   (umask 022; sh "$tmp/${name%.tar.gz}/install.sh")
 fi
-fetch validator-candidate.mjs 024baeb5c26ceb43011f15e60cd4c3a61d5abfa061da2db4b945cea35cb07803
+fetch validator-candidate.mjs 6819874b29ccf3e37798a32558f034e47938ce38a2117342d57c90acee2da7c6
 install -d -m 755 "$tools"
 install -m 644 "$tmp/validator-candidate.mjs" "$tools/validator-candidate.mjs"
 cat > "$tmp/connect.mjs" <<'DUEBYTE_HELPER'
@@ -87,6 +88,7 @@ assert.equal(identity.network,cfg.chainId);
 const key=identity.work,node=paymentWorkerId(configHash,key.publicKey);
 const rpcUrl='http://127.0.0.1:28001',query=boundedHttpQuery('http://127.0.0.1:28005');
 const pending=path.join(folder,'receive-only.json'),confirmed=path.join(folder,'receive-only-confirmed.json');
+const recipientFile=path.join(folder,'requested-recipient.json');
 function save(file,data){
   const tmp=file+'.'+process.pid+'.tmp';
   fs.writeFileSync(tmp,JSON.stringify(data),{flag:'wx',mode:0o600,flush:true});
@@ -150,18 +152,58 @@ function decode(token){
   return receipt;
 }
 const describe=acc=>acc?.payouts?.length?acc.payouts.map(p=>p.wallet).join(', '):'No confirmed reward wallet';
+async function submit(action){
+  const wire=Buffer.from(JSON.stringify(envelope(cfg,action,key)));
+  const result=await rpc(rpcUrl,'broadcast_tx_sync',{tx:wire.toString('base64')});
+  assert(Number(result.code??0)===0||/already exists in cache/i.test(result.log??''),'Registration declined: '+result.log);
+  console.log('Submitted for network confirmation:',digest(wire).toUpperCase());
+}
+async function registerRewards(){
+  const {account,height}=await observe();
+  if(!account){
+    const {account:head}=await observe({type:'server-enrollment',id:null});
+    if(!head||height<head.policy.notBefore||height>=head.policy.expires||head.count>=head.policy.limit){
+      console.log('Awaiting the next public server registration window.');return;
+    }
+    assert.equal(head.id,hash(head.policy));assert.equal(head.policy.configHash,configHash);
+    assert.equal(head.policy.network,cfg.chainId);
+    await submit({type:'REGISTER_SERVER_REWARD_ACCOUNT_V1',window:head.id});return;
+  }
+  if(!fs.existsSync(recipientFile))return;
+  const {wallet}=read(recipientFile);publicKey(wallet);
+  if(account.payouts.length){
+    assert.deepEqual(account.payouts,[{wallet,weight:1}],'The confirmed recipient differs from the requested wallet.');
+    console.log('Recipient confirmed at block',height,wallet);return;
+  }
+  assert.equal(account.management,key.publicKey,'A separate management key controls this account.');
+  const {account:offer}=await observe({type:'server-recipient',id:node});
+  const sequence=account.sequence+1;
+  if(offer?.wallet===wallet&&offer.sequence===sequence&&offer.management===key.publicKey){
+    console.log('Invitation confirmed. Open DueByte Home → Receive DUBYT → Server rewards. Node ID:',node);return;
+  }
+  const body={domain:REWARDS+'/BIND',configHash,node,sequence,payouts:[{wallet,weight:1}]};
+  await submit({type:'NOMINATE_SERVER_REWARD_RECIPIENT_V1',node,wallet,sequence,previous:offer?hash(offer):null,signature:sign(body,key.privateKey)});
+}
+function requestWallet(address){
+  publicKey(address);
+  if(fs.existsSync(pending))assert.equal(read(pending).body.wallet,address,'A different signed permission is pending.');
+  if(fs.existsSync(recipientFile))assert.deepEqual(read(recipientFile),{wallet:address},'Another recipient is already requested.');
+  else save(recipientFile,{wallet:address});
+  console.log('Recipient saved:',address,'\nIn DueByte Home open Receive DUBYT → Server rewards. Reward node ID:',node);
+}
 async function wallet(){
   assert(process.stdin.isTTY,'Open an interactive terminal to connect a wallet');
   const {account}=await observe();
   console.log('Reward node ID:',node);
   if(account?.payouts?.length){console.log('Confirmed reward wallet:',describe(account));return;}
   if(fs.existsSync(pending)){console.log('Saved signed permission for',read(pending).body.wallet);return;}
-  console.log('On your HOME computer open duebyte.com/node-setup.html#reward-wallet and download the offline wallet helper.');
-  console.log('Enter this node ID there and approve receipt of rewards. Paste the signed code below. Enter skips this step.');
+  console.log('Enter the public wallet address from DueByte Home. You can also paste a previously signed permission.');
   const io=createInterface({input:process.stdin,output:process.stdout});
   try{
-    const token=(await io.question('Signed reward code: ')).trim();if(!token)return;
+    const token=(await io.question('Wallet address or signed permission (Enter to skip): ')).trim();if(!token)return;
+    if(token.length===43){requestWallet(token);return;}
     const receipt=decode(token);
+    if(fs.existsSync(recipientFile))assert.equal(receipt.body.wallet,read(recipientFile).wallet,'This is not the requested wallet.');
     console.log('Send this node’s future rewards to',receipt.body.wallet);
     if(!/^y(es)?$/i.test((await io.question('Save this recipient? [y/N] ')).trim()))return;
     save(pending,receipt);
@@ -189,8 +231,9 @@ async function applyWallet(){
 }
 try{
   const mode=process.argv[2];
-  if(mode==='wallet')await wallet();
-  else if(mode==='join')await registerSeat(JSON.parse(process.argv[3]));
+  if(mode==='wallet'){if(process.argv[3])requestWallet(process.argv[3]);else await wallet();}
+  else if(mode==='register-rewards')await registerRewards();
+  else if(mode==='join'){try{await registerSeat(JSON.parse(process.argv[3]));}finally{await registerRewards();}}
   else if(mode==='apply-wallet')await applyWallet();
   else if(mode==='status'){
     const s=JSON.parse(process.argv[3]);assert.equal(s.network,cfg.chainId);
@@ -206,6 +249,7 @@ try{
     try{console.log('Rewards:',describe((await observe()).account));}
     catch{console.log('Reward status could not be verified. Run sudo duebyte-connect status again.');}
     if(fs.existsSync(pending))console.log('Saved wallet permission:',read(pending).body.wallet,'· awaiting network confirmation');
+    if(fs.existsSync(recipientFile)&&!fs.existsSync(confirmed))console.log('Requested recipient:',read(recipientFile).wallet,'· check the confirmed Rewards status above.');
   }else throw Error('Unknown operation');
 }catch(e){console.error(e.message);process.exitCode=1;}
 

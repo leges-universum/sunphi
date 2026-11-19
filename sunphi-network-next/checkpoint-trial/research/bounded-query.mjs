@@ -170,6 +170,8 @@ function answer(request,get,candidates){
   assert.equal(items.length,end-offset,'economic page completeness');data={kind,offset,total:totals.count,totalAmount:totals.total,next:end<totals.count?end:null,items};
  }
  else if(request.type==='economic-record'){exact(request.id,['kind','node']);const {kind,node}=request.id;assert(ECONOMIC_MAPS.includes(kind));hex(node);data=get(economicRecordKey(kind,node))??null;if(data){exact(data,['amount']);amount(data.amount);}}
+ else if(request.type==='server-enrollment'){assert.equal(request.id,null);data=get('server-enrollment/head')??null;}
+ else if(request.type==='server-recipient'){hex(request.id);data=get('server-enrollment/recipient/'+request.id)??null;}
  else if(request.type==='reward-account'){hex(request.id);data=get(rewardAccountKey(request.id))??null;if(data)auditRewardAccount(request.id,data);}
  else if(request.type==='exchange-order'){
   hex(request.id);const network=decodeSection(get,'meta/network');assert.equal(network.height,head.height);data=network.exchangeBook?.orders[request.id]??null;
