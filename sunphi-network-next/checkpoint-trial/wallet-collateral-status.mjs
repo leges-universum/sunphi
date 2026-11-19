@@ -3,6 +3,11 @@
 import {formatToken} from './token-units.mjs';
 import {lockedSupport} from './support-accounting.mjs';
 const min=(a,b)=>a<b?a:b,max=(a,b)=>a>b?a:b;
+// FUND_PAYMENT_WORKER_V1 invokes activatePilotSupport on every deposit under this ramp.
+export function outsideCollateralPilot(s,id){
+ const pilot=s.centuryFunds?.zeroStage?.body;
+ return pilot?.settings?.ramp==='TERMINAL_WEEK_V2'&&!pilot.workers.some(w=>w.node===id);
+}
 export function nodeCollateralStatus(s,id,owner){
  const n=s.money.nodes[id];if(!n)return null;
  const a=s.workerFunding?.accounts[id],owned=!!a&&a.owner===owner,tracked=owned&&Object.hasOwn(a,'initialStakeMicro');
@@ -10,7 +15,7 @@ export function nodeCollateralStatus(s,id,owner){
  const remaining=tracked?min(deposited-withdrawn,max(0n,stake-support-BigInt(a.initialStakeMicro))):owned?null:0n;
  const raw={total:stake,support,deposited,withdrawn,remaining,consensus:BigInt(n.consensusHeld),tasks:BigInt(n.taskHeld),capacity:max(0n,stake-BigInt(n.consensusHeld)-BigInt(n.taskHeld))};
  const display=Object.fromEntries(Object.entries(raw).map(([k,v])=>[k,v===null?null:formatToken(String(v),s.money.unitScale??'1')]));
- return {owned,tracked,display,release:owned&&a.release?{amount:formatToken(a.release.valueMicro,s.money.unitScale??'1'),readyAt:a.release.readyAt}:null};
+ return {owned,tracked,display,outsidePilot:outsideCollateralPilot(s,id),release:owned&&a.release?{amount:formatToken(a.release.valueMicro,s.money.unitScale??'1'),readyAt:a.release.readyAt}:null};
 }
 export function walletCollateralSummary(s,owner){
  const ids=Object.keys(s.workerFunding?.accounts??{}).filter(id=>s.workerFunding.accounts[id].owner===owner);
