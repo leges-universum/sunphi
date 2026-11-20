@@ -4,9 +4,10 @@ import assert from 'node:assert/strict';
 import {exact,hash,hex,integer,publicKey} from '../crypto.mjs';
 import {POS_HEAD,signingKey,assertConsensusBondHeld} from './bounded-pos-records.mjs';
 import {validateSlashingPolicy,auditSigningInfo} from './pos-slashing.mjs';
+import {V3_BALLOT} from '../bonded-schedule-v3.mjs';
 
 const amount=x=>{assert(typeof x==='string'&&/^(0|[1-9][0-9]*)$/.test(x));const n=BigInt(x);assert(n<1n<<64n);return n;};
-export const isPosRecord=k=>k===POS_HEAD||/^pos\/(signing\/[a-f0-9]{40}|bonds\/[a-f0-9]{64}|events\/[a-f0-9]{40}\/[1-9][0-9]*|missed\/[a-f0-9]{40}\/(0|[1-9][0-9]*))$/.test(k);
+export const isPosRecord=k=>k===POS_HEAD||/^pos\/(signing\/[a-f0-9]{40}|(?:discipline|bonds)\/[a-f0-9]{64}|events\/[a-f0-9]{40}\/[1-9][0-9]*|missed\/[a-f0-9]{40}\/(0|[1-9][0-9]*))$/.test(k);
 
 export function auditPosRecords(records,s){
  const rows=[...records].filter(([k])=>k.startsWith('pos/')),head=records.get(POS_HEAD);
@@ -19,13 +20,18 @@ export function auditPosRecords(records,s){
  for(const [k,v]of rows){assert(isPosRecord(k),'unexpected slashing record');if(k===POS_HEAD)continue;
   const [,kind,id,n]=k.split('/');
   if(kind==='signing')signers.set(id,v);
-  else if(kind==='bonds'){exact(v,['address']);assert(!bonds.has(v.address),'duplicate consensus bond');bonds.set(v.address,id);}
+  else if(kind==='discipline'){
+   assert.equal(head.policy.ballot,V3_BALLOT);exact(v,['awaitingReturn','lastReturn',...(Object.hasOwn(v,'lastConsentAt')?['lastConsentAt']:[])]);
+   if(Object.hasOwn(v,'lastConsentAt'))integer(v.lastConsentAt,1);
+   assert.equal(typeof v.awaitingReturn,'boolean');if(v.lastReturn!==null)integer(v.lastReturn,1);
+  }else if(kind==='bonds'){exact(v,['address',...(Object.hasOwn(v,'previousHold')?['previousHold']:[])]);if(Object.hasOwn(v,'previousHold')){assert.equal(head.policy.ballot,V3_BALLOT);amount(v.previousHold);}assert(!bonds.has(v.address),'duplicate consensus bond');bonds.set(v.address,id);}
   else {const target=kind==='events'?events:words;if(!target.has(id))target.set(id,new Map());target.get(id).set(integer(Number(n)),v);}
  }
  let total=0n;
  for(const [address,row]of signers){
   exact(row,['node','owner','consent','signing']);hex(row.node);publicKey(row.owner);hex(row.consent);
   const i=row.signing;assert.equal(signingKey(address),signingKey(i.address));auditSigningInfo(i,head.policy);
+  if(head.policy.ballot===V3_BALLOT)assert(records.has('pos/discipline/'+row.node));
   const bound=bonds.get(address);if(bound!==undefined){assert.equal(bound,row.node);assertConsensusBondHeld(k=>records.get(k),s,row.node);assert.equal(s.workerFunding?.accounts[row.node]?.owner,row.owner,'bond owner changed');}
   else assert(i.removedHeight!==null,'active signing state without a bond');
   const history=events.get(address)??new Map();assert.equal(history.size,i.sequence,'missing penalty history');

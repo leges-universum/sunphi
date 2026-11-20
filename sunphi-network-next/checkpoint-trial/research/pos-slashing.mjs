@@ -4,12 +4,16 @@
 import assert from 'node:assert/strict';
 import {exact,integer,hash,publicKey} from '../crypto.mjs';
 import {consensusAddress,validateConsensusContext} from '../consensus-context.mjs';
+import {V3_BALLOT,NOTICE_SECONDS} from '../bonded-schedule-v3.mjs';
 
 // Cosmos SDK v0.50.14 defaults, expressed as integer basis points. Deployment
 // must also bind Comet's actual evidence ages to the unbonding delay.
 export const STANDARD_SLASHING=Object.freeze({signedBlocksWindow:100,minSignedBps:5000,doubleSignBps:500,downtimeBps:100,downtimeJailSeconds:600});
+export const BONDED_SLASHING=Object.freeze({...STANDARD_SLASHING,downtimeBps:0,repeatDowntimeBps:10,repeatSeconds:NOTICE_SECONDS,ballot:V3_BALLOT});
 export function validateSlashingPolicy(p){
- exact(p,[...Object.keys(STANDARD_SLASHING),'evidenceMaxAgeBlocks','evidenceMaxAgeSeconds']);
+ const profile=p.ballot===V3_BALLOT?BONDED_SLASHING:STANDARD_SLASHING;
+ exact(p,[...Object.keys(profile),'evidenceMaxAgeBlocks','evidenceMaxAgeSeconds']);
+ if(profile===BONDED_SLASHING)for(const [key,value] of Object.entries(profile))assert.equal(p[key],value);
  integer(p.signedBlocksWindow,1);assert(p.signedBlocksWindow<=100000);
  for(const k of ['minSignedBps','doubleSignBps','downtimeBps']){integer(p[k]);assert(p[k]<=10000);}
  integer(p.downtimeJailSeconds,1);assert(p.downtimeJailSeconds<=31*86400);
@@ -41,7 +45,7 @@ function fine(info,bps,reason,height,time,reference,basis=info.bond){
 // Bitmap storage is chunked: only one 64-bit word is read/written per validator
 // per observed block. Reset uses a generation, not a scan or unbounded deletion.
 // Caller reuses the same word keys with an epoch tag; no history-sized sweep.
-export function signingObservation(info,p,{height,time,flag},bitmap){
+export function signingObservation(info,p,{height,time,flag},bitmap,discipline){
  auditSigningInfo(info,p);integer(height,1);integer(time,1);assert([1,2,3].includes(flag));
  if(info.jailed||height<info.startHeight)return {info,fine:null,reset:false};
  assert(height>info.lastHeight,'duplicate or reordered last-commit observation');
@@ -52,8 +56,19 @@ export function signingObservation(info,p,{height,time,flag},bitmap){
  info.index=(slot+1)%p.signedBlocksWindow;info.observations=Math.min(p.signedBlocksWindow,info.observations+1);info.lastHeight=height;
  const minSigned=Math.round(p.signedBlocksWindow*p.minSignedBps/10000),maxMissed=p.signedBlocksWindow-minSigned;
  // Give each admission a complete warm-up window, as the SDK signing-info rule.
- if(height>info.startHeight+p.signedBlocksWindow&&info.missed>maxMissed){
-  const event=fine(info,p.downtimeBps,'DOWNTIME',height,time,hash({address:info.address,height,missed:info.missed,window:p.signedBlocksWindow}));
+ const v3=p.ballot===V3_BALLOT;
+ if((v3?info.observations===p.signedBlocksWindow:height>info.startHeight+p.signedBlocksWindow)&&info.missed>maxMissed){
+  let bps=p.downtimeBps;
+  if(v3){
+   assert(discipline&&typeof discipline.awaitingReturn==='boolean'&&!discipline.awaitingReturn);
+   const returned=discipline.lastReturn;
+   if(returned!==null){
+    integer(returned,1);assert(time>=returned);
+    if(time-returned<p.repeatSeconds)bps=p.repeatDowntimeBps;
+   }
+   discipline.awaitingReturn=true;
+  }
+  const event=fine(info,bps,'DOWNTIME',height,time,hash({address:info.address,height,missed:info.missed,window:p.signedBlocksWindow}));
   info.jailed=true;info.jailedUntil=integer(time+p.downtimeJailSeconds,1);info.index=0;info.observations=0;info.missed=0;
   auditSigningInfo(info,p);return {info,fine:event,reset:true};
  }

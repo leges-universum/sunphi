@@ -8,6 +8,19 @@ import {membershipDelta} from '../validator-membership.mjs';
 import {planConsensusExclusion} from './pos-membership-plan.mjs';
 
 export const POS_EXCLUSION='DUEBYTE_POS_EXCLUSION_V1';
+export const INITIAL_BONDED_SET='DUEBYTE_INITIAL_BONDED_SET_V3';
+export function normalizedVotingSet(before){
+ assert(before.length>=4&&before.length<=20,'Initial bonded committee size');
+ assert(before.every(v=>v.power===before[0].power),'Initial transition requires proportional weights');
+ return before.map(v=>({...v,power:1}));
+}
+export function normalizedUpdates(before){
+ return normalizedVotingSet(before).filter((_,i)=>before[i].power!==1).map(v=>({key:v.key,power:1}))
+  .sort((a,b)=>a.key<b.key?-1:a.key>b.key?1:0);
+}
+// In v3 monetary certificates continue to use the original top-level registry.
+// Only the voting registry advances when consensus schedules an exclusion.
+export const posVotingAuthority=a=>a?.posSlashing?.voting??a;
 const roster=members=>{assert.equal(validatorSet(members,{minimum:1}).version,2);};
 
 export function auditPosAuthority(a,height){
@@ -21,6 +34,9 @@ export function auditPosAuthority(a,height){
    assert(Array.isArray(pending.excluded)&&pending.excluded.length>0);assert.deepEqual(pending.excluded,[...new Set(pending.excluded)].sort());
    const expected=planConsensusExclusion({height:pending.activation-2,current:before,jailed:pending.excluded});assert(expected);
    assert.deepEqual(pending.validators,expected.validators);assert.deepEqual(pending.updates,expected.updates);
+  }else if(pending.kind===INITIAL_BONDED_SET){
+   exact(pending,['kind','activation','validators','updates','certificate']);
+   assert.deepEqual(pending.validators,normalizedVotingSet(before));assert.deepEqual(pending.updates,normalizedUpdates(before));
   }else{exact(pending,['activation','validators','updates','certificate']);assert.deepEqual(pending.updates,membershipDelta(before,pending.validators));}
  };
  if(a.pending)check(a.pending,a.validators);
@@ -32,6 +48,7 @@ export function auditPosAuthority(a,height){
 }
 
 export function schedulePosExclusion(a,{height,keys,contextHash}){
+ if(a.posSlashing?.voting)return {...a,posSlashing:{...a.posSlashing,voting:schedulePosExclusion(a.posSlashing.voting,{height,keys,contextHash})}};
  auditPosAuthority(a,height);hex(contextHash);
  assert(!a.posNext,'exclusions must be collected once per block');
  const plan=planConsensusExclusion({height,current:a.validators,scheduled:a.pending,jailed:keys});
@@ -43,6 +60,10 @@ export function schedulePosExclusion(a,{height,keys,contextHash}){
 }
 
 export function advancePosAuthority(a,height){
+ if(a.posSlashing?.voting){
+  const {authority:voting,removed}=advancePosAuthority(a.posSlashing.voting,height);
+  return {authority:{...a,posSlashing:{...a.posSlashing,voting}},removed};
+ }
  integer(height,1);const out=structuredClone(a),p=out.pending;
  if(!p){assert(!out.posNext);auditPosAuthority(out,height);return {authority:out,removed:[]};}
  assert(height<=p.activation,'missed authority activation');
@@ -53,6 +74,7 @@ export function advancePosAuthority(a,height){
 }
 
 export function posValidatorUpdates(a,height){
+ a=posVotingAuthority(a);
  auditPosAuthority(a,height);const p=a.posNext??a.pending;
  return p?.activation===height+2?structuredClone(p.updates):[];
 }

@@ -24,6 +24,7 @@ export function membershipDelta(before,after){
  return updates;
 }
 export function changeValidators(a,action,{config,height,reusableKeys=[]}){
+ assert(!a.posSlashing?.voting,'legacy membership changes cannot replace the bonded voting or financial registry');
  assert(!a.rotatingSeat,'membership change requires completion of the finite rotating-seat pilot');
  assert.equal(a.version,2,'membership requires committed V2 authority');if(config.control?.version!==2)auditAuthorityUpgrade(a,config,height);
  assert(!a.pending&&!a.posNext,'validator change pending');exact(action,['type','certificate']);assert.equal(action.type,CHANGE_VALIDATORS);

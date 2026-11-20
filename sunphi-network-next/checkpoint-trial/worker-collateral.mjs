@@ -8,6 +8,7 @@ import {spendPolicy} from './spend-protection.mjs';
 import {centuryRestrictedAccounts} from './century-funds.mjs';
 import {centuryWarmupAccounts,memorialPolicy} from './economic-policy-v3.mjs';
 import {reserveAddresses} from './network-reserves.mjs';
+import {bondedAdmissionPolicy} from './bond-request.mjs';
 export const FUND_WORKER='FUND_PAYMENT_WORKER_V1';
 export const QUEUE_RELEASE='QUEUE_WORKER_COLLATERAL_RELEASE_V1';
 export const CANCEL_RELEASE='CANCEL_WORKER_COLLATERAL_RELEASE_V1';
@@ -15,6 +16,35 @@ export const EXECUTE_RELEASE='EXECUTE_WORKER_COLLATERAL_RELEASE_V1';
 export const COLLATERAL_ACTIONS=[FUND_WORKER,QUEUE_RELEASE,CANCEL_RELEASE,EXECUTE_RELEASE];
 export const RELEASE_DELAY_SECONDS=86400;
 export const COLLATERAL_DOMAIN='DUEBYTE_WORKER_COLLATERAL_V1';
+const bondedPolicyHash=hash(bondedAdmissionPolicy);
+export function preparedVotingMinimum(s){
+ const p=s.authority?.posSlashing;
+ if(!p||!Object.hasOwn(p,'voting')||p.policyHash!==bondedPolicyHash)return null;
+ const rule=s.authority.bondedAdmission;
+ if(!rule)return '100000000';
+ return rule.version===3&&rule.ballot===bondedAdmissionPolicy.ballot&&
+  typeof rule.minimumMicro==='string'&&/^[1-9][0-9]{0,19}$/.test(rule.minimumMicro)&&
+  amount(rule.minimumMicro)>=100000000n&&amount(rule.minimumMicro)<=10000000000n&&
+  amount(rule.minimumMicro)%1000000n===0n?rule.minimumMicro:null;
+}
+export function outsideCollateralPilot(s,id){
+ const pilot=s.centuryFunds?.zeroStage?.body;
+ if(pilot?.settings?.ramp!=='TERMINAL_WEEK_V2'||pilot.workers.some(w=>w.node===id))return false;
+ return !(preparedVotingMinimum(s) && s.money.nodes[id]);
+}
+// Project the consensus hold only after validating the owner's tracked deposit.
+// A prior reservation stays locked. The three-party consent specifies the total
+// bond, so an already reserved portion is never locked twice.
+export function consentedVotingHold(s,id,bond){
+ const node=s.money.nodes[id],f=s.workerFunding?.accounts[id];
+ assert(node&&f&&!f.release&&Object.hasOwn(f,'initialStakeMicro'),'tracked owner deposit required');
+ const value=amount(bond),reserved=amount(node.consensusHeld),stake=amount(node.stake);
+ const total=reserved>value?reserved:value;
+ assert(value>=100000000n&&value<=amount(f.depositedMicro)-amount(f.withdrawnMicro),'100 DUBYT of owner deposits required');
+ assert(total+amount(node.taskHeld)<=stake,'insufficient free collateral');
+ assert(value+amount(node.taskHeld)+lockedSupport(s,id)+amount(f.initialStakeMicro)<=stake,'insufficient operator-owned stake');
+ return String(total);
+}
 export const collateralChangeId=b=>hash({domain:COLLATERAL_DOMAIN+'/CHANGE',body:b});
 export const collateralReleaseId=(configHash,node,sequence)=>hash({domain:COLLATERAL_DOMAIN+'/RELEASE',configHash,node,sequence});
 export function auditWorkerFunding(s){
@@ -38,6 +68,7 @@ export function fundWorker(s,a,author){
  assert.equal(s.money.unitScale,'1000000');assert.equal(b.unitScale,s.money.unitScale);assert(s.centuryFees,'qualified precision and fee policy required');
  integer(b.issuedAt,1);integer(b.expires,b.issuedAt+1);assert(b.expires-b.issuedAt<=600&&b.issuedAt<=s.money.time&&s.money.time<b.expires,'collateral UTC window');
  const worker=s.money.nodes[b.node];assert(worker,'registered worker required');
+ assert(!outsideCollateralPilot(s,b.node),'pilot support worker: bonded admissions are not open');
  assert(verify(b,a.ownerSignature,b.owner),'funding owner signature');assert(verify(b,a.workerSignature,worker.key),'worker funding consent');
  // A payment approval is not a collateral approval. Fail closed until the
  // separate protected-wallet collateral consent UI/contract is qualified.
@@ -59,7 +90,8 @@ export function fundWorker(s,a,author){
  worker.stake=String(stake);
  const tracking=prior??{initialStakeMicro:String(stake-value-lockedSupport(s,b.node)),withdrawnMicro:'0',release:null,lastRelease:null};
  s.workerFunding={version:COLLATERAL_DOMAIN,accounts:{...s.workerFunding?.accounts,[b.node]:{...tracking,owner:b.owner,sequence:b.sequence,depositedMicro:String(deposited),lastBodyHash:digest}}};
- if(s.centuryFunds?.zeroStage?.body.settings.ramp==='TERMINAL_WEEK_V2')activatePilotSupport(s,b.node,s.centuryFunds.support?.book.grants[b.node]);
+ const pilot=s.centuryFunds?.zeroStage?.body;
+ if(pilot?.settings.ramp==='TERMINAL_WEEK_V2' && pilot.workers.some(w=>w.node===b.node))activatePilotSupport(s,b.node,s.centuryFunds.support?.book.grants[b.node]);
  auditWorkerFunding(s);return s;
 }
 // Reserve pre-existing stake conservatively. Losses consume the newly funded

@@ -1,16 +1,23 @@
 import assert from 'node:assert/strict';
 import {exact, hash, hex, integer, publicKey, verify} from './crypto.mjs';
 import {COMET_EVIDENCE_LIMITS} from './consensus-context.mjs';
-import {STANDARD_SLASHING} from './research/pos-slashing.mjs';
+import {STANDARD_SLASHING,BONDED_SLASHING} from './research/pos-slashing.mjs';
 
 export const bondPolicy = Object.freeze({...STANDARD_SLASHING, ...COMET_EVIDENCE_LIMITS});
+export const bondedAdmissionPolicy = Object.freeze({...BONDED_SLASHING, ...COMET_EVIDENCE_LIMITS});
+export function bondPolicyForHash(digest) {
+ const policy=[bondPolicy,bondedAdmissionPolicy].find(candidate=>hash(candidate)===digest);
+ assert(policy,'Unrecognized penalty terms.');
+ return policy;
+}
 export function validateBondTemplate(t) {
  exact(t, ['network','configHash','node','validator','workerKey','owner','bond','policyHash']);
  assert(typeof t.network === 'string' && t.network.length > 0 && t.network.length <= 128);
  hex(t.configHash); hex(t.node);
  for(const key of [t.validator,t.workerKey,t.owner]) publicKey(key);
  assert(typeof t.bond === 'string' && /^[1-9][0-9]{0,19}$/.test(t.bond) && BigInt(t.bond)<(1n<<64n),'Invalid bond amount.');
- assert.equal(t.policyHash,hash(bondPolicy),'Unrecognized penalty terms.');
+ const policy=bondPolicyForHash(t.policyHash);
+ if(policy===bondedAdmissionPolicy)assert(BigInt(t.bond)>=100000000n,'Bond below the initial 100 DUBYT minimum.');
 }
 export function bondBody(t,notBefore,expires) {
  validateBondTemplate(t); integer(notBefore,1); integer(expires,notBefore+1);

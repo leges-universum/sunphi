@@ -5,15 +5,16 @@ import {initializeFundingOutbox,pendingFunding} from './funding-outbox.mjs';
 export {initializeFundingOutbox,pendingFunding} from './funding-outbox.mjs';
 import {envelope} from './core.mjs';import {WalletCollateral,collateralOptions} from './wallet-collateral.mjs';
 import {FUNDING_REQUEST,FUNDING_REPLY} from './funding-service.mjs';import {formatToken} from './token-units.mjs';
+import {ensureWorkRoutes} from './wallet-work.mjs';
 import {prepareCollateralReview} from './worker-collateral-plan.mjs';import {rpc} from './client.mjs';
 const terminal=new Set(['COMMITTED','REJECTED','CANCELLED','EXPIRED','CONFLICT']);
 export class WalletFunding extends WalletCollateral{
- constructor(wallet,options={}){super(wallet,options);initializeFundingOutbox(wallet.db);this.request=options.request??(async(node,consent)=>{const url=wallet.routes[node];assert(url,'Server connection unavailable');const r=await rpc(url,'abci_query',{path:'/work',data:Buffer.from(JSON.stringify({operation:FUNDING_REQUEST,consent})).toString('hex')});assert(!r.response.code,'Server approval unavailable');return JSON.parse(Buffer.from(r.response.value,'base64'));});}
+ constructor(wallet,options={}){super(wallet,options);initializeFundingOutbox(wallet.db);this.request=options.request??(async(node,consent)=>{const url=wallet.routes[node]??wallet.url;assert(url,'Server connection unavailable');const r=await rpc(url,'abci_query',{path:'/work',data:Buffer.from(JSON.stringify({operation:FUNDING_REQUEST,consent})).toString('hex')});assert(!r.response.code,'Server approval unavailable');return JSON.parse(Buffer.from(r.response.value,'base64'));});}
  rows(){return this.wallet.db.prepare('SELECT record FROM collateral_outgoing WHERE owner=? ORDER BY rowid DESC LIMIT 100').all(this.wallet.key.publicKey).map(r=>JSON.parse(r.record));}
  save(r){this.wallet.db.prepare('INSERT INTO collateral_outgoing VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET record=excluded.record').run(r.id,this.wallet.key.publicKey,JSON.stringify(r));}
- options(s){const o=collateralOptions(s,this.wallet.key.publicKey);o.nodes=o.nodes.map(n=>({...n,connected:!!this.wallet.routes[n.id]}));return {...o,mode:'NETWORK',broadcastEnabled:true,pending:this.rows().some(r=>!terminal.has(r.status))};}
+ options(s){const o=collateralOptions(s,this.wallet.key.publicKey);o.nodes=o.nodes.map(n=>({...n,connected:!!(this.wallet.routes[n.id]??this.wallet.url)}));return {...o,mode:'NETWORK',broadcastEnabled:true,pending:this.rows().some(r=>!terminal.has(r.status))};}
  async current(options){const v=await super.current(options);if(this.checkPayments){for(const row of this.wallet.db.prepare('SELECT body FROM outgoing').all()){const intent=JSON.parse(row.body).body.action.signed.intent;if(intent.sender!==this.wallet.key.publicKey||this.wallet.terminalRecords?.()[intent.pid])continue;assert(!['QUEUED','HISTORY_UNAVAILABLE','REVIEW_REQUIRED'].includes(outgoingStatus(v.state,intent)),'Resolve pending payments before contributing collateral');}}return v;}
- async review(q){this.checkPayments=true;assert(!pendingFunding(this.wallet.db),'Finish or cancel the pending contribution first');assert(this.wallet.routes[q.node],'Server connection unavailable');return {...await super.review(q),mode:'NETWORK'};}
+ async review(q){this.checkPayments=true;assert(!pendingFunding(this.wallet.db),'Finish or cancel the pending contribution first');hex(q.node);if(!this.wallet.routes[q.node])await ensureWorkRoutes({parts:[{nodes:[q.node]}],routes:this.wallet.routes,gateway:this.wallet.url});return {...await super.review(q),mode:'NETWORK'};}
  async confirm(q){this.checkPayments=true;assert(!pendingFunding(this.wallet.db),'A contribution is already pending');const consent=await super.confirm(q),id=hash(consent.body);
   this.save({id,consent,wire:null,status:'AWAITING_SERVER',createdAt:this.now(),verifiedHeight:null});return this.resume({id});
  }

@@ -3,6 +3,8 @@
 import {formatToken} from './token-units.mjs';
 import {V3_BALLOT,NOTICE_SECONDS,ordinaryIssueTarget,nextMinimum} from './bonded-schedule-v3.mjs';
 import {lockedSupport} from './support-accounting.mjs';
+import {outsideCollateralPilot,preparedVotingMinimum} from './worker-collateral.mjs';
+export {outsideCollateralPilot};
 const min=(a,b)=>a<b?a:b,max=(a,b)=>a>b?a:b;
 const bondedNetwork='5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c';
 const wholeMicro=value=>typeof value==='string'&&/^(0|[1-9][0-9]{0,19})$/.test(value);
@@ -48,11 +50,6 @@ export function validatorParticipation(s,id,schedule){
  const status=schedule.status==='proposed'?'beforeActivation':gap>0n?'shortfall':included?'active':'awaitingAdmission';
  return {status,gap:formatToken(String(gap),'1000000'),held:formatToken(held,'1000000'),height:s.height};
 }
-// FUND_PAYMENT_WORKER_V1 invokes activatePilotSupport on every deposit under this ramp.
-export function outsideCollateralPilot(s,id){
- const pilot=s.centuryFunds?.zeroStage?.body;
- return pilot?.settings?.ramp==='TERMINAL_WEEK_V2'&&!pilot.workers.some(w=>w.node===id);
-}
 export function nodeCollateralStatus(s,id,owner){
  const n=s.money.nodes[id];if(!n)return null;
  const a=s.workerFunding?.accounts[id],owned=!!a&&a.owner===owner,tracked=owned&&Object.hasOwn(a,'initialStakeMicro');
@@ -60,7 +57,9 @@ export function nodeCollateralStatus(s,id,owner){
  const remaining=tracked?min(deposited-withdrawn,max(0n,stake-support-BigInt(a.initialStakeMicro))):owned?null:0n;
  const raw={total:stake,support,deposited,withdrawn,remaining,consensus:BigInt(n.consensusHeld),tasks:BigInt(n.taskHeld),capacity:max(0n,stake-BigInt(n.consensusHeld)-BigInt(n.taskHeld))};
  const display=Object.fromEntries(Object.entries(raw).map(([k,v])=>[k,v===null?null:formatToken(String(v),s.money.unitScale??'1')]));
- return {owned,tracked,display,outsidePilot:outsideCollateralPilot(s,id),release:owned&&a.release?{amount:formatToken(a.release.valueMicro,s.money.unitScale??'1'),readyAt:a.release.readyAt}:null};
+ const minimum=preparedVotingMinimum(s);
+ const reviewVotingBond=Boolean(minimum && tracked && !a.release && remaining>=BigInt(minimum));
+ return {owned,tracked,display,...(minimum?{reviewVotingBond}:{}),outsidePilot:outsideCollateralPilot(s,id),release:owned&&a.release?{amount:formatToken(a.release.valueMicro,s.money.unitScale??'1'),readyAt:a.release.readyAt}:null};
 }
 export function walletCollateralSummary(s,owner){
  const ids=Object.keys(s.workerFunding?.accounts??{}).filter(id=>s.workerFunding.accounts[id].owner===owner);

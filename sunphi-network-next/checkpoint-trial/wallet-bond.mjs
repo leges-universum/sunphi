@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
 import {exact,hash,sign} from './crypto.mjs';
-import {bondBody,bondPolicy,checkBondRequest,validateBondTemplate} from './bond-request.mjs';
+import {bondBody,bondPolicy,bondPolicyForHash,bondedAdmissionPolicy,checkBondRequest,validateBondTemplate} from './bond-request.mjs';
 import {formatToken} from './token-units.mjs';
 import {spendPolicy} from './spend-protection.mjs';
 import {WalletCollateral} from './wallet-collateral.mjs';
+import {consentedVotingHold,preparedVotingMinimum} from './worker-collateral.mjs';
 
 export class WalletBond extends WalletCollateral {
  constructor(wallet,options) {
@@ -14,8 +15,10 @@ export class WalletBond extends WalletCollateral {
  async overview(node) {
   const {state}=await this.current({rewardIds:[node]});
   assert.equal(state.workerFunding?.accounts[node]?.owner,this.wallet.key.publicKey,'Open the collateral owner wallet.');
-  const amount=formatToken(state.money.nodes[node].consensusHeld,state.money.unitScale??'1');
-  return {amount,policy:bondPolicy,hasSaved:Boolean(this.saved(node))};
+  const amount=formatToken(preparedVotingMinimum(state)??state.money.nodes[node].consensusHeld,state.money.unitScale??'1');
+  const prepared=state.authority?.posSlashing;
+  const policy=prepared?bondPolicyForHash(prepared.policyHash):bondPolicy;
+  return {amount,policy,hasSaved:Boolean(this.saved(node))};
  }
  async terms(t) {
   validateBondTemplate(t);
@@ -24,15 +27,26 @@ export class WalletBond extends WalletCollateral {
   const node=s.money.nodes[t.node], funding=s.workerFunding?.accounts?.[t.node];
   assert(funding && t.owner===this.wallet.key.publicKey && funding.owner===t.owner,'Open the wallet that owns this collateral.');
   assert(node && node.key===t.workerKey,'Worker identity changed.');
-  assert(!funding.release && BigInt(node.consensusHeld)>=BigInt(t.bond) && BigInt(node.stake)>=BigInt(node.consensusHeld)+BigInt(node.taskHeld),'Reserved collateral is unavailable.');
   const a=s.authority;
-  assert((a?.validators??this.wallet.client.config.control?.validators)?.some(v=>v.key===t.validator),'Validator is outside the current roster.');
+  const policy=bondPolicyForHash(t.policyHash);
+  if(policy===bondPolicy){
+   assert(!funding.release && BigInt(node.consensusHeld)>=BigInt(t.bond) && BigInt(node.stake)>=BigInt(node.consensusHeld)+BigInt(node.taskHeld),'Reserved collateral is unavailable.');
+   assert((a?.validators??this.wallet.client.config.control?.validators)?.some(v=>v.key===t.validator),'Validator is outside the current roster.');
+  }else consentedVotingHold(s,t.node,t.bond);
   const p=spendPolicy(s,t.owner);
   let reason=null;
   if(a?.version!==2 || !a.posSlashing)reason='Signing opens when the network approves the penalty terms.';
-  else if(a.posSlashing.policyHash!==t.policyHash || a.posSlashing.activation!==null)reason='This request requires the approved policy before activation.';
-  else if(a.pending)reason='A validator change is pending. Review again after confirmation.';
-  else if(p?.enabled || p?.pending)reason='This wallet requires additional spending approval.';
+  else if(a.posSlashing.policyHash!==t.policyHash)reason='The network approved different penalty terms.';
+  else if(a.posSlashing.activation!==null){
+   const rules=a.bondedAdmission;
+   if(policy!==bondedAdmissionPolicy || rules?.version!==3 || rules.ballot!==policy.ballot ||
+      !Number.isSafeInteger(a.posSlashing.activation) || s.height<a.posSlashing.activation)
+    reason='Bond signing is unavailable at this height.';
+   else if(typeof rules.minimumMicro!=='string' || !/^[1-9][0-9]{0,19}$/.test(rules.minimumMicro) || BigInt(t.bond)<BigInt(rules.minimumMicro))
+    reason='The requested amount does not meet the confirmed minimum.';
+  }
+  if(!reason && a.pending)reason='A validator change is pending. Review again after confirmation.';
+  if(!reason && (p?.enabled || p?.pending))reason='This wallet requires additional spending approval.';
   return {ready:reason===null,reason,time:s.money.time,amount:formatToken(t.bond,s.money.unitScale??'1'),height:s.height};
  }
  async review(packet) {
@@ -40,7 +54,7 @@ export class WalletBond extends WalletCollateral {
   if(!paired) exact(packet,['template']);
   const {template:t}=packet;
   const status=await this.terms(t);
-  const result={...status,template:t,policy:bondPolicy,request:null,id:null};
+  const result={...status,template:t,policy:bondPolicyForHash(t.policyHash),request:null,id:null};
   this.clear();
   if(paired) checkBondRequest(packet,status.time,['validator','worker']);
   if(!status.ready) return result;

@@ -4,12 +4,18 @@ import assert from 'node:assert/strict';
 import {exact,hash,hex,integer,publicKey,verify} from '../crypto.mjs';
 import {consensusAddress,validateConsensusContext} from '../consensus-context.mjs';
 import {protectionEvent} from '../protection-reserve.mjs';
+import {consentedVotingHold} from '../worker-collateral.mjs';
+import {lockedSupport} from '../support-accounting.mjs';
+import {V3_BALLOT} from '../bonded-schedule-v3.mjs';
+import {posVotingAuthority} from './pos-authority-transition.mjs';
+import {spendPolicy} from '../spend-protection.mjs';
 import {validateSlashingPolicy,newSigningInfo,auditSigningInfo,signingObservation,evidenceInfraction,unjailSigningInfo,admitSigningInfo,bondReleaseAllowed} from './pos-slashing.mjs';
 
 export const POS_HEAD='pos/head';
 const addr=x=>{assert(typeof x==='string'&&/^[a-f0-9]{40}$/.test(x));return x;};
 export const signingKey=a=>'pos/signing/'+addr(a);
 const bondKey=id=>'pos/bonds/'+hex(id);
+const disciplineKey=id=>'pos/discipline/'+hex(id);
 const eventKey=(a,n)=>'pos/events/'+addr(a)+'/'+integer(n,1);
 const wordKey=(a,n)=>'pos/missed/'+addr(a)+'/'+integer(n);
 const amount=x=>{assert(typeof x==='string'&&/^(0|[1-9][0-9]*)$/.test(x));const n=BigInt(x);assert(n<1n<<64n);return n;};
@@ -28,10 +34,24 @@ export function bindConsensusBond(tx,s,consent,{height,time,network=s.network}){
  assert(node&&funding,'registered funded worker required');assert.equal(b.owner,funding.owner,'collateral owner consent');
  assert(verify(b,consent.validatorSignature,b.validator),'validator consent');assert(verify(b,consent.workerSignature,node.key),'worker consent');assert(verify(b,consent.ownerSignature,b.owner),'owner consent');
  const address=consensusAddress(b.validator);assert(!tx.get(signingKey(address))&&!tx.get(bondKey(b.node)),'consensus bond already bound');
- assert(amount(b.bond)>0n&&amount(b.bond)<=amount(node.consensusHeld),'reserved consensus collateral');
+ assert(amount(b.bond)>0n,'positive consensus collateral');
  assert(amount(node.stake)>=amount(node.consensusHeld)+amount(node.taskHeld),'collateral coverage');assert(h.count<256,'bonded signer admission bound');
+ const previousHold=node.consensusHeld;
+ if(h.policy.ballot===V3_BALLOT){
+  const protection=spendPolicy(s,b.owner);
+  assert(!protection?.enabled&&!protection?.pending,'separate protected-wallet collateral approval required');
+  const rules=s.authority?.bondedAdmission;
+  if(rules){
+   assert(rules.version===3&&rules.ballot===V3_BALLOT,'unrecognized bonded admission rule');
+   assert(amount(b.bond)>=amount(rules.minimumMicro),'bond below the effective minimum');
+  }
+  node.consensusHeld=consentedVotingHold(s,b.node,b.bond);
+  const history=tx.get(disciplineKey(b.node))??{awaitingReturn:false,lastReturn:null};
+  assert(b.notBefore>(history.lastConsentAt??0),'Retired or superseded bond consent');
+  history.lastConsentAt=b.notBefore;tx.set(disciplineKey(b.node),history);
+ }else assert(amount(b.bond)<=amount(node.consensusHeld),'reserved consensus collateral');
  const signing=newSigningInfo(b.validator,{height:Math.max(height,h.activation??height),time,bond:b.bond});
- tx.set(signingKey(address),{node:b.node,owner:b.owner,consent:hash(consent),signing});tx.set(bondKey(b.node),{address});h.count++;tx.set(POS_HEAD,h);
+ tx.set(signingKey(address),{node:b.node,owner:b.owner,consent:hash(consent),signing});tx.set(bondKey(b.node),h.policy.ballot===V3_BALLOT?{address,previousHold}:{address});h.count++;tx.set(POS_HEAD,h);
  return address;
 }
 
@@ -71,7 +91,7 @@ export function applyPosContext(tx,s,context,{height,time,lastValidators,schedul
  assert.deepEqual(context.votes.map(({address,power})=>({address,power})),expected,'last commit membership mismatch');
  // Only admitted historical consensus keys can be liable. This bounds record
  // reads by the authority archive, not the size of unrecognized evidence.
- const known=s.authority?new Set(s.authority.usedKeys.map(consensusAddress)):null;
+ const known=s.authority?new Set(posVotingAuthority(s.authority).usedKeys.map(consensusAddress)):null;
  const rows=new Map(),jailed=new Set(),getRow=address=>{if(known&&!known.has(address))return undefined;if(!rows.has(address))rows.set(address,tx.get(signingKey(address)));return rows.get(address);};
  // Evidence first: tombstoned keys cannot also receive a downtime fine in this block.
  for(const e of context.misbehavior){const row=getRow(e.address);if(!row)continue;
@@ -82,7 +102,9 @@ export function applyPosContext(tx,s,context,{height,time,lastValidators,schedul
   // The context describes H-1, not the block currently being executed.
   if(height-1<row.signing.startHeight)continue;
   const epoch=row.signing.sequence,voteAddress=v.address,bitmap={get(word){const value=tx.get(wordKey(voteAddress,word));return value?.epoch===epoch?value.bits:'0';},set(word,bits){tx.set(wordKey(voteAddress,word),{epoch,bits});}};
-  const r=signingObservation(row.signing,head.policy,{height,time,flag:v.flag},bitmap);
+  const discipline=head.policy.ballot===V3_BALLOT?tx.get(disciplineKey(row.node)):null;
+  const r=signingObservation(row.signing,head.policy,{height,time,flag:v.flag},bitmap,discipline);
+  if(r.reset&&discipline)tx.set(disciplineKey(row.node),discipline);
   if(r.fine){persistFine(tx,s,row,r.fine,height);jailed.add(row.signing.key);}
  }
  for(const [address,row]of rows)if(row){auditSigningInfo(row.signing,head.policy);tx.set(signingKey(address),row);}
@@ -115,13 +137,17 @@ export function markConsensusAdmission(tx,s,key,{height,time}){
   // A valid admission committed at H-2 cannot be retracted after Comet has
   // scheduled it. Evidence at H-1 instead schedules removal at H+1. Account
   // for that one already-committed height without unjailing or resetting it.
-  const pending=s.authority.pending;
+  const pending=posVotingAuthority(s.authority).pending;
   assert(pending?.kind==='DUEBYTE_POS_EXCLUSION_V1'&&pending.activation===height+1&&pending.excluded.includes(key)&&!pending.validators.some(v=>v.key===key),'jailed admission needs committed immediate exclusion');
   assert.equal(tx.get(bondKey(committed.node))?.address,committed.signing.address);assertConsensusBondHeld(tx.get,s,committed.node);
   integer(height,1);integer(time,1);assert(committed.signing.removedHeight!==null&&height>committed.signing.removedHeight&&time>=committed.signing.removedTime);
   committed.signing.removedHeight=null;committed.signing.removedTime=null;tx.set(signingKey(consensusAddress(key)),committed);return;
  }
  const r=assertConsensusAdmission(tx.get,s,key),h=tx.get(POS_HEAD);
+ if(h.policy.ballot===V3_BALLOT){
+  const discipline=tx.get(disciplineKey(r.node));assert(discipline);
+  if(discipline.awaitingReturn)tx.set(disciplineKey(r.node),{...discipline,awaitingReturn:false,lastReturn:time});
+ }
  // Voluntary removal/readmission need not increment the penalty sequence.
  // Clear its bounded bitmap so old misses cannot contaminate the new window.
  for(let n=0;n<Math.ceil(h.policy.signedBlocksWindow/64);n++){const k=wordKey(r.signing.address,n);if(tx.get(k))tx.delete(k);}
@@ -132,15 +158,26 @@ export function assertConsensusBondHeld(get,s,nodeId){
  const bond=get(bondKey(nodeId));if(!bond)return;const row=get(signingKey(bond.address));assert(row);const node=s.money.nodes[nodeId];
  assert(node&&amount(node.consensusHeld)>=amount(row.signing.bond),'consensus bond cannot be withdrawn or reassigned');
  assert(amount(node.stake)>=amount(node.consensusHeld)+amount(node.taskHeld),'pending payment coverage');
+ if(s.authority?.posSlashing&&Object.hasOwn(s.authority.posSlashing,'voting')){
+  const f=s.workerFunding?.accounts[nodeId],held=amount(row.signing.bond);
+  assert(f&&f.owner===row.owner&&held<=amount(f.depositedMicro)-amount(f.withdrawnMicro),'owner bond coverage');
+  assert(held+amount(f.initialStakeMicro)+lockedSupport(s,nodeId)+amount(node.taskHeld)<=amount(node.stake),'owner bond cannot be replaced by support or task collateral');
+ }
 }
 
 export function releaseConsensusBond(tx,s,key,{height,time,author}){
  const a=consensusAddress(key),row=tx.get(signingKey(a)),h=tx.get(POS_HEAD);assert(row&&h);assert.equal(author,row.owner,'collateral owner');
- assert(bondReleaseAllowed(row.signing,h.policy,{height,time}),'evidence liability period remains');
+ const p=s.authority?.posSlashing,v=h.policy.ballot===V3_BALLOT?posVotingAuthority(s.authority):null;
+ const neverScheduled=!!v&&!v.usedKeys.includes(key)&&row.signing.observations===0&&row.signing.sequence===0&&row.signing.removedHeight===null;
+ assert(neverScheduled||bondReleaseAllowed(row.signing,h.policy,{height,time}),'evidence liability period remains');
  const b=tx.get(bondKey(row.node));assert.equal(b?.address,a,'bond already released');assertConsensusBondHeld(tx.get,s,row.node);tx.delete(bondKey(row.node));
+ if(p?.admissions)p.admissions.entries=p.admissions.entries.filter(entry=>entry.key!==key);
+ if(neverScheduled)tx.delete(signingKey(a));
  // Release only the remaining consensus hold. This does not transfer funds;
  // the existing collateral withdrawal rules still govern any later withdrawal.
- const node=s.money.nodes[row.node];node.consensusHeld=String(amount(node.consensusHeld)-amount(row.signing.bond));
+ const node=s.money.nodes[row.node];let remaining=amount(node.consensusHeld)-amount(row.signing.bond);
+ if(neverScheduled&&b.previousHold!==undefined&&remaining<amount(b.previousHold))remaining=amount(b.previousHold);
+ node.consensusHeld=String(remaining);
  integer(h.count,1);h.count--;tx.set(POS_HEAD,h);
  // Tombstones and historical deductions remain permanent after hold release.
  return row.signing.bond;

@@ -30,6 +30,9 @@ import {walletAnalytics} from './research/bounded-wallet-presentation.mjs';
 import {WalletFunding} from './wallet-funding.mjs';
 import {WalletBond} from './wallet-bond.mjs';
 const bondSessions=new WeakMap();
+const ruleReviewSessions=new WeakMap();
+import {WalletRuleReviews} from './wallet-rule-review.mjs';
+import {recentBlockSignatures} from './wallet-block-votes.mjs';
 let collateral=null;
 import {WalletNodeLinks,walletNodeOverview} from './wallet-node-links.mjs';
 let nodeLinks=null;
@@ -131,7 +134,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  // Reading the request body yields to lock/unlock and wallet-selection requests.
  // Bind admission to this session lifetime, including when the same token is reused.
  const admittedEpoch=sessionEpoch;
- assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=16384);chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
+ assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=(req.url==='/nodes/rule-review'?131072:16384));chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
  assert.equal(admittedEpoch,sessionEpoch,'Wallet session changed. Retry the action in the current session.');
  assert(!sessionDrain.pending,'Wallet switching is in progress. Please wait.');
  assert(!paymentLane.pending||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
@@ -156,11 +159,11 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   }finally{working=false;walletBusy=false;}
  }
  if(req.url==='/authorize-action'){
-  assert(wallet&&['/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/seller/start','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund'].includes(q.path),'supported consent action required');
+  assert(wallet&&['/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/seller/start','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund'].includes(q.path),'supported consent action required');
   if(q.path==='/seller/start')assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9]{64}$/.test(q.data.profileHash),'seller review required');
   else if(['/broker/confirm','/broker/fund'].includes(q.path))assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9-]{36}$/.test(q.data.id),'exchange review required');
   else if(q.path==='/send')requestedRecipientDelay(q.data);
-  else if(['/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/node-alerts/confirm','/exchange/confirm','/exchange/resume','/exchange/refund'].includes(q.path))assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9]{64}$/.test(q.data.id),'review required');
+  else if(['/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/exchange/confirm','/exchange/resume','/exchange/refund'].includes(q.path))assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9]{64}$/.test(q.data.id),'review required');
   else if(q.path==='/node-alerts/activate')assert(q.data&&Object.keys(q.data).length===1&&q.data.approval?.request?.body,'server approval required');
   else if(q.path==='/node-alerts/stop')assert(q.data&&Object.keys(q.data).length===2&&/^[a-f0-9]{64}$/.test(q.data.node)&&Number.isSafeInteger(q.data.revision),'subscription required');
   else assert(q.data&&Object.keys(q.data).length===1&&typeof q.data.pid==='string','payment reference required');
@@ -170,7 +173,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   res.setHeader('Content-Type','application/json');res.end(JSON.stringify({permit}));return;
  }
  let actionExpires=null;
- if(['/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/seller/start','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund'].includes(req.url)){
+ if(['/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/seller/start','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund'].includes(req.url)){
   const id=req.headers['x-duebyte-action'],permit=actionPermits.get(id);actionPermits.delete(id);
   assert(permit&&permit.expires>=Date.now()&&permit.digest===hash({path:req.url,data:q,activeId,sessionToken}),'Confirmation expired or changed. Review the payment again.');actionExpires=permit.expires;
  }
@@ -312,6 +315,19 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
     if(nodeLinks?.wallet!==active){nodeLinks?.clear();nodeLinks=new WalletNodeLinks(active);}
     working=true;walletBusy=true;
     try{
+       if(req.url==='/nodes/block-votes'){
+        assert.deepEqual(q,{});return await recentBlockSignatures(active);
+       }
+       if(req.url==='/nodes/rule-review'||req.url==='/nodes/rule-confirm'){
+        if(!ruleReviewSessions.has(active))ruleReviewSessions.set(active,new WalletRuleReviews(active));
+        const reviewer=ruleReviewSessions.get(active);
+        if(req.url==='/nodes/rule-confirm')return await reviewer.confirm(q,valid);
+        const remote=Object.hasOwn(q,'server');if(remote)assert.deepEqual(Object.keys(q).sort(),['proposal','server']);
+        const proposal=remote?q.proposal:q;
+        const builtin=proposal?.builtin==='bonded-v3'&&Object.keys(proposal).length===1;
+        const result=await reviewer.review(builtin?reviewer.builtin():proposal,remote?q.server:null);
+        assert(valid(),'Wallet session changed');return result;
+       }
      if(req.url==='/nodes/review')return await nodeLinks.review(q);
      if(req.url==='/nodes/confirm')return await nodeLinks.confirm(q,valid);
      if(req.url==='/nodes/check')return await nodeLinks.check(q);
