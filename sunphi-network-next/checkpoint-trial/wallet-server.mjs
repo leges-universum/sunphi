@@ -139,7 +139,9 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=(req.url==='/nodes/rule-review'?131072:16384));chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
  assert.equal(admittedEpoch,sessionEpoch,'Wallet session changed. Retry the action in the current session.');
  assert(!sessionDrain.pending,'Wallet switching is in progress. Please wait.');
- assert(!paymentLane.pending||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
+ const proposalRead=req.url==='/nodes/rule-review'||req.url==='/voting/list';
+ const voteSubmission=['/nodes/rule-confirm','/voting/submit'].includes(req.url==='/authorize-action'?q?.path:req.url);
+ assert(!paymentLane.pending||proposalRead||voteSubmission||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
  assert(Date.now()>=updateDrainUntil,'The node is installing an update. Please reopen the wallet after it restarts.');
  if(wallet && token !== sessionToken) throw new Error('Wallet is open in another session. Lock it there first.');
  if(!wallet)assert(['/status','/unlock','/create','/restore','/select-wallet','/lock'].includes(req.url),'unlock your wallet first');
@@ -302,7 +304,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  if(['/voting/list','/voting/submit','/voting/candidacy'].includes(req.url)){
   const active=wallet;assert(active,'Unlock your wallet to view proposals.');
   const valid=()=>active===wallet&&sessionEpoch===admittedEpoch&&!sessionDrain.pending&&!res.destroyed&&(actionExpires===null||Date.now()<=actionExpires);
-  const result=await paymentLane.run({busy:()=>working||walletBusy,valid,timeoutMs:25000,timeoutMessage:'Network verification is busy. Try again shortly.',execute:async()=>{
+  const result=await paymentLane.run({busy:()=>working||walletBusy,valid,waitForCurrent:proposalRead||voteSubmission,timeoutMs:25000,timeoutMessage:'Network verification is busy. Try again shortly.',execute:async()=>{
    working=true;walletBusy=true;
    try{const {certificate,state}=await active.view(),data=await active.client.operatorBallots(certificate,active.key.publicKey);
     if(req.url==='/voting/list'){
@@ -359,8 +361,8 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   const active=wallet;
   assert(active,'Unlock the wallet to review a server.');
   const valid=()=>wallet===active&&sessionEpoch===admittedEpoch&&!sessionDrain.pending&&!res.destroyed&&(actionExpires===null||Date.now()<=actionExpires);
-  const result=await paymentLane.run({busy:()=>working||walletBusy,valid,timeoutMs:60000,
-   timeoutMessage:'Wallet verification is still running. Check Network, then select Review server again.',
+  const result=await paymentLane.run({busy:()=>working||walletBusy,valid,waitForCurrent:proposalRead||voteSubmission,timeoutMs:60000,
+   timeoutMessage:proposalRead?'The wallet is still busy. Check signing eligibility again when the current operation finishes.':'Wallet verification is still running. Check Network, then select Review server again.',
    execute:async()=>{
     if(nodeLinks?.wallet!==active){nodeLinks?.clear();nodeLinks=new WalletNodeLinks(active);}
     working=true;walletBusy=true;

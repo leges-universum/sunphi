@@ -566,13 +566,15 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <p>Check the server ID and wallet address. If both are yours, select <strong>Sign and connect</strong> to approve future rewards to this wallet.</p>
 <button id="server-receive-sign" class="primary" type="button">Sign and connect</button><button id="server-receive-back" type="button">Back</button></dialog></section>
 <details id="node-votes" class="panel"><summary>Node voting</summary><div class="panel-body">
-<section id="issuance-card" aria-labelledby="issuance-heading" class="panel">
-<h3 id="issuance-heading">Approve the smooth issuance schedule</h3>
+<details id="issuance-terms" name="financial-proposal" class="panel"><summary id="issuance-heading">Smooth issuance schedule</summary>
 <p>Distribute 9,880,000,000 DUBYT in ordinary node rewards over 100 years using a smooth daily schedule. The four funds keep their existing schedules and management rules.</p>
-<p>Financial validators sign with their server keys. Review the eligible servers and their voting weight before approving.</p>
-<div class="governance-actions"><button type="button" id="issuance-review">Review issuance proposal</button><button type="button" class="primary" id="issuance-approve" hidden>Approve with selected servers</button><button type="button" id="issuance-save" hidden>Save verified signatures</button></div>
-<p id="issuance-status" role="status" aria-live="polite"></p><ul id="issuance-servers"></ul>
-</section>
+<p>The proposed schedule runs from 1 January 2027 through 31 December 2126. Each decade keeps its ordinary reward budget. The daily rate declines continuously across decade boundaries and reaches zero at the end of the programme.</p>
+<p>Each UTC day receives the difference between the cumulative allowances at its opening and closing midnights. The proposal changes the timing of ordinary node rewards. The warm-up, development, research and founder funds retain their schedules and management rules.</p>
+<p>The development fund manager and the financial validator quorum must authorize this schedule. You can check which of your linked servers are eligible and then decide whether to approve. The signing window ends on 27 November 2026 at 12:24:19 UTC.</p>
+<ul id="issuance-servers" class="address" hidden></ul>
+<div id="issuance-step"><p id="issuance-status" role="status" aria-live="polite"></p>
+<div class="governance-actions"><button type="button" id="issuance-review" hidden>Check again</button><button type="button" class="primary" id="issuance-approve" hidden></button><button type="button" id="issuance-confirm" class="primary" hidden>Confirm approval</button><button type="button" id="issuance-back" hidden>Back</button><button type="button" id="issuance-save" hidden>Save verified signatures</button></div></div>
+</details>
 <h3>Operator proposals</h3><p id="governance-phase"></p><p id="ballot-status" role="status"></p><button type="button" id="ballot-refresh">Refresh proposals</button><div id="ballots"></div>
 <details id="candidate-consent" hidden><summary id="candidate-heading">Accept an invitation to stand for election</summary><form id="candidate-form">
 <label for="candidate-name" id="candidate-name-label">Public candidate name</label><input id="candidate-name" required maxlength="160">
@@ -588,23 +590,24 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <label id="slate-label" hidden><span id="slate-help">Attach the five signed candidate files, or one file containing the full slate.</span><input type="file" id="ballot-slate" accept=".json" multiple></label>
 <label id="financial-label" hidden>Financial rule and exact terms <input type="file" id="ballot-change" accept=".json"></label>
 <button>Sign and submit for expert review</button><button id="ballot-reset" hidden type="button">Cancel revision</button></form></details>
-<p>Servers sign blocks automatically while Home is closed. Each server card shows its verified consensus status.</p>
+<details><summary>Recent block signatures</summary>
 <button id="check-block-votes" type="button">Check recent block signatures</button>
 <p id="block-votes-status" role="status" aria-live="polite"></p>
-<div id="block-votes-list" style="overflow-wrap:anywhere"></div>
-<div id="bootstrap-rule-tools"><h3>Network proposals</h3><p>Select a rule proposal to verify its text, endorsements and signing rights against the financial registry.</p>
+<div id="block-votes-list" style="overflow-wrap:anywhere"></div></details>
+<div id="bootstrap-rule-tools"><h3>Financial proposals</h3>
+<details name="financial-proposal" id="rule-bonded"><summary>Collateral and penalties</summary>
+<p>The starting validator bond is 100 DUBYT. Increases require 30 days’ notice and are limited to 3% and 15 DUBYT per period, up to 10,000 DUBYT.</p></details>
+<details name="financial-proposal" id="rule-group"><summary>Opening validator bond deposits</summary>
+<p>Open the preparation phase so operators can deposit a validator bond. Activating penalties and bonded voting requires a separate certificate.</p></details>
+<details name="financial-proposal" id="rule-import"><summary>Review a proposal file</summary>
 <label for="rule-server">Voting key</label><select id="rule-server"><option value="">This wallet</option></select>
 <p class="hint">Select a server paired by its operator to endorse from Home using the key on that server.</p>
-<div class="governance-actions" role="group" aria-label="Financial proposals">
-<button id="rule-bonded" type="button">View collateral and penalties proposal</button>
-<button id="rule-prepare" type="button">Review opening bond deposits</button>
-<button id="rule-group" type="button">Review votes from my servers</button>
-</div>
 <label for="rule-packet">Rule proposal file</label><input id="rule-packet" type="file" accept=".json,application/json">
+</details><div id="rule-step" hidden>
 <p id="rule-result" role="status" aria-live="polite"></p><p id="rule-id" class="address"></p>
 <pre id="rule-text" style="white-space:pre-wrap;overflow-wrap:anywhere" hidden></pre>
 <button id="rule-confirm" type="button" class="primary" hidden>Endorse this rule text</button>
-<button id="rule-save" type="button" hidden>Save signed proposal</button></div></div></details>
+<button id="rule-save" type="button" hidden>Save signed proposal</button></div></div></div></details>
 <section class="panel nodes-overview"><div class="panel-head"><h2>Your nodes, collateral &amp; rewards</h2><p class="hint">Nodes funded by this wallet or connected to it for payouts. Amounts update automatically after verification. Rewards show each node’s lifetime totals across its payout wallets.</p></div>
 <div class="panel-body"><p id="nodes-status" role="status">Loading verified nodes and collateral…</p><button id="nodes-refresh" type="button" hidden>Retry loading nodes</button><div id="collateral-summary" hidden></div><div id="nodes-list"></div><div id="collateral-history"></div></div></section>
 <section class="panel node-pairing" hidden><div class="panel-head"><small class="eyebrow">Wallet connection</small><h2>Link or unlink a server</h2><p class="hint">Use this wallet in Home or your browser. Your spending key stays off the server.</p></div><div class="panel-body">
@@ -668,7 +671,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.122</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.123</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -985,10 +988,11 @@ function ballotFormMode(){
 $('ballot-first-panel').onchange=()=>{$('ballot-change').value='';$('ballot-slate').value='';ballotFormMode();};
 function resetBallotVersion(){revisionId=null;$('ballot-form').reset();$('ballot-version').hidden=true;$('ballot-reset').hidden=true;ballotFormMode();}
 $('ballot-reset').onclick=resetBallotVersion;
-async function loadBallots(){
+function formatVotingWeight(value){const n=BigInt(value);return (n/1000000n)+'.'+(n%1000000n).toString().padStart(6,'0');}
+async function loadBallots(openedId=null){
  const current=noticeContext(),status=$('ballot-status');$('ballots').replaceChildren();$('governance-phase').textContent='';$('ballot-slate').value='';$('ballot-create').hidden=true;$('candidate-consent').hidden=true;ballotView=null;
  if(lastStatus?.locked){status.textContent='Unlock your wallet to view proposals.';return;}
- status.textContent='Checking signed network proposals…';
+ $('ballot-refresh').hidden=true;status.textContent='Checking signed network proposals…';
  try{const data=await api('/voting/list',{});if(!current())return;ballotView=data;
   $('bootstrap-rule-tools').hidden=!!data.policy;
   if(!data.policy){status.textContent='Operator voting is awaiting network activation.';return;}
@@ -1019,8 +1023,8 @@ async function loadBallots(){
   const servers=data.servers??[];$('ballot-node').replaceChildren(...servers.map(n=>{const option=element('option',n.id);option.value=n.id;return option;}));
   status.textContent=data.proposals.length?'Choose a question to see its exact text, reviews and voting weight.':'There are no open proposals.';
   for(const r of data.proposals){
-   const card=element('article','','panel-band'),weight=r.weights?.[lastStatus.owner]??'0';
-   card.append(element('h3',r.subject??r.proposal.title));
+   const card=element('details','','panel-band'),weight=r.weights?.[lastStatus.owner]??'0';
+   card.append(element('summary',(r.subject??r.proposal.title)+' · '+r.status));
    if(r.subject){
     const note=element('details','');note.append(element('summary','Author’s explanation'),element('p',r.proposal.title),element('p',r.proposal.text));card.append(note);
    }else card.append(element('p',r.proposal.text));
@@ -1032,9 +1036,29 @@ async function loadBallots(){
    const labels={admit:'Confirm admission',reject:'Reject',revise:'Request revision',abstain:'Abstain'};
    for(const e of admissions){const item=element('details','');item.append(element('summary',labels[e.decision]+' · '+e.height),element('p',e.key,'address'));if(e.review?.reason)item.append(element('p',e.review.reason));if(e.review?.combinedEffects)item.append(element('p',e.review.combinedEffects),element('p',e.review.alternative));card.append(item);}
    if(r.openHeight)card.append(element('p','Your voting weight at block '+r.openHeight+': '+(BigInt(weight)/1000000n)+'.'+(BigInt(weight)%1000000n).toString().padStart(6,'0')+' DUBYT in confirmed operator deposits across your eligible servers.'));
-   const button=(label,make)=>{const b=element('button',label);b.type='button';b.onclick=async()=>{if(!current())return;const buttons=card.querySelectorAll('button');buttons.forEach(x=>x.disabled=true);try{await submitBallot(await make());}catch(e){if(current())status.textContent=e.message;}finally{buttons.forEach(x=>x.disabled=false);}};card.append(b);};
-   if(r.status==='open'&&weight!=='0'&&!r.votes[lastStatus.owner])for(const [label,choice] of [['Accept','yes'],['Reject','no']])button(label,()=>({type:'CAST_OPERATOR_BALLOT_V1',id:r.id,choice}));
-   if(r.status==='draft'){
+   const result=element('p','');result.setAttribute('role','status');
+   const actions=element('div','','governance-actions');card.append(result,actions);
+   const button=(label,make)=>{
+    const b=element('button',label);b.type='button';actions.append(b);
+    b.onclick=async()=>{
+     if(!current())return;
+     let action;try{action=await make();}catch(e){result.textContent=e.message;return;}
+     const options=[...actions.children];options.forEach(x=>x.hidden=true);
+     const confirm=element('button','Confirm'),back=element('button','Back');actions.append(confirm,back);
+     result.textContent=label+' · '+(r.subject??r.proposal.title)+(action.type==='CAST_OPERATOR_BALLOT_V1'?' · Voting weight: '+formatVotingWeight(weight)+' DUBYT.':'.');
+     back.onclick=()=>{confirm.remove();back.remove();result.textContent='';options.forEach(x=>x.hidden=false);};
+     confirm.onclick=async()=>{
+      if(!current())return;confirm.remove();back.remove();result.textContent='Submitting your signed decision…';
+      try{await api('/voting/submit',action);if(current())result.textContent='Signed and submitted. Waiting for network confirmation.';}
+      catch(e){if(current())result.textContent=e.message;}
+      if(current()){const check=element('button','Check recorded result');check.onclick=()=>loadBallots(r.id);actions.append(check);}
+     };
+    };
+   };
+   if(r.votes?.[lastStatus.owner])result.textContent='Your recorded vote: '+(r.votes[lastStatus.owner]==='yes'?'For.':'Against.');
+   else if(r.status==='open'&&data.blockTime<r.ends&&weight==='0')result.textContent='This wallet had no voting collateral at the opening block.';
+   if(r.status==='open'&&data.blockTime<r.ends&&weight!=='0'&&!r.votes[lastStatus.owner])for(const [label,choice] of [['Vote for','yes'],['Vote against','no']])button(label,()=>({type:'CAST_OPERATOR_BALLOT_V1',id:r.id,choice}));
+   if(r.status==='draft'&&data.blockTime<r.expires){
     const founder=inWarmup||selecting,permitted=!selecting||!!r.proposal.slate;
     card.append(element('p',!permitted?'Waiting for the first expert election.':founder?'Awaiting the founder’s signature to open voting.':'Expert admission signatures: '+admissions.filter(e=>e.decision==='admit').length+' / '+data.policy.minimumReviews));
     const eligible=founder?data.founderExpert===lastStatus.owner:(data.serving??[]).some(x=>x.key===lastStatus.owner);
@@ -1057,10 +1081,12 @@ async function loadBallots(){
      $('ballot-first-panel').checked=!!r.proposal.slate&&r.proposal.node===null;ballotFormMode();
      $('ballot-version').textContent='New version of '+r.id+(r.proposal.change||r.proposal.slate?' · Attach the revised terms or signed candidate list.':'');$('ballot-version').hidden=false;$('ballot-reset').hidden=false;$('ballot-create').open=true;$('ballot-subject').focus();};card.append(edit);
    }
-   if(r.status==='open')button('Finalize after closing time',()=>({type:'FINISH_OPERATOR_BALLOT_V1',id:r.id}));
+   if(r.status==='open'&&data.blockTime>=r.ends)button('Finalize vote',()=>({type:'FINISH_OPERATOR_BALLOT_V1',id:r.id}));
+   if(r.status==='draft'&&data.blockTime>=r.expires)button('Close expired proposal',()=>({type:'FINISH_OPERATOR_BALLOT_V1',id:r.id}));
+   if(r.id===openedId){card.open=true;requestAnimationFrame(()=>card.scrollIntoView({block:'nearest'}));}
    $('ballots').append(card);
   }
- }catch(e){if(current())status.textContent=e.message==='indexed query failed'?'The network could not verify the proposal list. Select Refresh proposals to try again.':e.message;}
+ }catch(e){if(current())$('ballot-refresh').hidden=false;if(current())status.textContent=e.message==='indexed query failed'?'The network could not verify the proposal list. Select Refresh proposals to try again.':e.message;}
 }
 async function submitBallot(action){
  const current=noticeContext();if(!window.confirm('Sign this proposal action in your wallet?'))return;
@@ -1310,35 +1336,54 @@ function noticeContext(){const session=token,owner=lastStatus?.owner;return()=>t
 function downloadInstruction(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 let bondNode=null,bondReview=null,bondSequence=0;
 let ruleId=null,ruleSigned=null,ruleSequence=0;
-let issuanceReview=null,issuanceSigned=null,issuanceOwner=null;
-function resetIssuance(){
- issuanceReview=null;issuanceSigned=null;$('issuance-status').textContent='';$('issuance-servers').replaceChildren();
- $('issuance-approve').hidden=true;$('issuance-save').hidden=true;
+let issuanceOwner=null,issuanceReview=null,issuanceSigned=null,issuanceSequence=0;
+function issuanceStep(message,actions=[]){
+ $('issuance-status').textContent=message;
+ for(const name of ['review','approve','confirm','back','save'])$('issuance-'+name).hidden=!actions.includes(name);
 }
-$('issuance-review').onclick=async()=>{
- const current=noticeContext(),button=$('issuance-review'),status=$('issuance-status');
- resetIssuance();button.disabled=true;status.textContent='Checking the mandate and linked financial validators…';
+function resetIssuance(){
+ issuanceSequence++;issuanceReview=null;issuanceSigned=null;$('issuance-servers').hidden=true;$('issuance-servers').replaceChildren();issuanceStep('');
+}
+function showIssuanceChoice(){
+ const r=issuanceReview;
+ $('issuance-approve').textContent='Approve with '+r.servers.length+(r.servers.length===1?' server':' servers');
+ issuanceStep('Verified signature weight: '+r.weight+' of '+r.required+'. With your selected servers: '+r.expectedWeight+'.',['approve']);
+}
+async function checkIssuance(){
+ resetIssuance();const seq=issuanceSequence,current=noticeContext();
+ issuanceStep('Checking your signing eligibility. The proposal is ready to read.');
  try{
   const nodes=(lastStatus?.nodesSnapshot?.nodes??[]).filter(n=>n.kind==='server').map(n=>n.id);
-  const r=await api('/nodes/rule-review',{builtin:'smooth-issuance',nodes});if(!current())return;
-  const tally='Verified signature weight in this wallet: '+r.weight+' of '+r.required+'.';
-  status.textContent=r.sealed?'The network has activated this schedule.':r.expired?'The mandate has expired.':r.approved?'Financial quorum reached. '+tally:!r.available?'This mandate cannot be signed at the current block.':r.servers.length?tally+' Review the servers below and confirm.':tally+' No linked server returned an eligible signing permission for this mandate.';
-  $('issuance-servers').replaceChildren(...r.servers.map(id=>element('li',id,'address')));
-  issuanceSigned=r.saved;$('issuance-save').hidden=!issuanceSigned;
-  if(r.id&&r.servers.length){issuanceReview=r.id;$('issuance-approve').textContent='Approve for '+r.servers.length+(r.servers.length===1?' server':' servers');$('issuance-approve').hidden=false;}
- }catch(e){if(current())status.textContent='Could not verify the issuance proposal. '+e.message;}
- finally{button.disabled=false;}
-};
-$('issuance-approve').onclick=async()=>{
+  const r=await api('/nodes/rule-review',{builtin:'smooth-issuance',nodes});
+  if(seq!==issuanceSequence||!current())return;
+  issuanceSigned=r.saved;
+  if(r.available&&!r.approved&&!r.expired&&!r.sealed&&r.id&&r.servers.length){
+   issuanceReview=r;$('issuance-servers').replaceChildren(...r.servers.map(id=>element('li','Server '+id,'address')));
+   showIssuanceChoice();return;
+  }
+  const tally='Verified signature weight: '+r.weight+' of '+r.required+'.';
+  issuanceStep(r.sealed?'The network has activated this schedule.':r.expired?'The signing window has closed.':r.approved?'Financial quorum reached. '+tally:!r.available?'Signing is unavailable at the verified block.':tally+' No eligible signing server was verified for this wallet.',issuanceSigned?['save']:[]);
+ }catch(e){if(seq===issuanceSequence&&current())issuanceStep('Signing eligibility could not be verified. '+e.message,['review']);}
+}
+$('issuance-terms').ontoggle=()=>{if($('issuance-terms').open)void checkIssuance();else resetIssuance();};
+$('issuance-review').onclick=checkIssuance;
+$('issuance-approve').onclick=()=>{
  if(!issuanceReview)return;
- const id=issuanceReview,current=noticeContext();issuanceReview=null;$('issuance-approve').hidden=true;$('issuance-review').disabled=true;
- $('issuance-status').textContent='Requesting signatures from the reviewed servers…';
+ $('issuance-servers').hidden=false;
+ issuanceStep('Approve the smooth issuance schedule with the listed servers? Expected signature weight: '+issuanceReview.expectedWeight+' of '+issuanceReview.required+'.',['confirm','back']);
+   $('issuance-confirm').scrollIntoView({block:'nearest'});
+};
+$('issuance-back').onclick=()=>{if(issuanceReview){$('issuance-servers').hidden=true;showIssuanceChoice();}};
+$('issuance-confirm').onclick=async()=>{
+ if(!issuanceReview)return;
+ const id=issuanceReview.id,seq=issuanceSequence,current=noticeContext();issuanceReview=null;
+ issuanceStep('Requesting signatures from the selected servers…');
+ $('issuance-status').scrollIntoView({block:'nearest'});
  try{
-  const r=await api('/nodes/rule-confirm',{id});if(!current())return;
-  issuanceSigned=r.packet;$('issuance-save').hidden=false;
-  $('issuance-status').textContent=(r.status.approved?'Financial quorum reached. ':'Server signatures saved. ')+'Verified weight: '+r.status.weight+' of '+r.status.required+'.';
- }catch(e){if(current())$('issuance-status').textContent='Review again to check any signatures already received. '+e.message;}
- finally{$('issuance-review').disabled=false;}
+  const r=await api('/nodes/rule-confirm',{id});if(!current()||seq!==issuanceSequence)return;
+  issuanceSigned=r.packet;
+  issuanceStep((r.status.approved?'Financial quorum reached. ':'Server signatures saved. ')+'Verified weight: '+r.status.weight+' of '+r.status.required+'.',['save']);
+ }catch(e){if(current()&&seq===issuanceSequence)issuanceStep('Check the recorded signatures before trying again. '+e.message,['review']);}
 };
 $('issuance-save').onclick=()=>{if(issuanceSigned)downloadInstruction(issuanceSigned,'duebyte-issuance-approvals.json');};
 $('node-votes').addEventListener('toggle',()=>{
@@ -1369,10 +1414,10 @@ function resetRuleReview(){
  $('rule-text').textContent='';$('rule-result').textContent='';$('rule-id').textContent='';
 }
 async function reviewRulePacket(file,prepare=false,group=false){
- resetRuleReview();const seq=ruleSequence,current=noticeContext();
+ resetRuleReview();const seq=ruleSequence,current=noticeContext();$('rule-result').textContent='Checking signing eligibility…';
  try{
   if(file&&file.size>131072)throw Error('Choose a proposal under 128 KiB.');
-  let server=group?'':$('rule-server').value;
+  let server=file?$('rule-server').value:'';
   if(server==='other'){
    server=window.prompt('Reward node ID of your paired server')?.trim();
    if(!server)return;
@@ -1388,6 +1433,7 @@ async function reviewRulePacket(file,prepare=false,group=false){
   $('rule-result').textContent=status+' Verified weight '+result.weight+' of '+result.required+' required. Checked at block '+result.height+'.';
   ruleId=result.id;$('rule-confirm').hidden=!result.canSign&&!result.canSubmit;
   $('rule-confirm').textContent=result.canSubmit?'Submit approved bond preparation':result.kind==='preparation'?'Approve opening bond deposits':'Endorse this rule text';
+  if(result.kind==='preparation'&&!result.id&&!result.canSubmit)$('rule-result').textContent=result.expired?'The voting window has closed.':'No eligible signing server was verified for this wallet at block '+result.height+'.';
   if(result.group){
    $('rule-result').textContent='Open bond deposits. '+result.servers.length+' server signatures selected. Expected weight '+result.expectedWeight+' of '+result.required+' required. '+(result.willSubmit?'Home will submit the certificate when the quorum is reached.':'Other operators must also vote to reach the quorum.');
    $('rule-text').textContent='Servers included in this confirmation:\n'+result.servers.join('\n')+'\n\n'+result.document;
@@ -1396,13 +1442,20 @@ async function reviewRulePacket(file,prepare=false,group=false){
   ruleSigned=result.saved;$('rule-save').hidden=!ruleSigned;
  }catch(e){if(seq===ruleSequence&&current())$('rule-result').textContent=e.message;}
 }
-$('rule-bonded').onclick=()=>reviewRulePacket(null);
-$('rule-prepare').onclick=()=>reviewRulePacket(null,true);
-$('rule-group').onclick=()=>reviewRulePacket(null,true,true);
+for(const id of ['rule-bonded','rule-group','rule-import']){
+ const item=$(id);
+ item.ontoggle=()=>{
+  const step=$('rule-step');
+  if(!item.open){if(step.parentElement===item){resetRuleReview();step.hidden=true;}return;}
+  resetRuleReview();item.append(step);step.hidden=false;
+  if(id!=='rule-import')void reviewRulePacket(null,id==='rule-group',id==='rule-group');
+ };
+}
 $('rule-packet').onchange=()=>{const file=$('rule-packet').files[0];if(file)void reviewRulePacket(file);};
 $('rule-confirm').onclick=async()=>{
  if(!ruleId)return;
  const id=ruleId,seq=ruleSequence,current=noticeContext();ruleId=null;$('rule-confirm').hidden=true;
+ $('rule-result').textContent='Submitting the reviewed decision…';
  try{
   const result=await api('/nodes/rule-confirm',{id});
   if(seq!==ruleSequence||!current())return;
@@ -1638,7 +1691,7 @@ function safeFundingRow(node){
  return latest??null;
 }
 function renderCollateralState(s){
- if(issuanceOwner!==(s.locked?null:s.owner)){issuanceOwner=s.locked?null:s.owner;resetIssuance();lastFundingReply=null;fundingError=null;fundingAttempt=null;}
+ if(issuanceOwner!==(s.locked?null:s.owner)){issuanceOwner=s.locked?null:s.owner;$('issuance-terms').open=false;for(const id of ['rule-bonded','rule-group','rule-import'])$(id).open=false;resetIssuance();resetRuleReview();lastFundingReply=null;fundingError=null;fundingAttempt=null;}
  if(s.locked||s.error||collateralOwner!==s.owner||!s.nodesSnapshot)renderVotingNotices(null);
  renderFundingRequests(s.locked?[]:(s.collateralRequests??[]));
  const signature=s.locked?'':JSON.stringify((s.collateralRequests??[]).map(r=>[r.id,r.status]));if(signature!==fundingSignature){fundingSignature=signature;if(!s.locked&&(s.collateralRequests??[]).some(r=>r.status==='COMMITTED')&&!submitting&&!s.working&&!document.querySelector('[data-screen=collateral]').hidden)void loadCollateral();}

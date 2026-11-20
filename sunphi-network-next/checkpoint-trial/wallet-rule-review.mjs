@@ -42,10 +42,11 @@ export class WalletRuleReviews{
  builtin(){return JSON.parse(readFileSync(new URL('./public-bonded-rule-v3.json',import.meta.url),'utf8'));}
  async preparationGroup(nodes,issuance=false){
   this.pending=null;
-  assert(Array.isArray(nodes)&&(issuance||nodes.length>0)&&nodes.length<=128&&new Set(nodes).size===nodes.length,'Open a wallet with linked servers.');
+  assert(Array.isArray(nodes)&&nodes.length<=128&&new Set(nodes).size===nodes.length,'Invalid linked server list.');
   nodes.forEach(node=>hex(node));
   const w=this.wallet,owner=w.key.publicKey,network=w.client.config.chainId;
   const {state}=await w.view({rewardIds:nodes});
+  if(!nodes.length)nodes=Object.keys(state.rewards?.nodes??{}).filter(id=>state.rewards.nodes[id].payouts?.some(p=>p.wallet===owner)).sort().slice(0,128);
   const {merged,status}=this.collect(issuance?issuancePacket():preparationPacket(state,network),state);
   const scope=issuance?{issuanceMandate:mandateId}:{preparationStart:merged.body.notBefore},grants=[],used=new Set(merged.approvals.map(v=>v.key));
   let weight=BigInt(status.weight);
@@ -61,7 +62,7 @@ export class WalletRuleReviews{
    used.add(grant.controller);grants.push(grant);
    weight+=BigInt(state.authority.validators.find(v=>v.key===grant.controller).power);
   }
-  if(issuance&&!grants.length)return {...status,id:null,servers:[],saved:merged.approvals.length?merged:null};
+  if(!grants.length&&!status.canSubmit)return {...status,id:null,canSign:false,servers:[],saved:merged.approvals.length?merged:null};
   assert(grants.length||status.canSubmit,'No eligible linked server is available for this proposal.');
   const id=randomBytes(32).toString('hex');
   const willSubmit=weight>=BigInt(status.required);
