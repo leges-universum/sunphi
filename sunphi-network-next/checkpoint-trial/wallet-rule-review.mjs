@@ -38,6 +38,33 @@ export class WalletRuleReviews{
   wallet.db.exec('CREATE TABLE IF NOT EXISTS rule_votes(proposal TEXT,signer TEXT,signature TEXT NOT NULL,PRIMARY KEY(proposal,signer))');
  }
  builtin(){return JSON.parse(readFileSync(new URL('./public-bonded-rule-v3.json',import.meta.url),'utf8'));}
+ async preparationGroup(nodes){
+  this.pending=null;
+  assert(Array.isArray(nodes)&&nodes.length>0&&nodes.length<=128&&new Set(nodes).size===nodes.length,'Open a wallet with linked servers.');
+  nodes.forEach(node=>hex(node));
+  const w=this.wallet,owner=w.key.publicKey,network=w.client.config.chainId;
+  const {state}=await w.view({rewardIds:nodes});
+  const {merged,status}=this.collect(preparationPacket(state,network),state);
+  const scope={preparationStart:merged.body.notBefore},grants=[],used=new Set(merged.approvals.map(v=>v.key));
+  let weight=BigInt(status.weight);
+  for(const node of [...nodes].sort()){
+   if(weight>=BigInt(status.required))break;
+   const payouts=state.rewards?.nodes?.[node]?.payouts;
+   if(payouts?.length!==1||payouts[0].wallet!==owner)continue;
+   let reply;
+   try{reply=await this.request(w,node,{operation:RULE_ROUTE,node,owner,...scope});}catch{continue;}
+   const grant=verifyRuleRoute(reply,state,network,node,owner);
+   assert(grant.domain===PREPARE_DOMAIN&&grant.proposal===status.proposal,'Server reviewed a different proposal');
+   if(used.has(grant.controller)||!reviewPreparation(merged,state,network,grant.controller).canSign)continue;
+   used.add(grant.controller);grants.push(grant);
+   weight+=BigInt(state.authority.validators.find(v=>v.key===grant.controller).power);
+  }
+  assert(grants.length||status.canSubmit,'No eligible linked server is available for this proposal.');
+  const id=randomBytes(32).toString('hex');
+  const willSubmit=weight>=BigInt(status.required);
+  this.pending={id,action:'group',packet:merged,grants,scope,willSubmit,expires:Date.now()+120000};
+  return {...status,group:true,canSign:grants.length>0,id,servers:grants.map(g=>g.node),expectedWeight:String(weight),willSubmit};
+ }
  collect(packet,state){
   const w=this.wallet,inspect=value=>reviewRuleText(value,state,w.client.config.chainId,w.key.publicKey);
   const first=inspect(packet);
@@ -78,6 +105,24 @@ export class WalletRuleReviews{
   exact(q,['id']);const p=this.pending;this.pending=null;
   assert(p&&p.id===q.id&&Date.now()<p.expires,'Review the proposal again');
   const w=this.wallet,b=p.packet.body,g=p.grant;
+  if(p.action==='group'){
+   let packet=p.packet;
+   // Each vote passes the same fresh route, ledger, expiry and signature checks
+   // as an individual click. Completed signatures persist across partial retries.
+   for(const grant of p.grants){
+    assert(valid()&&Date.now()<p.expires,'Wallet session or review expired');
+    const one=new WalletRuleReviews(w,this.request);
+    one.pending={...p,packet,grant,action:'sign'};
+    const result=await one.confirm(q,valid);
+    packet=result.packet;
+    if(result.status.canSubmit)break;
+   }
+   const {state}=await w.view(),current=this.collect(packet,state);
+   if(!p.willSubmit||!current.status.canSubmit)return {packet:current.merged,status:current.status,group:true};
+   const submit=new WalletRuleReviews(w,this.request);
+   submit.pending={...p,grant:null,packet:current.merged,action:'submit'};
+   return {...await submit.confirm(q,valid),group:true};
+  }
   const {state}=await w.view(g?{rewardIds:[g.node]}:{});
   const {merged,status:before}=this.collect(p.packet,state);
   if(p.action==='submit'){

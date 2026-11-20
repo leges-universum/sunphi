@@ -560,6 +560,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <p class="hint">Select a server paired by its operator to endorse from Home using the key on that server.</p>
 <button id="rule-bonded" type="button">View collateral and penalties proposal</button>
 <button id="rule-prepare" type="button">Review opening bond deposits</button>
+<button id="rule-group" type="button">Review votes from my servers</button>
 <label for="rule-packet">Rule proposal file</label><input id="rule-packet" type="file" accept=".json,application/json">
 <p id="rule-result" role="status" aria-live="polite"></p><p id="rule-id" class="address"></p>
 <pre id="rule-text" style="white-space:pre-wrap;overflow-wrap:anywhere" hidden></pre>
@@ -623,7 +624,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.115</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.116</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -1139,18 +1140,19 @@ function resetRuleReview(){
  $('rule-confirm').hidden=true;$('rule-save').hidden=true;$('rule-text').hidden=true;
  $('rule-text').textContent='';$('rule-result').textContent='';$('rule-id').textContent='';
 }
-async function reviewRulePacket(file,prepare=false){
+async function reviewRulePacket(file,prepare=false,group=false){
  resetRuleReview();const seq=ruleSequence,current=noticeContext();
  try{
   if(file&&file.size>131072)throw Error('Choose a proposal under 128 KiB.');
-  let server=$('rule-server').value;
+  let server=group?'':$('rule-server').value;
   if(server==='other'){
    server=window.prompt('Reward node ID of your paired server')?.trim();
    if(!server)return;
   }
   if(server&&!/^[0-9a-f]{64}$/.test(server))throw Error('Enter the 64-character server ID.');
   const proposal=file?JSON.parse(await file.text()):{builtin:prepare?'bond-preparation':'bonded-v3'};
-  const result=await api('/nodes/rule-review',server?{server,proposal}:proposal);
+  const nodes=(lastStatus?.nodesSnapshot?.nodes??[]).filter(n=>n.kind==='server').map(n=>n.id);
+  const result=await api('/nodes/rule-review',group?{builtin:'prepare-linked-servers',nodes}:server?{server,proposal}:proposal);
   if(seq!==ruleSequence||!current())return;
   $('rule-text').textContent=result.document;$('rule-text').hidden=false;
   $('rule-id').textContent=result.network+' · '+result.proposal+(result.server?' · Server '+result.server+' · Controller '+result.controller:'');
@@ -1158,11 +1160,17 @@ async function reviewRulePacket(file,prepare=false){
   $('rule-result').textContent=status+' Verified weight '+result.weight+' of '+result.required+' required. Checked at block '+result.height+'.';
   ruleId=result.id;$('rule-confirm').hidden=!result.canSign&&!result.canSubmit;
   $('rule-confirm').textContent=result.canSubmit?'Submit approved bond preparation':result.kind==='preparation'?'Approve opening bond deposits':'Endorse this rule text';
+  if(result.group){
+   $('rule-result').textContent='Open bond deposits. '+result.servers.length+' server signatures selected. Expected weight '+result.expectedWeight+' of '+result.required+' required. '+(result.willSubmit?'Home will submit the certificate when the quorum is reached.':'Other operators must also vote to reach the quorum.');
+   $('rule-text').textContent='Servers included in this confirmation:\n'+result.servers.join('\n')+'\n\n'+result.document;
+   $('rule-confirm').textContent=result.servers.length?'Approve for '+result.servers.length+' servers'+(result.willSubmit?' and submit':''):'Submit approved bond preparation';
+  }
   ruleSigned=result.saved;$('rule-save').hidden=!ruleSigned;
  }catch(e){if(seq===ruleSequence&&current())$('rule-result').textContent=e.message;}
 }
 $('rule-bonded').onclick=()=>reviewRulePacket(null);
 $('rule-prepare').onclick=()=>reviewRulePacket(null,true);
+$('rule-group').onclick=()=>reviewRulePacket(null,true,true);
 $('rule-packet').onchange=()=>{const file=$('rule-packet').files[0];if(file)void reviewRulePacket(file);};
 $('rule-confirm').onclick=async()=>{
  if(!ruleId)return;

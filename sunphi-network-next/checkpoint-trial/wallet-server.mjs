@@ -322,6 +322,10 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
         if(!ruleReviewSessions.has(active))ruleReviewSessions.set(active,new WalletRuleReviews(active));
         const reviewer=ruleReviewSessions.get(active);
         if(req.url==='/nodes/rule-confirm')return await reviewer.confirm(q,valid);
+        if(q.builtin==='prepare-linked-servers'){
+         assert.deepEqual(Object.keys(q).sort(),['builtin','nodes']);
+         const result=await reviewer.preparationGroup(q.nodes);assert(valid(),'Wallet session changed');return result;
+        }
         const remote=Object.hasOwn(q,'server');if(remote)assert.deepEqual(Object.keys(q).sort(),['proposal','server']);
         const proposal=remote?q.proposal:q;
         const builtin=proposal?.builtin==='bonded-v3'&&Object.keys(proposal).length===1;
