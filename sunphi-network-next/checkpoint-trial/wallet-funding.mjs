@@ -1,6 +1,7 @@
 // One durable, exact deposit at a time. A server reply is not ledger inclusion.
 import assert from 'node:assert/strict';import {exact,hash,hex,sign,verify} from './crypto.mjs';
 import {advanceConsolidation} from './wallet-funding-consolidation.mjs';
+import {createHash} from 'node:crypto';
 import {outgoingStatus} from './wallet.mjs';
 import {initializeFundingOutbox,pendingFunding} from './funding-outbox.mjs';
 export {initializeFundingOutbox,pendingFunding} from './funding-outbox.mjs';
@@ -39,7 +40,14 @@ export class WalletFunding extends WalletCollateral{
   assert(!pendingFunding(this.wallet.db),'A contribution is already pending');
   this.save({id,consent,...tracking,wire:null,status:'AWAITING_SERVER',createdAt:this.now(),verifiedHeight:null});return this.resume({id});
  }
- present(r){const b=r.consent?.body??r.preparation;return {id:r.id,node:b.node,operation:r.consent?.type===QUEUE_RELEASE?'withdraw':'deposit',amount:formatToken(b.valueMicro,b.unitScale??'1000000'),expires:b.expires,status:r.status,verifiedHeight:r.verifiedHeight,canCancel:!r.wire&&!terminal.has(r.status),canRetry:!terminal.has(r.status),message:r.message??null,...(r.preparation?{consolidationsConfirmed:r.mergeConfirmed??0,consolidationsTotal:r.mergeTotal??null,mergeVerifiedHeight:r.mergeVerifiedHeight??null,verifiedMergeOutput:r.verifiedMergeOutput??null}:{})};}
+ present(r){
+  const b=r.consent?.body??r.preparation;
+  return {id:r.id,node:b.node,createdAt:r.createdAt,operation:r.consent?.type===QUEUE_RELEASE?'withdraw':'deposit',
+   amount:formatToken(b.valueMicro,b.unitScale??'1000000'),expires:b.expires,status:r.status,verifiedHeight:r.verifiedHeight,
+   transactionId:r.wire?createHash('sha256').update(JSON.stringify(r.wire)).digest('hex').toUpperCase():null,
+   canCancel:!r.wire&&!terminal.has(r.status),canRetry:!terminal.has(r.status),message:r.message??null,
+   ...(r.preparation?{consolidationsConfirmed:r.mergeConfirmed??0,consolidationsTotal:r.mergeTotal??null,mergeVerifiedHeight:r.mergeVerifiedHeight??null,verifiedMergeOutput:r.verifiedMergeOutput??null}:{})};
+ }
  cancel(q){exact(q,['id']);const r=this.rows().find(r=>r.id===q.id);assert(r&&!r.wire&&!terminal.has(r.status),'Already submitted; verify the network result');r.status='CANCELLED';r.message=null;this.save(r);return this.present(r);}
  async resume(q){
   exact(q,['id']);hex(q.id);
