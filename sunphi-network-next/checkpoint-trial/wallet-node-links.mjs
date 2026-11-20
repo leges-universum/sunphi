@@ -7,10 +7,15 @@ import {envelope} from './core.mjs';
 import {WalletCollateral} from './wallet-collateral.mjs';
 import {prepareNodeLink,pairingCode,applyNodeLink} from './node-wallet-link.mjs';
 import {nodeWalletStatus} from './node-link-state.mjs';
-import {walletCollateralSummary} from './wallet-collateral-status.mjs';
+import {walletCollateralSummary,votingBondSchedule,votingBondNotice,validatorParticipation} from './wallet-collateral-status.mjs';
 export function walletNodeOverview(s,owner){
  const nodes=[...new Set([...Object.keys(s.rewards?.nodes??{}),...Object.keys(s.workerFunding?.accounts??{})])].filter(id=>s.rewards?.nodes[id]?.management===owner||s.rewards?.nodes[id]?.payouts.some(p=>p.wallet===owner)||s.workerFunding?.accounts[id]?.owner===owner).map(id=>nodeWalletStatus(s,id,owner)).sort((a,b)=>(a.kind==='home'?0:1)-(b.kind==='home'?0:1)||a.id.localeCompare(b.id));
- return {nodes,collateral:walletCollateralSummary(s,owner),verifiedHeight:s.height,mode:'PREPARATION_ONLY',broadcastEnabled:false,reason:s.rewards?null:'Reward node registration awaits network activation.'};
+ const bondSchedule=votingBondSchedule(s);
+ for(const n of nodes)if(n.kind==='server'){
+  n.votingBondNotice=votingBondNotice(s,n.id,owner,bondSchedule);
+  n.participation=validatorParticipation(s,n.id,bondSchedule);
+ }
+ return {nodes,bondSchedule,collateral:walletCollateralSummary(s,owner),verifiedHeight:s.height,mode:'PREPARATION_ONLY',broadcastEnabled:false,reason:s.rewards?null:'Reward node registration awaits network activation.'};
 }
 export class WalletNodeLinks extends WalletCollateral {
  async options(){const {state}=await this.current();return walletNodeOverview(state,this.wallet.key.publicKey);}

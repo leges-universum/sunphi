@@ -438,6 +438,12 @@ html:root[data-theme] .theme-select:focus-visible{outline:1px solid var(--accent
 html:root[data-theme] .theme-options [role=option]:not(:disabled):is(:hover,:focus){background:var(--section);color:var(--ink);outline:none;box-shadow:inset 2px 0 var(--accent)}
 html:root[data-theme=light] .theme-select:not(:disabled):is(:hover,:focus-visible,[aria-expanded=true]),html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visible,[aria-expanded=true]),html:root[data-theme=light] .theme-options [role=option]:not(:disabled):is(:hover,:focus){background:#111317;color:#fff;border-color:#111317}
 html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visible,[aria-expanded=true])::after{color:var(--accent)}
+#voting-bond-notices,#voting-bond-schedule{grid-column:1/-1}
+#voting-bond-notices p{margin:6px 0;color:var(--ink)}
+.bond-shortfall{color:var(--warning);font-weight:650;font-variant-numeric:tabular-nums}
+.validator-status[data-state=active] strong{color:var(--success)}
+#voting-bond-schedule{border-top:1px solid var(--border);padding:12px 0 0;font-size:13px;line-height:1.5}
+#voting-bond-schedule p{margin:4px 0}
 </style></head><body>
 <header><span class="duebyte-logo" role="img" aria-label="DueByte DUBYT"><span class="duebyte-mark"></span></span><span class="tag">DueByte network</span><button id="theme" type="button" aria-label="Switch to light theme" title="Switch to light theme"><svg class="theme-sun" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="theme-moon" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.2A8.5 8.5 0 0 1 10.8 3.5 8.5 8.5 0 1 0 20.5 13.2Z"/></svg></button></header>
 <main><div id="entry-layout"><div id="entry-intro"><p class="eyebrow">YOUR KEYS. YOUR INSTRUCTIONS.</p><h1>Welcome to DueByte Wallet</h1><p class="lead">Open your wallet, create a new one or restore an encrypted backup.</p><p class="hint">Each wallet has its own address and password. Keep an encrypted backup and its password safe; both are needed for recovery.</p><section class="connection-status"><div id="sync" class="sync" data-health="connecting"><span class="duebyte-coin duebyte-coin-solid" aria-hidden="true"><span class="duebyte-coin-body"><i class="duebyte-coin-rim" style="--facet:0"></i><i class="duebyte-coin-rim" style="--facet:1"></i><i class="duebyte-coin-rim" style="--facet:2"></i><i class="duebyte-coin-rim" style="--facet:3"></i><i class="duebyte-coin-rim" style="--facet:4"></i><i class="duebyte-coin-rim" style="--facet:5"></i><i class="duebyte-coin-rim" style="--facet:6"></i><i class="duebyte-coin-rim" style="--facet:7"></i><i class="duebyte-coin-rim" style="--facet:8"></i><i class="duebyte-coin-rim" style="--facet:9"></i><i class="duebyte-coin-rim" style="--facet:10"></i><i class="duebyte-coin-rim" style="--facet:11"></i><i class="duebyte-coin-rim" style="--facet:12"></i><i class="duebyte-coin-rim" style="--facet:13"></i><i class="duebyte-coin-rim" style="--facet:14"></i><i class="duebyte-coin-rim" style="--facet:15"></i><i class="duebyte-coin-rim" style="--facet:16"></i><i class="duebyte-coin-rim" style="--facet:17"></i><i class="duebyte-coin-rim" style="--facet:18"></i><i class="duebyte-coin-rim" style="--facet:19"></i><i class="duebyte-coin-rim" style="--facet:20"></i><i class="duebyte-coin-rim" style="--facet:21"></i><i class="duebyte-coin-rim" style="--facet:22"></i><i class="duebyte-coin-rim" style="--facet:23"></i><i class="duebyte-coin-rim" style="--facet:24"></i><i class="duebyte-coin-rim" style="--facet:25"></i><i class="duebyte-coin-rim" style="--facet:26"></i><i class="duebyte-coin-rim" style="--facet:27"></i><i class="duebyte-coin-rim" style="--facet:28"></i><i class="duebyte-coin-rim" style="--facet:29"></i><i class="duebyte-coin-rim" style="--facet:30"></i><i class="duebyte-coin-rim" style="--facet:31"></i></span></span><div><strong role="status"><span class="connection-dot" aria-hidden="true"></span><span id="phase">Verifying data</span></strong><small id="connection-help">Please wait for the first verification to finish.</small><small id="explain" hidden>Last successful check: <button id="check-time" type="button" class="check-value" aria-describedby="check-time-local" aria-expanded="false"></button><span id="check-time-local" role="tooltip" hidden></span> · block <span id="check-height" class="check-value"></span></small></div></div><p id="message" role="status"></p></section>
@@ -533,6 +539,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="purchase-refresh" type="button">Refresh</button><button data-go="receive">Receive DUBYT</button></div>
 </section></div>
 <div class="screen screen-grid nodes-workspace" data-screen="collateral" hidden>
+<section id="voting-bond-notices" aria-labelledby="voting-bond-heading" hidden><h2 id="voting-bond-heading">Voting collateral to add</h2><div id="voting-bond-amounts" aria-live="polite"></div></section>
 <section class="panel"><h2>Connect a server to this wallet</h2>
 <p class="hint" id="server-receive-help">Paste the reward node ID shown by your Linux installer. The wallet will find the invitation and ask you to approve it.</p>
 <form id="server-receive-form"><label for="server-receive-id">Reward node ID</label>
@@ -570,6 +577,11 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button type="button" id="node-alert-review">Enable server notices</button><button type="button" id="node-alert-status">Check notice status</button><button type="button" id="node-alert-stop" disabled>Turn off notices</button></div>
 <label for="node-alert-approval">Enable notices with server approval</label><input type="file" id="node-alert-approval" accept="application/json,.json"><p id="node-alert-message" class="hint" role="status">Choose a node above and connect your account in Messenger settings. Enabling requires your wallet signature and the server matching code.</p>
 </div></details>
+<footer id="voting-bond-schedule" aria-labelledby="voting-schedule-heading" hidden>
+<strong id="voting-schedule-heading">Voting collateral schedule</strong>
+<p id="voting-schedule-status"></p>
+<p id="voting-schedule-rule" class="hint">Voting collateral starts at 100 DUBYT and levels off at 10,000 DUBYT as ordinary rewards are issued. Each increase is limited to both 3% and 15 DUBYT, with at least 30 full days of notice.</p>
+</footer>
 </div>
 <div class="screen screen-grid" data-screen="security" hidden><section><h2>Encrypted backup</h2><p class="hint">Save a backup separately from this computer. It contains your encrypted private key, not your password. Keep the password in a safe place; there is no reset service.</p><button id="backup" class="primary">Save encrypted backup</button><p class="hint">A backup restores this DueByte wallet on the same network. Keep old Sun·Phi backups separately; their format and network are different.</p></section><section><h2>Wallet access</h2><p class="hint">Lock the wallet when you step away. Network verification can continue while it is locked.</p><div class="actions"><button id="open-password-change">Change password</button><button id="lock">Lock wallet</button></div></section>
 <section><small class="eyebrow">Payment protection</small><h2>Recipient spending lock</h2><p class="hint">Apply a 24-hour spending lock to an individual payment. The recipient receives the funds at settlement, but cannot move the locked amount until the delay ends.</p><button data-go="send">Set up a payment</button><p class="hint">This option does not reverse a payment or protect other unlocked funds.</p></section>
@@ -596,7 +608,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.112</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.113</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -1143,16 +1155,48 @@ $('bond-dialog').onclose=()=>{++bondSequence;bondNode=null;resetBondReview();cle
 function collateralLine(label,value){return element('p',label+': '+(value===null?'Not verified':value+' DUBYT'),'hint');}
 function nodeAmount(value){const amount=element('strong',value==null?'Not verified':value);if(value!=null)amount.append(document.createTextNode(' '),element('span','DUBYT','amount-unit'));return amount;}
 let nodesSignature='';
+let votingNoticeSignature='';
+function renderVotingNotices(data){
+ const schedule=data?.bondSchedule, notices=(data?.nodes??[]).filter(n=>n.kind==='server'&&n.votingBondNotice&&schedule?.status==='active');
+ const signature=JSON.stringify([schedule,notices.map(n=>[n.id,n.votingBondNotice])]);
+ if(signature===votingNoticeSignature)return;
+ votingNoticeSignature=signature;
+ $('voting-bond-notices').hidden=!notices.length;
+ $('voting-bond-amounts').replaceChildren(...notices.map(n=>{
+  const notice=n.votingBondNotice,row=element('p',''),amount=element('strong',notice.amount,'bond-shortfall');
+  row.append(amount,' DUBYT to add for server '+n.id.slice(0,12)+(notice.effectiveAt?' by '+utc(notice.effectiveAt):' to meet the current voting minimum')+'.');
+  return row;
+ }));
+ $('voting-bond-schedule').hidden=!schedule;
+ if(!schedule)return;
+ $('voting-schedule-rule').hidden=schedule.status==='unavailable';
+ $('voting-schedule-status').textContent=schedule.status==='proposed'?'The quorum approved a starting minimum of 100 DUBYT. Network activation is pending. To fund your wallet, open Receive and copy your DUBYT address.':
+  schedule.status==='active'?'Current minimum: '+schedule.minimum+' DUBYT. Target at verified ordinary issuance: '+schedule.target+' DUBYT. '+(schedule.next?'Next minimum: '+schedule.next.minimum+' DUBYT from '+utc(schedule.next.effectiveAt)+'. Announced '+utc(schedule.next.announcedAt)+'.':'No increase announced.'):'The current voting collateral schedule could not be verified.';
+}
 function renderCollateralSummary(c){const box=$('collateral-summary'),extra=$('collateral-history');box.replaceChildren();extra.replaceChildren();box.hidden=!c;if(!c)return;
  const totals=element('div','','nodes-totals'),held=element('div','Your collateral currently held','hint'),count=element('div','Servers funded by this wallet','hint');held.append(element('strong',c.remaining===null?'Not verified':c.remaining+' DUBYT'));count.append(element('strong',String(c.nodes)));totals.append(held,count);box.append(totals);
  const history=element('details','');history.append(element('summary','Contribution totals'),collateralLine('Total deposited',c.deposited),collateralLine('Returned to this wallet',c.withdrawn),element('p','Collateral is separate from your spendable wallet balance.','hint'));extra.append(history);
  if(c.founder){const f=c.founder,details=element('details','');details.append(element('summary','Founder allocation'),collateralLine('Planned allocation',f.total),collateralLine('Released to this wallet',f.released),collateralLine(f.fullyIssued?'Not yet released':'Not yet issued',f.remaining),element('p','Only released funds can be used.','hint'));extra.append(details);}
 }
 function renderMyNodes(data){if(!data)return;
+ renderVotingNotices(lastStatus?.locked||lastStatus?.error?null:data);
  const homes=data.nodes.filter(n=>n.kind==='home').length,servers=data.nodes.length-homes;
  $('nodes-status').textContent=data.nodes.length?'Verified nodes: '+data.nodes.length+' · Servers: '+servers+' · Home: '+homes+(data.verifiedHeight==null?'':' · generation '+data.verifiedHeight):data.reason||'This wallet has no funded nodes or payout connections yet.';
  $('nodes-refresh').hidden=true;const signature=JSON.stringify([lastStatus?.owner,data.nodes,data.collateral]);if(signature===nodesSignature)return;nodesSignature=signature;renderCollateralSummary(data.collateral);
  $('nodes-list').replaceChildren(...data.nodes.map(n=>{const panel=element('section',''),c=n.collateral,d=c?.display;panel.dataset.node=n.id;panel.append(element('h3',(n.kind==='server'?'Server ':'Home node ')+n.id.slice(0,12)),element('p',c?.owned?'Funded by this wallet':'Connected for payouts','hint'));
+ if(n.participation){
+  const p=n.participation,ru=/^ru\b/i.test(document.documentElement.lang||navigator.language)||navigator.languages?.[0]?.startsWith('ru');
+  const text=(r,e)=>ru?r:e,row=element('p','','validator-status');row.dataset.state=p.status;row.setAttribute('aria-live','polite');
+  if(p.status==='active')row.append(element('strong',text('Узел участвует в консенсусе','Node participates in consensus')),document.createTextNode(text(' · Залог подтверждён. Узел в действующем составе валидаторов на высоте ',' · Bond confirmed. In the active validator set at block ')+p.height+'.'));
+  else if(p.status==='awaitingAdmission')row.textContent=text('Залог подтверждён. Ожидается включение в состав валидаторов.','Bond confirmed. Awaiting inclusion in the active validator set.');
+  else{
+   row.append(element('strong',p.gap+' DUBYT','bond-shortfall'),document.createTextNode(text(' — осталось внести в залог для участия в консенсусе.',' still to bond for consensus participation.')));
+   if(p.status==='beforeActivation')row.append(document.createTextNode(text(' Внесение откроется после активации правила.',' Bonding opens after the rule is activated.')));
+   const balance=lastStatus?.balance?.display?.available;
+   if(typeof balance==='string')row.append(document.createTextNode(text(' Доступно в кошельке: ',' Available in wallet: ')+balance+' DUBYT.'));
+  }
+  panel.append(row);
+ }
  if(c){const own=element('p','Your collateral','node-own-collateral');own.append(nodeAmount(d.remaining));panel.append(own,collateralLine('Network support',d.support),collateralLine('Total node collateral',d.total));}
  if(n.kind==='home')panel.append(element('p','Home has no server collateral.','hint'));
  if(n.kind==='server'&&c?.owned&&d.consensus!=='0'){
