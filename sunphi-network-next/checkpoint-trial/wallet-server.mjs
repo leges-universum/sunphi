@@ -158,27 +158,6 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   assert(admittedEpoch===sessionEpoch&&wallet);
   res.setHeader('Content-Type','application/json');res.end(JSON.stringify(rows));return;
  }
- if(req.method==='GET'&&req.url==='/backup'){assert(wallet,'unlock your wallet first');res.setHeader('Content-Type','application/json');res.end(JSON.stringify(store.backup(activeId),null,2));return;}
- if(req.method==='GET'&&req.url==='/status'){
-  const snapshot=status(),epoch=sessionEpoch;
-  if(wallet&&bounded&&view&&req.headers['x-duebyte-analytics']==='1'){
-   snapshot.analytics=await networkPresentation(view,owner);
-   assert.equal(sessionEpoch,epoch,'Wallet session changed.');
-  }
-  res.setHeader('Content-Type','application/json');res.end(JSON.stringify(snapshot));return;
- }
- // Reading the request body yields to lock/unlock and wallet-selection requests.
- // Bind admission to this session lifetime, including when the same token is reused.
- const admittedEpoch=sessionEpoch;
- assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=(req.url==='/nodes/rule-review'?131072:16384));chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
- assert.equal(admittedEpoch,sessionEpoch,'Wallet session changed. Retry the action in the current session.');
- assert(!sessionDrain.pending,'Wallet switching is in progress. Please wait.');
- const proposalRead=['/nodes/rule-review','/nodes/vote-notices','/voting/list','/nodes/server-versions'].includes(req.url);
- const voteSubmission=['/nodes/rule-confirm','/voting/submit'].includes(req.url==='/authorize-action'?q?.path:req.url);
- assert(!paymentLane.pending||proposalRead||voteSubmission||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
- assert(Date.now()>=updateDrainUntil,'The node is installing an update. Please reopen the wallet after it restarts.');
- if(wallet && token !== sessionToken) throw new Error('Wallet is open in another session. Lock it there first.');
- if(!wallet)assert(['/status','/unlock','/create','/restore','/select-wallet','/lock'].includes(req.url),'unlock your wallet first');
  if(['/unlock','/create','/restore','/change-password'].includes(req.url)){
   if(Date.now()-authWindow>=60000){authWindow=Date.now();authAttempts=0;}
   assert(++authAttempts<=20,'Too many password attempts. Wait one minute.');
