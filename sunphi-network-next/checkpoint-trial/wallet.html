@@ -551,11 +551,26 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <p>Check the server ID and wallet address. If both are yours, select <strong>Sign and connect</strong> to approve future rewards to this wallet.</p>
 <button id="server-receive-sign" class="primary" type="button">Sign and connect</button><button id="server-receive-back" type="button">Back</button></dialog></section>
 <details id="node-votes" class="panel"><summary>Node voting</summary><div class="panel-body">
+<h3>Operator proposals</h3><p id="governance-phase"></p><p id="ballot-status" role="status"></p><button type="button" id="ballot-refresh">Refresh proposals</button><div id="ballots"></div>
+<details id="candidate-consent" hidden><summary id="candidate-heading">Accept an invitation to stand for election</summary><form id="candidate-form">
+<label for="candidate-name" id="candidate-name-label">Public candidate name</label><input id="candidate-name" required maxlength="160">
+<label for="candidate-org" id="candidate-org-label">Organization or independent practice</label><input id="candidate-org" required maxlength="160">
+<label for="candidate-seat" id="candidate-seat-label">Seat and term</label><select id="candidate-seat" required></select>
+<button id="candidate-save">Sign and save consent</button><p id="candidate-result" role="status"></p></form></details>
+<details id="ballot-create" hidden><summary>Submit a question</summary>
+<form id="ballot-form"><p id="ballot-version" hidden></p><label id="ballot-first-option" hidden><input type="checkbox" id="ballot-first-panel"><span id="ballot-first-caption">Nominate the first five experts</span></label><div id="ballot-server-field"><label for="ballot-node">Your server</label><select id="ballot-node" required></select></div>
+<p>Publish a text for discussion. To open a vote, attach an eligible rule change or a signed expert slate. Issuance, fund rules and voting rules are fixed.</p>
+<label for="ballot-subject">Subject</label><input id="ballot-subject" required maxlength="160">
+<label for="ballot-description">Exact change and reasons</label><textarea id="ballot-description" required maxlength="6000"></textarea>
+<details><summary>Attach an implementation reference</summary><label for="ballot-digest">Implementation SHA-256 (optional)</label><input id="ballot-digest" pattern="[a-f0-9]{64}"></details>
+<label id="slate-label" hidden><span id="slate-help">Attach the five signed candidate files, or one file containing the full slate.</span><input type="file" id="ballot-slate" accept=".json" multiple></label>
+<label id="financial-label" hidden>Financial rule and exact terms <input type="file" id="ballot-change" accept=".json"></label>
+<button>Sign and submit for expert review</button><button id="ballot-reset" hidden type="button">Cancel revision</button></form></details>
 <p>Servers sign blocks automatically while Home is closed. Each server card shows its verified consensus status.</p>
 <button id="check-block-votes" type="button">Check recent block signatures</button>
 <p id="block-votes-status" role="status" aria-live="polite"></p>
 <div id="block-votes-list" style="overflow-wrap:anywhere"></div>
-<h3>Network proposals</h3><p>Select a rule proposal to verify its text, endorsements and signing rights against the financial registry.</p>
+<div id="bootstrap-rule-tools"><h3>Network proposals</h3><p>Select a rule proposal to verify its text, endorsements and signing rights against the financial registry.</p>
 <label for="rule-server">Voting key</label><select id="rule-server"><option value="">This wallet</option></select>
 <p class="hint">Select a server paired by its operator to endorse from Home using the key on that server.</p>
 <button id="rule-bonded" type="button">View collateral and penalties proposal</button>
@@ -565,7 +580,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <p id="rule-result" role="status" aria-live="polite"></p><p id="rule-id" class="address"></p>
 <pre id="rule-text" style="white-space:pre-wrap;overflow-wrap:anywhere" hidden></pre>
 <button id="rule-confirm" type="button" class="primary" hidden>Endorse this rule text</button>
-<button id="rule-save" type="button" hidden>Save signed proposal</button></div></details>
+<button id="rule-save" type="button" hidden>Save signed proposal</button></div></div></details>
 <section class="panel nodes-overview"><div class="panel-head"><h2>Your nodes, collateral &amp; rewards</h2><p class="hint">Nodes funded by this wallet or connected to it for payouts. Amounts update automatically after verification. Rewards show each node’s lifetime totals across its payout wallets.</p></div>
 <div class="panel-body"><p id="nodes-status" role="status">Loading verified nodes and collateral…</p><button id="nodes-refresh" type="button" hidden>Retry loading nodes</button><div id="collateral-summary" hidden></div><div id="nodes-list"></div><div id="collateral-history"></div></div></section>
 <section class="panel node-pairing" hidden><div class="panel-head"><small class="eyebrow">Wallet connection</small><h2>Link or unlink a server</h2><p class="hint">Use this wallet in Home or your browser. Your spending key stays off the server.</p></div><div class="panel-body">
@@ -583,11 +598,12 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <form id="collateral-form" novalidate>
 <label>Registered server</label><details id="collateral-picker"><summary id="collateral-selected">Choose a server</summary><div id="collateral-nodes" class="collateral-nodes"></div></details>
 <p id="collateral-node-id" class="address"></p>
+<label for="collateral-operation">Action</label><select id="collateral-operation"><option value="deposit">Add collateral</option><option value="withdraw">Return collateral to my wallet</option></select>
 <label for="collateral-amount">Amount for this server &middot; DUBYT</label><input id="collateral-amount" inputmode="decimal" autocomplete="off" placeholder="0.000000" aria-describedby="collateral-available">
-<p id="collateral-available" class="hint">Available: checking</p><p class="hint">Existing collateral is shown above under My nodes. This form prepares a new contribution; it does not show or withdraw funds already deposited.</p><button id="collateral-review-button" class="primary" disabled>Review collateral</button>
+<p id="collateral-available" class="hint">Available: checking</p><p class="hint" id="collateral-action-help">Choose the amount to sign.</p><button id="collateral-review-button" class="primary" disabled>Add collateral</button>
 </form>
 </div><div class="panel-band"><p class="section-help">Own collateral can be penalized for proved violations. Release requires completion of obligations and a waiting period of at least 24 hours; reserved consensus collateral remains locked. Network-funded support is separate from your own funds.</p>
-<p class="hint">Confirming sends the exact contribution request to the server operator. After approval, this unlocked wallet submits the deposit and checks network confirmation. Keep the wallet unlocked until confirmation, or return later to check the saved request. Finish or cancel the pending request before creating another.</p>
+<p class="hint">Home checks submitted requests while unlocked.</p>
 </div></details>
 <details class="panel node-notices" id="node-notices-editor" hidden><summary class="panel-head">Server notices</summary><div class="panel-body"><p class="hint">Receive notices when this server has no payout wallet or secured payment capacity. This is separate from payment notifications. Notices remain on after a payout wallet is unlinked; you can turn them off here. Connecting an account alone does not enable notices.</p>
 <div class="actions"><button type="button" id="node-alert-review">Enable server notices</button><button type="button" id="node-alert-status">Check notice status</button><button type="button" id="node-alert-stop" disabled>Turn off notices</button></div>
@@ -624,7 +640,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.117</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.118</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -813,7 +829,7 @@ function renderWaiting(){
  else if(s?.checkedAt&&!s.error){$('connection-help').hidden=!s.working;$('connection-help').textContent=s.working?'Checking current network data…':'';}
 }
 function operationLabel(path){return ({'/send':'Sending your payment…','/quote':'Preparing your payment…','/history':'Loading payment history…','/assets':'Loading balances…','/unlock':'Opening your wallet…','/create':'Creating your wallet…','/restore':'Restoring your wallet…','/lock':'Finishing the current operation…','/select-wallet':'Switching wallet…','/change-password':'Updating your wallet password…','/backup':'Preparing your encrypted backup…','/nodes':'Loading your nodes…'})[path]||'Processing your request…';}
-async function api(path,data){const pending=Symbol();if(!['/status','/authorize-action','/external/prices','/external/receipt'].includes(path)){pendingOperations.set(pending,operationLabel(path));renderWaiting();}try{const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(path==='/status'&&!document.querySelector('[data-screen="network"]').hidden)headers['X-DueByte-Analytics']='1';if(['/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund','/seller/start'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok){const e=Error(v.error);if(v.paymentOutcome==='not_created')e.paymentOutcome=v.paymentOutcome;throw e;}if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}finally{pendingOperations.delete(pending);renderWaiting();}}
+async function api(path,data){const pending=Symbol();if(!['/status','/authorize-action','/external/prices','/external/receipt'].includes(path)){pendingOperations.set(pending,operationLabel(path));renderWaiting();}try{const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(path==='/status'&&!document.querySelector('[data-screen="network"]').hidden)headers['X-DueByte-Analytics']='1';if(['/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund','/seller/start'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok){const e=Error(v.error);if(v.paymentOutcome==='not_created')e.paymentOutcome=v.paymentOutcome;throw e;}if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}finally{pendingOperations.delete(pending);renderWaiting();}}
 function renderPaymentTariff(s){const t=s.paymentTariff,p=t?.active,fmt=n=>(Number(n)/1000000).toFixed(6).replace(/0+$/,'').replace(/\.$/,'');let text=!t?'Waiting for the verified network tariff.':!p?'Current legacy network fee: 3%, rounded up to the smallest supported unit.':p.version==='DUEBYTE_PAYMENT_FEE_006_V2'?'Network fee: 0.06% of the payment, with a minimum of '+fmt(p.baseMicro)+' DUBYT. The larger amount applies; there is no upper fee cap or extra fee for coverage parts. Amounts round up to 0.000001 DUBYT. The initial minimum uses $1 per DUBYT as a planning reference, not a promised exchange rate. On expiry or cancellation, '+fmt(String(Math.ceil(Number(p.baseMicro)/10)))+' DUBYT of the quoted fee is retained; the remaining quoted fee is released.':'Legacy network fee: 0.001%, minimum '+fmt(p.baseMicro)+', base-fee cap '+fmt(p.capMicro)+' DUBYT, plus '+fmt(p.additionalPartMicro)+' DUBYT per additional coverage part.';if(t?.pending)text+=' A new tariff is scheduled for '+new Date(t.pending.activation*1000).toISOString()+'.';$('fee-help').textContent=text+' Review the exact total before signing. BTC and Ethereum fees are separate.';}
 function moneyText(record,key){return record?.display?.[key]??((record?.unitScale??'1')==='1'?record?.[key]:'—');}
 function connectionHealth(health){const verified=health==='verified',text=verified?'Data verified':health==='attention'?'Data not verified':'Verifying data',help=health==='attention'?'Check the node connection. Verification will retry automatically.':'Please wait for the first verification to finish.';$('sync').dataset.health=health;if($('phase').textContent!==text)$('phase').textContent=text;$('connection-help').hidden=verified;if($('connection-help').textContent!==help)$('connection-help').textContent=help;}
@@ -887,6 +903,11 @@ $('switch-wallet').title='Lock this wallet and choose another saved wallet';$('l
 const screens={overview:['Wallet overview','Check your available balance, then send or receive a payment.'],send:['Send payment','Enter the recipient and amount, review the total, then confirm.'],receive:['Receive','Share your public address. Your password and private key stay private.'],activity:['Payment activity','Follow the original payment until it is confirmed or its reservation is released.'],exchange:['Exchange','Buy DUBYT with Bitcoin or USDC when an offer is available.'],network:['Network analytics','Inspect the latest verified snapshot. These figures are not live market prices or speed estimates.'],security:['Security','Protect access to your wallet and understand each payment option.']};
 screens.collateral=['My nodes','See your nodes, deposited collateral and rewards.'];
 const collateralTab=document.createElement('button');collateralTab.dataset.tab='collateral';collateralTab.textContent='My nodes';document.querySelector('[data-tab=security]').before(collateralTab);
+const voteRu=/^ru\b/i.test(navigator.language),voteText=(en,ru)=>voteRu?ru:en;
+screens.voting=[voteText('Discussion & voting','Обсуждение и голосование'),voteText('Submit questions, review them and vote on admitted proposals.','Предлагайте вопросы, знакомьтесь с заключениями экспертов и голосуйте.')];
+const votingTab=document.createElement('button');votingTab.dataset.tab='voting';votingTab.textContent=screens.voting[0];collateralTab.after(votingTab);
+const votingScreen=document.createElement('div');votingScreen.className='screen screen-grid';votingScreen.dataset.screen='voting';votingScreen.hidden=true;
+document.querySelector('[data-screen="collateral"]').after(votingScreen);votingScreen.append($('node-votes'));$('node-votes').open=true;
 screens.external=['External assets','View reference prices and check transfers on their original networks.'];
 const externalTab=document.createElement('button');externalTab.dataset.tab='external';externalTab.textContent='External assets';document.querySelector('[data-tab=exchange]').before(externalTab);
 const passwordDialog=$('password-dialog'),passwordForm=$('password-change-form');
@@ -915,6 +936,146 @@ passwordForm.onsubmit=async event=>{
 function selectTab(name){if(!screens[name])return;if(name!=='security'&&passwordDialog.open)passwordDialog.close();const changed=document.querySelector('nav [data-tab][aria-current=page]')?.dataset.tab!==name;for(const b of document.querySelectorAll('[data-tab]')){if(b.dataset.tab===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}for(const p of document.querySelectorAll('[data-screen]'))p.hidden=p.dataset.screen!==name;$('screen-title').textContent=screens[name][0];$('screen-help').textContent=name==='exchange'&&lastStatus?.features?.twoWayExchange?'Buy or sell DUBYT with Bitcoin or USDC on the supported test route.':screens[name][1];delete $('notice').dataset.kind;$('notice').textContent='';if(changed)document.querySelector('main').scrollTop=0;if(name==='collateral'&&changed)void loadNodeConnections();}
 for(const b of document.querySelectorAll('[data-tab],[data-go]')){b.onclick=()=>selectTab(b.dataset.tab||b.dataset.go);if(b.dataset.tab){const icon=document.createElement('span');icon.className='nav-icon';icon.setAttribute('aria-hidden','true');const paths={overview:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M9 10h12"/>',send:'<path d="M6 18 18 6M6 6h12v12"/>',receive:'<path d="M18 6 6 18M6 6v12h12"/>',activity:'<path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/>',exchange:'<path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/>',network:'<circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="m11 7-5 10m7-10 5 10M7 19h10"/>',security:'<path d="m12 3 8 3v5c0 5-8 10-8 10S4 16 4 11V6Z"/><path d="m8 12 3 3 5-6"/>'};icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+paths[b.dataset.tab]+'</svg>';b.prepend(icon);}}
 collateralTab.querySelector('.nav-icon').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>';
+votingTab.querySelector('.nav-icon').textContent='✓';
+let ballotView=null,revisionId=null;
+function ballotFormMode(){
+ if(!ballotView?.policy)return;
+ const founder=ballotView.founderExpert===lastStatus.owner,hasServer=!!ballotView.servers?.length;
+ const election=ballotView.phase==='expert-election',optional=ballotView.phase==='warmup'&&founder;
+ const first=founder&&(election||optional&&(!hasServer||$('ballot-first-panel').checked));
+ $('ballot-first-option').hidden=!(optional&&hasServer);
+ $('ballot-first-caption').textContent=voteText('Nominate the first five experts','Предложить первый состав из пяти экспертов');
+ $('slate-help').textContent=voteText('Invite five candidates. Each saves their consent in Discussion & voting. Attach their five files or one file containing the full slate.','Пригласите пять кандидатов. Каждый подписывает и сохраняет согласие в разделе «Обсуждение и голосование». Приложите пять файлов согласия или один файл со всем составом.');
+ const expert=(ballotView.serving??[]).some(r=>r.key===lastStatus.owner);
+ const nomination=first||expert&&(!hasServer||!!$('ballot-slate').files.length);
+ if(expert)$('slate-help').textContent=voteText('Nominate a successor for one seat. Attach the candidate’s signed consent.','Выдвиньте кандидата на одно место. Приложите его подписанное согласие.');
+ $('ballot-create').hidden=election?!founder:!first&&!hasServer&&!expert;
+ $('ballot-server-field').hidden=nomination;$('ballot-node').disabled=nomination;$('ballot-node').required=!nomination;
+ $('slate-label').hidden=!first&&!expert;$('ballot-slate').required=nomination;
+ $('financial-label').hidden=nomination;$('ballot-change').disabled=nomination;$('ballot-slate').disabled=$('slate-label').hidden;
+ $('ballot-digest').disabled=first||!!($('ballot-change').files[0]||$('ballot-slate').files[0]);
+}
+$('ballot-first-panel').onchange=()=>{$('ballot-change').value='';$('ballot-slate').value='';ballotFormMode();};
+function resetBallotVersion(){revisionId=null;$('ballot-form').reset();$('ballot-version').hidden=true;$('ballot-reset').hidden=true;ballotFormMode();}
+$('ballot-reset').onclick=resetBallotVersion;
+async function loadBallots(){
+ const current=noticeContext(),status=$('ballot-status');$('ballots').replaceChildren();$('governance-phase').textContent='';$('ballot-slate').value='';$('ballot-create').hidden=true;$('candidate-consent').hidden=true;ballotView=null;
+ if(lastStatus?.locked){status.textContent='Unlock your wallet to view proposals.';return;}
+ status.textContent='Checking signed network proposals…';
+ try{const data=await api('/voting/list',{});if(!current())return;ballotView=data;
+  $('bootstrap-rule-tools').hidden=!!data.policy;
+  if(!data.policy){status.textContent='Operator voting is awaiting network activation.';return;}
+  $('candidate-consent').hidden=false;
+  $('candidate-heading').textContent=voteText('Accept an invitation to stand for election','Принять приглашение стать кандидатом в эксперты');
+  $('candidate-name-label').textContent=voteText('Public candidate name','Имя кандидата для публикации');
+  $('candidate-org-label').textContent=voteText('Organization or independent practice','Организация или название самостоятельной практики');
+  $('candidate-save').textContent=voteText('Sign and save consent','Подписать и сохранить согласие');
+  $('candidate-seat-label').textContent=voteText('Seat and term','Место и срок полномочий');
+  $('candidate-seat').replaceChildren(...Array.from({length:5},(_,i)=>{
+   const prior=data.seats?.[i],years=prior?10:8+i;
+   const opt=element('option',voteText('Seat '+(i+1)+' · '+years+' years','Место '+(i+1)+' · '+years+' лет'));
+   opt.value=i+1;opt.disabled=!!prior?.next;return opt;
+  }));
+  const selecting=data.phase==='expert-election',inWarmup=data.phase==='warmup';
+  $('governance-phase').textContent=inWarmup?voteText('The founder signs questions to open voting and can nominate five experts now. If elected by operators, the panel takes over immediately.','Основатель допускает вопросы и уже может предложить пять экспертов. Избранный операторами состав сразу получает полномочия.')+(data.warmupEnd?' · '+new Date(data.warmupEnd*1000).toISOString().slice(0,10)+' UTC':''):selecting?voteText('The founder signs the first slate of five candidates. Operators elect the panel by deposit weight.','Основатель предлагает первый состав из пяти кандидатов. Операторы избирают экспертов голосами по залогу.'):voteText('Three of the five elected experts must sign a question to open voting. Elected experts: ','Для допуска вопроса нужны подписи трёх из пяти избранных экспертов. Состав: ')+data.policy.reviewers.map(e=>e.name).join(', ')+'.';
+  if(data.phase==='expert-review'){
+   const date=t=>new Date(t*1000).toISOString().slice(0,10);
+   $('governance-phase').textContent=voteText('Three serving experts must sign to open a vote.','Для открытия голосования нужны три действующих эксперта.');
+   for(const r of data.seats??[]){
+    const line=element('p',voteText('Seat ','Место ')+r.seat+' · '+r.name+' · '+date(r.starts)+' – '+date(r.ends)+' UTC');
+    if(data.blockTime>=r.ends)line.append(voteText(' · Term ended',' · Полномочия истекли'));
+    if(r.next)line.append(voteText(' · Successor: ',' · Преемник: ')+r.next.name+' · '+date(r.next.starts)+' UTC');
+    $('governance-phase').append(line);
+   }
+  }
+  $('ballot-change').value='';ballotFormMode();
+  const servers=data.servers??[];$('ballot-node').replaceChildren(...servers.map(n=>{const option=element('option',n.id);option.value=n.id;return option;}));
+  status.textContent=data.proposals.length?'Choose a question to see its exact text, reviews and voting weight.':'There are no open proposals.';
+  for(const r of data.proposals){
+   const card=element('article','','panel-band'),weight=r.weights?.[lastStatus.owner]??'0';
+   card.append(element('h3',r.subject??r.proposal.title));
+   if(r.subject){
+    const note=element('details','');note.append(element('summary',voteText('Author’s explanation','Пояснение автора')),element('p',r.proposal.title),element('p',r.proposal.text));card.append(note);
+   }else card.append(element('p',r.proposal.text));
+   card.append(element('p','Implementation SHA-256: '+r.proposal.implementationHash,'address'),element('p','Status: '+r.status));
+   if(r.proposal.supersedes)card.append(element('p','Revision of '+r.proposal.supersedes,'address'));
+   if(r.proposal.slate){for(const {profile:p,mandate} of r.proposal.slate){card.append(element('p',voteText('Seat ','Место ')+mandate.seat+' · '+mandate.years+voteText(' years · ',' лет · ')+p.name+' · '+p.key,'address'));if(p.disclosureUrl)card.append(element('p','Candidate profile: '+p.disclosureUrl));}}
+   if(r.proposal.change){const terms=element('details','');terms.append(element('summary','Exact financial terms'),element('pre',JSON.stringify(r.proposal.change,null,2)));card.append(terms);}
+   const admissions=r.status==='draft'&&(r.admissionContext!==data.agendaContext||r.admissionPhase!==data.phase)?[]:(r.admissions??[]);
+   const labels={admit:voteText('Confirm admission','Подтвердить допуск'),reject:voteText('Reject','Отклонить'),revise:voteText('Request revision','Запросить доработку'),abstain:voteText('Abstain','Воздержаться')};
+   for(const e of admissions){const item=element('details','');item.append(element('summary',labels[e.decision]+' · '+e.height),element('p',e.key,'address'));if(e.review?.reason)item.append(element('p',e.review.reason));if(e.review?.combinedEffects)item.append(element('p',e.review.combinedEffects),element('p',e.review.alternative));card.append(item);}
+   if(r.openHeight)card.append(element('p','Your voting weight at block '+r.openHeight+': '+(BigInt(weight)/1000000n)+'.'+(BigInt(weight)%1000000n).toString().padStart(6,'0')+' DUBYT in confirmed operator deposits across your eligible servers.'));
+   const button=(label,make)=>{const b=element('button',label);b.type='button';b.onclick=async()=>{if(!current())return;const buttons=card.querySelectorAll('button');buttons.forEach(x=>x.disabled=true);try{await submitBallot(await make());}catch(e){if(current())status.textContent=e.message;}finally{buttons.forEach(x=>x.disabled=false);}};card.append(b);};
+   if(r.status==='open'&&weight!=='0'&&!r.votes[lastStatus.owner])for(const [label,choice] of [['Accept','yes'],['Reject','no']])button(label,()=>({type:'CAST_OPERATOR_BALLOT_V1',id:r.id,choice}));
+   if(r.status==='draft'){
+    const founder=inWarmup||selecting,permitted=!selecting||!!r.proposal.slate;
+    card.append(element('p',!permitted?'Waiting for the first expert election.':founder?'Awaiting the founder’s signature to open voting.':voteText('Expert admission signatures: ','Подписей за допуск: ')+admissions.filter(e=>e.decision==='admit').length+' / '+data.policy.minimumReviews));
+    const eligible=founder?data.founderExpert===lastStatus.owner:(data.serving??[]).some(x=>x.key===lastStatus.owner);
+    if(permitted&&eligible&&!admissions.some(x=>x.key===lastStatus.owner)){
+     const field=title=>{const label=element('label',title),input=document.createElement('textarea');label.append(input);card.append(label);return input;};
+     const note=field(voteText('Review or requested changes','Заключение или необходимые изменения'));
+     const alternative=founder?null:field(voteText('Alternative considered for admission','Рассмотренная альтернатива для допуска'));
+     for(const [decision,label] of Object.entries(labels))button(label,()=>{
+      let review=null;
+      if(decision==='reject'||decision==='revise'){if(!note.value.trim())throw Error('Give the author a reason or requested change.');review={reason:note.value.trim()};}
+      if(decision==='admit'&&!founder){if(!note.value.trim()||!alternative.value.trim())throw Error('Describe the combined effect and an alternative before signing.');review={combinedEffects:note.value.trim(),alternative:alternative.value.trim()};}
+      return {type:'ADMIT_OPERATOR_QUESTION_V2',id:r.id,phase:data.phase,context:data.agendaContext,decision,review};
+     });
+    }
+   }
+   if(!r.replacedBy&&r.author===lastStatus.owner&&!$('ballot-create').hidden&&['draft','revision_requested','admission_declined','insufficient_admissions','expired'].includes(r.status)){
+    const edit=element('button',voteText('Prepare a new version','Подготовить новую редакцию'));edit.type='button';
+    edit.onclick=()=>{resetBallotVersion();revisionId=r.id;$('ballot-subject').value=r.proposal.title;$('ballot-description').value=r.proposal.text;
+     if(r.proposal.node)$('ballot-node').value=r.proposal.node;
+     $('ballot-first-panel').checked=!!r.proposal.slate&&r.proposal.node===null;ballotFormMode();
+     $('ballot-version').textContent='New version of '+r.id+(r.proposal.change||r.proposal.slate?' · Attach the revised terms or signed candidate list.':'');$('ballot-version').hidden=false;$('ballot-reset').hidden=false;$('ballot-create').open=true;$('ballot-subject').focus();};card.append(edit);
+   }
+   if(r.status==='open')button('Finalize after closing time',()=>({type:'FINISH_OPERATOR_BALLOT_V1',id:r.id}));
+   $('ballots').append(card);
+  }
+ }catch(e){if(current())status.textContent=e.message;}
+}
+async function submitBallot(action){
+ const current=noticeContext();if(!window.confirm('Sign this proposal action in your wallet?'))return;
+ await api('/voting/submit',action);if(current()){$('ballot-status').textContent='Signed and submitted. Refresh to verify inclusion.';}return true;
+}
+votingTab.addEventListener('click',loadBallots);$('ballot-refresh').onclick=loadBallots;
+$('ballot-form').onsubmit=async e=>{
+ e.preventDefault();if(!ballotView?.policy)return;
+ try{
+  const a={type:'FILE_OPERATOR_PROPOSAL_V1',node:$('ballot-node').disabled?null:$('ballot-node').value.trim(),title:$('ballot-subject').value.trim(),text:$('ballot-description').value.trim(),implementationHash:$('ballot-digest').value.trim(),history:ballotView.policy.history};
+  if(revisionId)a.supersedes=revisionId;
+  const slate=$('ballot-slate').files[0],change=$('ballot-change').files[0];
+  if(slate&&change)throw Error('Submit an expert election and a financial change separately.');
+  const file=slate||change;
+  if(file){
+   const files=slate?Array.from($('ballot-slate').files):[change];
+   if(files.length>5||files.reduce((n,f)=>n+f.size,0)>12000)throw Error('Use up to five files totaling 12 KB.');
+   const entries=await Promise.all(files.map(async f=>JSON.parse(await f.text())));
+   const payload=slate?entries.flat():entries[0];
+   if(slate){
+    const count=ballotView.phase==='expert-review'?1:5;
+    if(payload.length!==count)throw Error(voteText('Signed candidate files required: ','Требуется подписанных согласий: ')+count);
+    payload.sort((a,b)=>a.mandate.seat-b.mandate.seat);
+   }
+   a[slate?'slate':'change']=payload;a.implementationHash=await api('/voting/payload-hash',{payload});
+  }else if(!a.implementationHash)a.implementationHash=await api('/voting/payload-hash',{payload:{title:a.title,text:a.text}});
+  if(await submitBallot(a))resetBallotVersion();
+ }catch(error){$('ballot-status').textContent=error.message;}
+};
+$('ballot-change').onchange=$('ballot-slate').onchange=ballotFormMode;
+$('candidate-form').onsubmit=async e=>{
+ e.preventDefault();if(!ballotView?.policy)return;
+ const current=noticeContext(),name=$('candidate-name').value.trim(),organization=$('candidate-org').value.trim();
+ const seat=Number($('candidate-seat').value),prior=ballotView.seats?.[seat-1];
+ const mandate={seat,years:prior?10:7+seat,predecessor:prior?.election??null};
+ if(!window.confirm(voteText('Sign your public consent to stand for election?','Подписать согласие на выдвижение вашей кандидатуры?')+'\n'+name+' · '+organization+'\n'+$('candidate-seat').selectedOptions[0].textContent))return;
+ try{const candidate=await api('/voting/candidacy',{name,organization,history:ballotView.policy.history,mandate});if(!current())return;
+  const url=URL.createObjectURL(new Blob([JSON.stringify(candidate)],{type:'application/json'})),link=document.createElement('a');
+  link.href=url;link.download='duebyte-expert-'+candidate.profile.key+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);
+  $('candidate-result').textContent=voteText('Send the signed file to the person nominating the panel.','Передайте сохранённый файл тому, кто выдвигает состав.');
+ }catch(error){if(current())$('candidate-result').textContent=error.message;}
+};
 function resetPasswordVisibility(){for(const id of ['password','confirm-password','restore-password']){const input=$(id),b=input.parentElement.querySelector('.password-toggle');input.type='password';b?.setAttribute('aria-label','Show password');if(b)b.title='Show password';b?.setAttribute('aria-pressed','false');}}
 $('cancel-create').addEventListener('click',resetPasswordVisibility);
 function element(tag,text,cls){const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;return e;}
@@ -1102,9 +1263,9 @@ function renderSunPhi(s){
 async function sunphiAction(action,data={}){if(submitting)return;submitting=true;renderSunPhi(lastStatus);$('sunphi-message').textContent='Working…';try{paint(await api('/sunphi/'+action,data));$('sunphi-message').textContent=action==='confirm'?'Account connected. Both options remain off.':action==='disconnect'?'Account disconnected.':action==='notifications'?'Notification preference saved.':['approval','payment-approval'].includes(action)?'Open Sun·Phi messenger to review and approve this request.':'';}catch(e){$('sunphi-message').textContent=e.message;}finally{submitting=false;renderSunPhi(lastStatus);}}
 $('sunphi-start').onclick=()=>sunphiAction('start');$('sunphi-check').onclick=()=>sunphiAction('check');$('sunphi-confirm').onclick=()=>sunphiAction('confirm',{accountId:lastStatus.sunphi?.pairing?.accountId});$('sunphi-disconnect').onclick=()=>sunphiAction('disconnect');$('sunphi-notifications').onclick=()=>sunphiAction('notifications',{enabled:!lastStatus.sunphi?.notifications.enabled});$('sunphi-approval').onclick=()=>sunphiAction('approval',{enabled:!lastStatus.sunphi?.approval.enabled});
 function renderFundingRequests(rows){
- const box=$('funding-requests');box.replaceChildren();if(!rows.length)return;box.append(element('h3','Contribution requests'));
- const labels={AWAITING_SERVER:'Awaiting server approval',SUBMITTING:'Submitting',AWAITING_NETWORK:'Awaiting network confirmation',COMMITTED:'Confirmed',REJECTED:'Declined by server',CANCELLED:'Cancelled before submission',EXPIRED:'Expired',CONFLICT:'Conflicting operation confirmed',RECONCILE_REQUIRED:'Check confirmed history'};
- for(const r of rows){const card=element('article','','node-card');card.append(element('h4',r.amount+' DUBYT · '+(labels[r.status]??r.status)),element('p','Server '+r.node,'address'),element('p',r.verifiedHeight?'Confirmed at block '+r.verifiedHeight:r.message??'', 'hint'));
+ const box=$('funding-requests');box.replaceChildren();if(!rows.length)return;box.append(element('h3','Collateral operations'));
+ const labels={COOLDOWN:'Withdrawal waiting period',AWAITING_SERVER:'Waiting for server signature',SUBMITTING:'Submitting',AWAITING_NETWORK:'Awaiting network confirmation',COMMITTED:'Confirmed',REJECTED:'Declined by server',CANCELLED:'Cancelled before submission',EXPIRED:'Expired',CONFLICT:'Conflicting operation confirmed',RECONCILE_REQUIRED:'Check confirmed history'};
+ for(const r of rows){const card=element('article','','node-card');card.append(element('h4',(r.operation==='withdraw'?'Withdrawal · ':'Deposit · ')+r.amount+' DUBYT · '+(labels[r.status]??r.status)),element('p','Server '+r.node,'address'),element('p',r.verifiedHeight?'Confirmed at block '+r.verifiedHeight:r.message??'', 'hint'));
  for(const [allowed,action,label]of [[r.canRetry,'retry','Check now'],[r.canCancel,'cancel','Cancel request']])if(allowed){const b=element('button',label);b.type='button';b.disabled=submitting||lastStatus?.working;b.onclick=async()=>{if(submitting)return;submitting=true;const current=noticeContext();try{const next=await api('/collateral/'+action,{id:r.id});if(current())renderFundingRequests(rows.map(x=>x.id===r.id?next:x));}catch(e){if(current())$('collateral-status').textContent=e.message;}finally{submitting=false;}};card.append(b);}box.append(card);}
 }
 let fundingSignature='';
@@ -1288,7 +1449,7 @@ function renderMyNodes(data){if(!data)return;
   }
   panel.append(row);
  }
- if(c){const own=element('p','Your collateral','node-own-collateral');own.append(nodeAmount(d.remaining));panel.append(own,collateralLine('Network support',d.support),collateralLine('Total node collateral',d.total));}
+ if(c){const own=element('p','Your collateral','node-own-collateral');own.append(nodeAmount(d.remaining));panel.append(own,collateralLine('Network support',d.support),collateralLine('Total node collateral',d.total));if(d.working!==undefined)panel.append(collateralLine('Your free collateral for settlement work',d.working));}
  if(n.kind==='home')panel.append(element('p','Home has no server collateral.','hint'));
  if(n.kind==='server'&&c?.owned&&(c.reviewVotingBond??(d.consensus!=='0'))){
   const review=element('button','Review validator bond');review.type='button';
@@ -1299,6 +1460,7 @@ function renderMyNodes(data){if(!data)return;
   if(c?.outsidePilot)panel.append(element('p','Required for payout linking and guest voting: 0 DUBYT. The current collateral pilot accepts deposits only for its listed servers. This server is outside that list.','hint'));
   else if(d?.total==='0')panel.append(element('p','This server has no collateral. Add DUBYT to cover penalties if the network proves a violation. Choose Add collateral, enter an amount and review it before confirming.','hint'));
   const add=element('button','Add collateral');add.type='button';add.disabled=!!c?.outsidePilot;add.onclick=()=>void openCollateral(n.id);panel.append(add);
+  if(c?.tracked){const withdraw=element('button','Withdraw collateral');withdraw.type='button';withdraw.onclick=()=>openCollateral(n.id,'withdraw');panel.append(withdraw);}
  }
  const details=element('details','');details.append(element('summary','Node details'),element('p',n.id,'address'));
  if(c){details.append(collateralLine('Deposited by this wallet',d.deposited),collateralLine('Returned to this wallet',d.withdrawn),collateralLine('Reserved for consensus',d.consensus),collateralLine('Held for payments',d.tasks),collateralLine('Unreserved node collateral',d.capacity));if(c.release)details.append(element('p','Release requested: '+c.release.amount+' DUBYT; earliest '+utc(c.release.readyAt)+', subject to outstanding obligations.','hint'));}
@@ -1306,19 +1468,12 @@ function renderMyNodes(data){if(!data)return;
  if(n.kind==='server'){const notices=element('button','Server notices');notices.type='button';notices.onclick=()=>{$('node-link-id').value=n.id;$('node-notices-editor').hidden=false;$('node-notices-editor').open=true;$('node-notices-editor').scrollIntoView({block:'start'});};details.append(notices);}panel.append(details);return panel;}));
 }
 async function loadNodeConnections(){if(lastStatus?.locked)return;if(lastStatus?.nodesSnapshot){renderMyNodes(lastStatus.nodesSnapshot);return;}if(submitting)return;const current=noticeContext();try{const data=await api('/nodes/options',{});if(current())renderMyNodes(data);}catch(e){if(current()){$('nodes-status').textContent=e.message;$('nodes-refresh').hidden=false;}}}
-async function openCollateral(node){
- if(submitting||lastStatus?.locked)return;
- const owner=lastStatus.owner;
- $('collateral-editor').open=true;await loadCollateral();
- if(lastStatus?.locked||lastStatus?.owner!==owner)return;
- const target=collateralData?.nodes.find(n=>n.id===node);
- if(target&&collateralData.enabled&&!target.releasePending&&target.connected!==false){
-  collateralChoice=node;$('collateral-selected').textContent='Server '+node.slice(0,12);$('collateral-node-id').textContent=node;$('collateral-picker').open=false;renderCollateralState(lastStatus);
-  $('collateral-amount').focus({preventScroll:true});
- }else if(collateralData?.enabled){
-  $('collateral-status').textContent='This server is currently unavailable for a collateral deposit.';
- }
- $('collateral-editor').scrollIntoView({block:'start'});
+function openCollateral(node,operation='deposit'){
+ if(lastStatus?.locked)return;
+ collateralChoice=node;$('collateral-operation').value=operation;
+ $('collateral-editor').open=true;$('collateral-selected').textContent='Server '+node.slice(0,12);$('collateral-node-id').textContent=node;
+ $('collateral-picker').open=false;renderCollateralState(lastStatus);
+ $('collateral-editor').scrollIntoView({block:'start'});$('collateral-amount').focus({preventScroll:true});
 }
 $('collateral-editor').addEventListener('toggle',()=>{if($('collateral-editor').open&&!collateralData&&!submitting)void loadCollateral();});
 $('nodes-refresh').onclick=loadNodeConnections;
@@ -1415,27 +1570,40 @@ function renderCollateralState(s){
  if(s.error&&nodeLinkReview){nodeLinkReview=null;$('node-link-confirm').disabled=true;$('node-link-error').textContent='Network verification changed. Close and review again.';}
  if(s.locked||collateralOwner!==s.owner){collateralOwner=s.locked?null:s.owner;collateralChoice=null;collateralData=null;collateralReview=null;$('collateral-review-dialog').close();$('collateral-nodes').replaceChildren();$('collateral-selected').textContent='Choose a server';$('collateral-node-id').textContent='';$('collateral-amount').value='';$('collateral-available').textContent='Available: checking';$('collateral-status').textContent='Check registered servers and your spendable balance.';}
  if(collateralReview&&(s.error||s.unitScale!==collateralReview.body.unitScale)){collateralReview=null;$('collateral-error').textContent='Verification or payment units changed. Close and review again.';}
- $('collateral-review-button').disabled=submitting||s.locked||!!s.error||!collateralData?.enabled||!collateralChoice||(s.collateralRequests??[]).some(r=>r.canRetry);
+ const value=$('collateral-amount').value.trim(),withdraw=$('collateral-operation').value==='withdraw';
+ $('collateral-review-button').disabled=collateralPaymentBusy||s.locked||!collateralChoice||!(/^(0|[1-9]\d*)(\.\d{1,6})?$/.test(value)&&/[1-9]/.test(value));
+ $('collateral-review-button').textContent=collateralPaymentBusy?'Processing…':withdraw?'Withdraw to my wallet':'Add collateral';
+ $('collateral-action-help').textContent=withdraw?'The network pauses new payment assignments on this server. Available funds return to this wallet after the waiting period (at least 24 hours).':'Press Add collateral to sign this amount. Home obtains the server signature and checks confirmation.';
  $('collateral-refresh').disabled=submitting||s.locked||s.working;
  $('collateral-confirm').disabled=submitting||s.locked||!!s.error||!collateralReview;
  if(!s.locked)renderMyNodes(s.nodesSnapshot);
 }
 async function loadCollateral(){
  if(submitting||lastStatus?.locked)return;submitting=true;const owner=lastStatus?.owner;$('collateral-status').textContent='Verifying spendable funds and registered servers...';
- try{const data=await api('/collateral/options',{});if(lastStatus?.locked||owner!==lastStatus.owner)return;collateralData=data;collateralChoice=null;
-  $('collateral-status').textContent=data.reason||'Choose a registered server and review the exact amount. No funds move during review.';$('collateral-available').textContent='Available: '+data.available+' DUBYT';$('collateral-selected').textContent='Choose a server';$('collateral-node-id').textContent='';
+ try{const data=await api('/collateral/options',{});if(lastStatus?.locked||owner!==lastStatus.owner)return;collateralData=data;
+  $('collateral-status').textContent=data.reason||'Choose a registered server and review the exact amount. No funds move during review.';$('collateral-available').textContent='Available: '+data.available+' DUBYT';if(!collateralChoice){$('collateral-selected').textContent='Choose a server';$('collateral-node-id').textContent='';}
   $('collateral-nodes').replaceChildren(...data.nodes.map(n=>{const b=element('button','Server '+n.id.slice(0,12)+(n.releasePending?' - release pending':''));b.type='button';b.disabled=n.releasePending||n.connected===false;b.title=n.id;b.onclick=()=>{collateralChoice=n.id;$('collateral-selected').textContent='Server '+n.id.slice(0,12);$('collateral-node-id').textContent=n.id;$('collateral-picker').open=false;renderCollateralState(lastStatus);};return b;}));
  }catch(e){collateralData=null;$('collateral-status').textContent=e.message;}
  finally{submitting=false;if(lastStatus)renderCollateralState(lastStatus);}
  if(!lastStatus?.locked&&lastStatus.owner===owner)await loadNodeConnections();
 }
 $('collateral-refresh').onclick=loadCollateral;
+let collateralPaymentBusy=false;
+$('collateral-amount').oninput=$('collateral-operation').onchange=()=>renderCollateralState(lastStatus);
 $('collateral-form').onsubmit=async e=>{
- e.preventDefault();if(submitting||!collateralChoice)return;const owner=lastStatus.owner;submitting=true;collateralReview=null;$('collateral-status').textContent='Checking this server, amount and spendable balance…';renderCollateralState(lastStatus);
- try{const r=await api('/collateral/review',{node:collateralChoice,amount:$('collateral-amount').value,unitScale:lastStatus.unitScale});if(lastStatus.locked||lastStatus.owner!==owner)throw Error('Wallet changed. Review again.');collateralReview=r;
-  $('collateral-review-node').textContent='Server '+r.body.node;$('collateral-review-values').replaceChildren(...[['Available',r.display.available],['Collateral',r.display.collateral],['Remaining available',r.display.remainingAvailable]].map(([label,value])=>{const row=element('div','');row.append(element('dt',label),element('dd',value+' DUBYT'));return row;}));
-  $('collateral-review-expiry').textContent='Consent expires: '+utc(r.expiresAt);$('collateral-error').textContent='';$('collateral-review-dialog').showModal();
- }catch(e){$('collateral-status').textContent=e.message;}finally{submitting=false;renderCollateralState(lastStatus);}
+ e.preventDefault();if(collateralPaymentBusy||$('collateral-review-button').disabled)return;
+ const current=noticeContext(),operation=$('collateral-operation').value,amount=$('collateral-amount').value.trim();
+ const draft={operation,node:collateralChoice,amount,unitScale:lastStatus.unitScale??'1000000'};
+ const key=JSON.stringify(['collateral',lastStatus.owner,draft]);
+ const requestId=sessionStorage.getItem(key)??Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
+ sessionStorage.setItem(key,requestId);collateralPaymentBusy=true;renderCollateralState(lastStatus);
+ $('collateral-status').textContent='Checking the amount and obtaining the server signature…';
+ try{const r=await api('/collateral/pay',{...draft,requestId});if(!current())return;
+  sessionStorage.removeItem(key);$('collateral-amount').value='';
+  renderFundingRequests([r,...(lastStatus.collateralRequests??[]).filter(x=>x.id!==r.id)]);
+  $('collateral-status').textContent=r.message??(r.status==='COMMITTED'?'Confirmed by the network.':'Request saved. Home will check network confirmation.');
+ }catch(e){if(current())$('collateral-status').textContent=e.message;}
+ finally{collateralPaymentBusy=false;if(current())renderCollateralState(lastStatus);}
 };
 $('collateral-back').onclick=()=>{collateralReview=null;$('collateral-review-dialog').close();};
 $('collateral-review-dialog').addEventListener('cancel',()=>{collateralReview=null;});

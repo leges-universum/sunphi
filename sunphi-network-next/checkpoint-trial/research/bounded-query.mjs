@@ -23,6 +23,8 @@ import {admissionHead,admissionIds,admissionKey,auditAdmissionRecord,admissionAt
 import {serviceWorkView} from './bounded-service-rewards.mjs';
 import {OPERATOR_HEAD,operatorKey,operatorLinkKey,operatorFactor} from './operator-reward-policy.mjs';
 import {CASE_HEAD,caseKey,caseRemaining} from './bounded-protection-cases.mjs';
+import {assurancePage} from './settlement-assurance.mjs';
+import {ballotHead,ballotKey,authorQuestions,warmupEnd,governancePhase,warmupSigner,reviewContext} from './operator-ballots.mjs';
 export const BOUNDED_QUERY_DOMAIN='DUEBYTE_BOUNDED_QUERY_V12';
 const API=BOUNDED_QUERY_DOMAIN;
 export const WALLET_PAGE_SIZE=32;
@@ -32,6 +34,22 @@ function answer(request,get,candidates){
  exact(request,['type','id']);const anchor=get('meta/anchor'),head=get('meta/blockHead');assert.equal(anchor.domain,BOUNDED_DOMAIN);assert.equal(typeof anchor.issuance,'boolean');if(anchor.archive){assert.equal(anchor.issuance,false);assert.equal(anchor.archive.status,'READY');}
  let data;
  if(request.type==='block-head'){assert.equal(request.id,null);data=head;}
+ else if(request.type==='settlement-order'){hex(request.id);data=get('settlement-assurance/order/'+request.id)??null;}
+ else if(request.type==='operator-voting'){
+  if(request.id==='summary'){
+   const h=get(ballotHead),s=decodeSection(get,'meta/network'),money=decodeSection(get,'meta/money'),phase=governancePhase(s,h,money.time);
+   data={policy:h??null,blockTime:money.time,warmupEnd:warmupEnd(s),phase,agendaContext:h?reviewContext({...s,money},h):null,
+    founderExpert:phase!=='expert-review'&&s.networkReserves&&!s.networkReserves.development.access?.pending?warmupSigner(s):null};
+  }
+  else if(typeof request.id==='string'&&request.id.startsWith('author-')){
+   const owner=request.id.slice(7);publicKey(owner);data=get(authorQuestions(owner))??[];
+  }else data=get(ballotKey(hex(request.id)))??null;
+ }
+ else if(request.type==='settlement-offers'){
+  assert(typeof request.id==='string'&&/^(0|[1-9][0-9]{0,2})$/.test(request.id));
+  const s={...decodeSection(get,'meta/network'),money:{...decodeSection(get,'meta/money'),nodes:new Proxy({},{get:(_,id)=>get('nodes/'+hex(id))})}};
+  data=assurancePage(s,get,Number(request.id));
+ }
  else if(request.type==='protection-case'){
   hex(request.id);const policy=get(CASE_HEAD)??null,record=get(caseKey(request.id))??null;
   data={policy,record,remaining:record?.assessment?String(caseRemaining(record)):null};

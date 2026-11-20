@@ -5,13 +5,18 @@ import assert from 'node:assert/strict';
 import {exact,hash,integer,hex} from '../crypto.mjs';
 import {amount} from '../payment-model.mjs';
 import {START,END,DAY,inspectAnnualPlan,cumulativeNodeAllowance,dailyNodePool} from './calendar-node-emission-policy.mjs';
+import {SMOOTH_EMISSION,compileOrdinaryCurve} from './smooth-emission.mjs';
 export const CALENDAR_SERVICE='DUEBYTE_CALENDAR_SERVICE_SOURCE_V1';
 export function calendarSource(s){return s.rewards?.calendarService??null;}
 export function calendarSourceCeiling(s,at=s.money.time){
  if(!calendarSource(s))return 0n;
  return netAllowance(s,Math.max(START,Math.min(END,Math.floor(at/DAY)*DAY)));
 }
-function netAllowance(s,at){const gross=cumulativeNodeAllowance(s.economicPreparation.plan.annualRegularMicro,at),advance=amount(calendarSource(s)?.advanceMicro??'0');return gross>advance?gross-advance:0n;}
+function netAllowance(s,at){
+ const annual=s.economicPreparation.plan.annualRegularMicro;
+ const gross=s.centuryFees?.ordinaryCurve===SMOOTH_EMISSION?compileOrdinaryCurve(annual).cumulative(at):cumulativeNodeAllowance(annual,at);
+ const advance=amount(calendarSource(s)?.advanceMicro??'0');return gross>advance?gross-advance:0n;
+}
 export const calendarDayPool=(s,day)=>String(netAllowance(s,day+DAY)-netAllowance(s,day));
 export function calendarServiceIssued(s){return amount(calendarSource(s)?.mintedMicro??'0');}
 export function prepareCalendarSource(s,certificateHash,advanceMicro){

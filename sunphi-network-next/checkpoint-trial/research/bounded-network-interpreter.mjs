@@ -8,6 +8,9 @@ import {checkInputCapability,inputBudget,sharedInputsEnabled} from '../payment-i
 import {createWorkerIndex,updateWorkerIndex,auditWorkerIndex,workerAccess,workerCount,nonzeroWorkerCount,WORKER_NONZERO,REWARD_ENROLLMENT,enrollmentState,nextRewardWorkers} from './bounded-worker-index.mjs';
 import {paymentClock} from '../obligation-clock.mjs';
 import {AuthenticatedRecordStore} from './authenticated-record-store.mjs';
+import {applyAssurance,assuranceActions,assuranceRecord,auditAssurance} from './settlement-assurance.mjs';
+import {governanceActions,operatorBallotAction,ballotRecord,ballotHead} from './operator-ballots.mjs';
+import {requireOperationalAction} from './reviewed-financial-rules.mjs';
 import {IndexedMoneyInterpreter} from './indexed-money-interpreter.mjs';
 import {auditState,validateConfig,immutableConfig,parseTx,PROFILE} from '../core.mjs';
 import {hash,canonical,integer,hex,exact,verify} from '../crypto.mjs';
@@ -78,6 +81,8 @@ const ownerKey=owner=>'owners/'+hash(owner),active=r=>['RESERVED','SCHEDULED'].i
 function section(tx,key){const v=tx.get(key);assert(v,'missing section');if(v.kind==='json'){exact(v,['kind','value']);return v.value;}exact(v,['kind','count','digest']);assert.equal(v.kind,'chunks');integer(v.count,1);assert(v.count<=128);const parts=[];for(let i=0;i<v.count;i++){const part=tx.get(key+'/chunk/'+i);exact(part,['data']);const bytes=Buffer.from(part.data,'base64');assert.equal(bytes.toString('base64'),part.data);assert(bytes.length<=24000);parts.push(bytes);}const value=JSON.parse(Buffer.concat(parts).toString());assert.equal(hash(value),v.digest);return value;}
 function putSection(tx,key,value){const old=tx.get(key),bytes=Buffer.from(canonical(value));let count=0;if(bytes.length<60000)tx.set(key,{kind:'json',value});else{count=Math.ceil(bytes.length/24000);assert(count<=128,'bounded controller section');tx.set(key,{kind:'chunks',count,digest:hash(value)});for(let i=0;i<count;i++)tx.set(key+'/chunk/'+i,{data:bytes.subarray(i*24000,(i+1)*24000).toString('base64')});}for(let i=count;i<(old?.kind==='chunks'?old.count:0);i++)tx.delete(key+'/chunk/'+i);}
 function auditNamespaces(records){for(const key of records.keys()){
+ if(assuranceRecord(key))continue;
+ if(ballotRecord(key))continue;
  if(key===ENROLLMENT_HEAD||/^server-enrollment\/recipient\/[a-f0-9]{64}$/.test(key))continue;
  if(isServiceRecord(key)||isOperatorRecord(key)||isProtectionCaseRecord(key)||isPosRecord(key))continue;
  if(/^paid-admission\/(head|records\/[a-f0-9]{64}|(index|homes)\/(root|[a-f0-9]{1,64}))$/.test(key))continue;
@@ -283,6 +288,9 @@ export class BoundedNetworkInterpreter{
  }
  _action(s,t,rules,tx){let a=t.body.action;const author=t.body.author;
   guardPreparedEconomy(s,a.type);
+  if(governanceActions.includes(a.type))return operatorBallotAction(s,a,author,tx,this.config);
+  if(tx.get(ballotHead))requireOperationalAction(s,a);
+  if(assuranceActions.includes(a.type))return applyAssurance(s,a,author,this.config,tx,guardCustodyRequest);
   if(a.type===OPEN_SERVER_ENROLLMENT||a.type===REGISTER_SERVER)return serverRewardRegistration(s,a,author,this.config,tx);
   if(a.type===NOMINATE_RECIPIENT||a.type===ACCEPT_RECIPIENT)return serverRecipient(s,a,author,this.config,tx,rewardContext(s,tx.get('meta/economics')));
   if(a.type===OPEN_SEAT||a.type===JOIN_SEAT)return applySeat(s,a,author,this.config.chainId);
@@ -336,6 +344,7 @@ export class BoundedNetworkInterpreter{
    auditServerRegistration(records,s,this.config);
    auditOperatorRewards(records,s);
    auditProtectionCases(records,s);
+   auditAssurance(records,s);
    auditPosPolicy(tx.get,s);auditPosRecords(records,s);
    auditServiceRewards(records,s);
    auditWalletIndex(records,s.money);

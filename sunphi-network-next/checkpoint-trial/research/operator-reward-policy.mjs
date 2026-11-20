@@ -12,6 +12,21 @@ export const OPERATOR_HEAD='operator-rewards/policy';
 export const operatorKey=node=>'operator-rewards/status/'+hex(node);
 export const operatorLinkKey=node=>'operator-rewards/link/'+hex(node);
 const DAY=86400;
+export function checkRewardIssuers(keys){
+ assert(Array.isArray(keys)&&keys.length>0&&keys.length<=8&&new Set(keys).size===keys.length,'one to eight distinct credential issuers required');keys.forEach(publicKey);
+}
+export function applyRewardIssuerTerms(s,type,b,digest,tx){
+ const h=tx.get(OPERATOR_HEAD);hex(digest);checkRewardIssuers(b.issuers);
+ if(type===OPERATOR_POLICY){
+  assert(!h,'operator policy already enabled');integer(b.effectiveFrom,s.money.time+DAY);assert(b.effectiveFrom%DAY===0,'complete future UTC day');
+  tx.set(OPERATOR_HEAD,{version:OPERATOR_POLICY,certificateHash:digest,effectiveFrom:b.effectiveFrom,issuers:b.issuers});
+ }else{
+  assert.equal(type,OPERATOR_ISSUERS);assert(h,'operator policy not enabled');integer(b.sequence,1);assert.equal(b.sequence,(h.authoritySequence??0)+1);assert.equal(b.previousHash,h.authorityHash??h.certificateHash);
+  integer(b.effectiveFrom,Math.ceil((s.money.time+1)/DAY)*DAY);assert(b.effectiveFrom%DAY===0&&b.effectiveFrom<=s.money.time+30*DAY);assert(!h.pendingAuthority||h.pendingAuthority.effectiveFrom<=s.money.time,'pending authority change');
+  tx.set(OPERATOR_HEAD,{...h,issuers:h.pendingAuthority?.issuers??h.issuers,authoritySequence:b.sequence,authorityHash:digest,pendingAuthority:{effectiveFrom:b.effectiveFrom,issuers:b.issuers}});
+ }
+ return s;
+}
 export function operatorPolicyAction(s,a,c,tx,author){
  if(a.type===OPERATOR_LINK){
   exact(a,['type','body','signature']);const b=a.body,h=tx.get(OPERATOR_HEAD);assert(h,'operator policy not enabled');
@@ -29,11 +44,8 @@ export function operatorPolicyAction(s,a,c,tx,author){
   assert.equal(b.domain,OPERATOR_ISSUERS);assert.equal(b.configHash,hash(c));assert.equal(b.configHash,s.configHash);assert.equal(b.network,c.chainId);assert.equal(b.generation,s.authority.generation);assert(!s.authority.pending);
   assert.equal(b.managementEpoch,s.networkReserves.development.access.epoch);assert(!s.networkReserves.development.access.pending);validatorQuorum(b,a.certificate.approvals,s.authority.validators);assert(verify(b,a.founderConsent,developmentManager(s.networkReserves)),'policy management consent');
   if(h.authorityHash===hash(b))return s;
-  integer(b.sequence,1);assert.equal(b.sequence,(h.authoritySequence??0)+1);assert.equal(b.previousHash,h.authorityHash??h.certificateHash);
   integer(b.notBefore,1);integer(b.expires,b.notBefore+1);assert(b.expires-b.notBefore<=600&&s.money.time>=b.notBefore&&s.money.time<b.expires,'policy inclusion window');
-  integer(b.effectiveFrom,Math.ceil((s.money.time+1)/DAY)*DAY);assert(b.effectiveFrom%DAY===0&&b.effectiveFrom<=s.money.time+30*DAY);assert(!h.pendingAuthority||h.pendingAuthority.effectiveFrom<=s.money.time,'pending authority change');
-  assert(Array.isArray(b.issuers)&&b.issuers.length>0&&b.issuers.length<=8&&new Set(b.issuers).size===b.issuers.length);b.issuers.forEach(publicKey);
-  tx.set(OPERATOR_HEAD,{...h,issuers:h.pendingAuthority?.issuers??h.issuers,authoritySequence:b.sequence,authorityHash:hash(b),pendingAuthority:{effectiveFrom:b.effectiveFrom,issuers:b.issuers}});return s;
+  return applyRewardIssuerTerms(s,a.type,b,hash(b),tx);
  }
  if(a.type===OPERATOR_POLICY){
   exact(a,['type','certificate','founderConsent']);exact(a.certificate,['body','approvals']);const b=a.certificate.body;
@@ -43,9 +55,7 @@ export function operatorPolicyAction(s,a,c,tx,author){
   validatorQuorum(b,a.certificate.approvals,s.authority.validators);assert(verify(b,a.founderConsent,developmentManager(s.networkReserves)),'policy management consent');
   const old=tx.get(OPERATOR_HEAD);if(old){assert.equal(old.certificateHash,hash(b),'operator policy already enabled');return s;}
   integer(b.notBefore,1);integer(b.expires,b.notBefore+1);assert(b.expires-b.notBefore<=600&&s.money.time>=b.notBefore&&s.money.time<b.expires,'policy inclusion window');
-  integer(b.effectiveFrom,s.money.time+DAY);assert(b.effectiveFrom%DAY===0,'complete future UTC day');
-  assert(Array.isArray(b.issuers)&&b.issuers.length>0&&b.issuers.length<=8&&new Set(b.issuers).size===b.issuers.length);b.issuers.forEach(publicKey);
-  tx.set(OPERATOR_HEAD,{version:OPERATOR_POLICY,certificateHash:hash(b),effectiveFrom:b.effectiveFrom,issuers:b.issuers});return s;
+  return applyRewardIssuerTerms(s,a.type,b,hash(b),tx);
  }
  exact(a,['type','credential','issuerSignature','nodeSignature']);assert.equal(a.type,OPERATOR_STATUS);const b=a.credential,h=tx.get(OPERATOR_HEAD);assert(h,'operator policy not enabled');
  exact(b,['domain','configHash','node','operator','profileHash','sequence','effectiveFrom','registeredUntil','legalUntil','reviewedAt','sourceRevision','issuer']);

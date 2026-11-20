@@ -23,7 +23,12 @@ export function schedulePaymentTariff(base,a,config){
  assert(config.obligationClock,'UTC network required');assert.equal(base.money.unitScale,'1000000');
  integer(b.notBefore,1);integer(b.expires,b.notBefore);assert(b.expires-b.notBefore<=100&&base.height>=b.notBefore&&base.height<=b.expires,'tariff inclusion window');
  validatorQuorum(b,a.certificate.approvals,base.authority.validators);assert(verify(b,a.founderConsent,developmentManager(base.networkReserves)),'tariff manager consent');
- const certificateHash=hash(a.certificate),old=base.money.paymentTariff;
+ return applyTariffTerms(base,b,config,hash(a.certificate));
+}
+// Both authorization paths apply the same monetary constraints and notice.
+export function applyTariffTerms(base,b,config,certificateHash){
+ assert(config.obligationClock);assert.equal(base.money.unitScale,'1000000');
+ const old=base.money.paymentTariff;
  if(old?.certificateHash===certificateHash)return base;
  assert(!old||base.money.time>=old.activation,'pending tariff cannot be replaced');
  const current=activePaymentTariff(base.money);assert.equal(b.previous,hash(current),'previous tariff changed');checkTariff(b.profile);

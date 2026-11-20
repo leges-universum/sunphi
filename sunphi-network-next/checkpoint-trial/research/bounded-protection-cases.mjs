@@ -16,7 +16,13 @@ const empty=pid=>({pid,automatic:'0',paid:'0',assessment:null});
 // principal. Its objectively retained loss ceiling is the sender's charged fee.
 // Other incident types need a qualified loss source, not a freely chosen UUID.
 const lossCeiling=request=>amount(request.status==='SETTLED'?request.intent.fee:request.intent.abortFee);
-export const caseRemaining=r=>r?.assessment?amount(r.assessment.grossLoss)-amount(r.assessment.recovered)-amount(r.automatic)-amount(r.paid):0n;
+export const caseRemaining=r=>r?.assessment?amount(r.assessment.grossLoss)-amount(r.assessment.recovered)-amount(r.automatic)-amount(r.paid)-amount(r.assurancePaid??'0'):0n;
+export function recordAssuranceRecovery(s,tx,pid,value){
+ const r=tx.get(caseKey(pid));assert(value>0n&&value<=caseRemaining(r),'verified loss already recovered');
+ const pending=s.money.liability.protection.pending;
+ if(pending?.lossPayment===pid)assert(caseRemaining(r)-value>=amount(pending.value),'compensation already reserved');
+ r.assurancePaid=String(amount(r.assurancePaid??'0')+value);save(tx,r);
+}
 export const isProtectionCaseRecord=k=>k===CASE_HEAD||/^protection-cases\/payment\/[a-f0-9]{64}$/.test(k);
 function save(tx,r){const h=tx.get(CASE_HEAD),old=tx.get(caseKey(r.pid));assert(h,'case ledger required');if(!old)h.count=integer(h.count+1,1);h.automatic=String(amount(h.automatic)+amount(r.automatic)-amount(old?.automatic??'0'));h.paid=String(amount(h.paid)+amount(r.paid)-amount(old?.paid??'0'));tx.set(caseKey(r.pid),r);tx.set(CASE_HEAD,h);}
 function certificate(s,a,c){
@@ -61,7 +67,7 @@ export function auditProtectionCaseBinding(get,s){const p=s.money.liability?.pro
 export function auditProtectionCases(records,s){
  auditProtectionCaseBinding(k=>records.get(k),s);const h=records.get(CASE_HEAD),rows=[...records].filter(([k])=>k.startsWith('protection-cases/')&&k!==CASE_HEAD);if(!h){assert.equal(rows.length,0);return;}
  exact(h,['version','certificateHash','enabledHeight','count','automatic','paid']);integer(h.count);assert.equal(rows.length,h.count);let automatic=0n,paid=0n;
- for(const [k,r]of rows){exact(r,['pid','automatic','paid','assessment']);assert.equal(k,caseKey(r.pid));const request=s.money.requests[r.pid];assert(request&&['EXPIRED','CANCELLED','SETTLED'].includes(request.status));automatic+=amount(r.automatic);paid+=amount(r.paid);
+ for(const [k,r]of rows){exact(r,['pid','automatic','paid','assessment',...(r.assurancePaid===undefined?[]:['assurancePaid'])]);assert.equal(k,caseKey(r.pid));const request=s.money.requests[r.pid];assert(request&&['EXPIRED','CANCELLED','SETTLED'].includes(request.status));automatic+=amount(r.automatic);paid+=amount(r.paid);
   if(amount(r.automatic)){assert.equal(request.status,'EXPIRED');assert(amount(r.automatic)<=amount(request.intent.abortFee));}
   if(r.assessment){const a=r.assessment;exact(a,['recipient','grossLoss','recovered','evidence','revision','certificateHash']);publicKey(a.recipient);hex(a.evidence);hex(a.certificateHash);integer(a.revision,1);assert.equal(a.recipient,request.intent.sender);assert(amount(a.grossLoss)>0n&&amount(a.grossLoss)<=lossCeiling(request));assert(caseRemaining(r)>=0n);}
   else assert.equal(r.paid,'0');

@@ -13,6 +13,8 @@ import {policyFields} from './authority.mjs';
 import {checkPolicyState} from './checkpoint-state.mjs';
 import {boundedHttpQuery,loadBoundedWalletView,loadBoundedServiceView,loadBoundedRewardPlan,loadBoundedHistoryPage,assertBoundedWalletView} from './research/bounded-wallet-view.mjs';
 import {verifyBoundedQuery} from './research/bounded-query.mjs';
+import {advanceNetworkTotals} from './research/bounded-wallet-presentation.mjs';
+import {unitScale} from './token-units.mjs';
 import {verifyBoundedTransitionTerms,verifyBoundedViewAnchor,indexedTrustAnchor} from './research/bounded-root-transition.mjs';
 import {freshRootTerms} from './research/fresh-application.mjs';
 import {indexedSchemaRootTerms,verifyIndexedSchemaPredecessor} from './research/indexed-schema-upgrade.mjs';
@@ -165,6 +167,25 @@ export class VerifiedClient{
   this.verifiedServiceCertificate=hash(v);
   return {state,certificate:v,checkpointId:hash(doc.body),...(history?{history}:{}),recovery:{windows:result.windows,bytes:result.totalBytes}};
  }
+ async networkTotals(view,owner){
+  const {state,certificate}=view,root=certificate.appHash,configHash=hash(this.config);
+  assertBoundedWalletView(state,certificate,this.config,owner);
+  const db=this.book.db;
+  db.exec('CREATE TABLE IF NOT EXISTS wallet_network_totals(config TEXT PRIMARY KEY,height INTEGER NOT NULL,cursor TEXT NOT NULL)');
+  const saved=db.prepare('SELECT height,cursor FROM wallet_network_totals WHERE config=?').get(configHash);
+  assert(!saved||saved.height<=state.height,'older analytics snapshot');
+  const previous=saved?JSON.parse(saved.cursor):null;
+  const result=await boundedHttpQuery(this.bounded.url).withLease(root,query=>advanceNetworkTotals(async request=>{
+   const proof=verifyBoundedQuery(await query(request,root),request,root,configHash);
+   assert.equal(proof.height,state.height);assert(!proof.isolatedIssuance);
+   return proof.data;
+  },String(unitScale(state)),previous));
+  // One atomic row, written only when the immutable journal cursor advances.
+  if(previous?.offset!==result.cursor.offset||previous?.scale!==result.cursor.scale){
+   db.prepare('INSERT INTO wallet_network_totals VALUES(?,?,?) ON CONFLICT(config) DO UPDATE SET height=excluded.height,cursor=excluded.cursor WHERE wallet_network_totals.height<=excluded.height AND wallet_network_totals.cursor=?').run(configHash,state.height,JSON.stringify(result.cursor),saved?.cursor??null);
+  }
+  return result.totals;
+ }
  async historyPage(view,owner,offset=0,limit=32,through=null){
   assert(this.bounded);assertBoundedWalletView(view.state,view.certificate,this.config,owner);
   return boundedHttpQuery(this.bounded.url).withLease(view.certificate.appHash,query=>loadBoundedHistoryPage(query,{root:view.certificate.appHash,height:view.certificate.appHeight,configHash:hash(this.config),owner,offset,limit,through}));
@@ -181,6 +202,20 @@ export class VerifiedClient{
   assert(this.bounded);hex(node);assert.equal(hash(certificate),this.verifiedServiceCertificate,'current verified service certificate');
   const request={type:'service-work',id:node},root=certificate.appHash;
   return boundedHttpQuery(this.bounded.url).withLease(root,async query=>{const r=verifyBoundedQuery(await query(request,root),request,root,hash(this.config));assert.equal(r.height,certificate.appHeight);assert(!r.isolatedIssuance);return r.data;});
+ }
+ async operatorBallots(certificate,owner){
+  assert(this.bounded&&hash(certificate)===this.verifiedServiceCertificate,'Current verified network view required');
+  const root=certificate.appHash;
+  return boundedHttpQuery(this.bounded.url).withLease(root,async query=>{
+   const read=async id=>{const request={type:'operator-voting',id};
+    const r=verifyBoundedQuery(await query(request,root),request,root,hash(this.config));assert.equal(r.height,certificate.appHeight);assert(!r.isolatedIssuance);return r.data;};
+   const summary=await read('summary'),proposals=[];
+   const mine=owner&&summary.policy?await read('author-'+owner):[];
+   const ids=new Set([...(summary.policy?.live??[]),...(summary.policy?.discussions??[]),...mine]);
+   if(summary.policy?.lastDecision)ids.add(summary.policy.lastDecision);
+   for(const id of ids)proposals.push(await read(id));
+   return {...summary,proposals};
+  });
  }
  async approvalEvidence(doc,url,owner,pid=null){
   assert(this.bounded);await this.sync(doc,url,{owner,requestIds:pid?[pid]:[]});

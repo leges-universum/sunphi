@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
 import {exact,hash,sign} from './crypto.mjs';
 import {parseToken,formatToken} from './token-units.mjs';
-import {prepareCollateralReview} from './worker-collateral-plan.mjs';
+import {prepareCollateralReview,prepareReleaseReview} from './worker-collateral-plan.mjs';
 import {outsideCollateralPilot} from './wallet-collateral-status.mjs';
 import {spendPolicy} from './spend-protection.mjs';
 import {stateHash} from './core.mjs';
@@ -15,6 +15,10 @@ export function collateralOptions(s,owner){
  return {enabled:!reason,reason,nodes,available:formatToken(String(available(s,owner).reduce((a,[,o])=>a+BigInt(o.value),0n)),s.money.unitScale??'1'),mode:'CONSENT_ONLY',broadcastEnabled:false};
 }
 function plan(s,owner,q){
+ if(q.operation==='withdraw'){
+  exact(q,['operation','node','amount','unitScale']);assert.equal(q.unitScale,s.money.unitScale);
+  return prepareReleaseReview(s,{node:q.node,owner,valueMicro:parseToken(q.amount,q.unitScale)});
+ }
  exact(q,['node','amount','unitScale']);assert(!outsideCollateralPilot(s,q.node),'Deposits are limited to servers in the current collateral pilot.');assert(collateralOptions(s,owner).enabled,collateralOptions(s,owner).reason);
  const need=BigInt(parseToken(q.amount,q.unitScale)),inputs=[];let sum=0n;
  // Largest first avoids refusing a sufficiently funded wallet with many dust outputs.

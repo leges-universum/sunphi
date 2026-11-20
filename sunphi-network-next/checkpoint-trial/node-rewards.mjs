@@ -48,6 +48,30 @@ function certify(s,action,c){
  integer(b.notBefore,1);integer(b.expires,1);assert(b.expires>=b.notBefore&&b.expires-b.notBefore<=100&&s.height>=b.notBefore&&s.height<=b.expires,'reward inclusion window');
  validatorQuorum(b,cert.approvals,s.authority.validators);return b;
 }
+function checkNextCoefficients(s,c,coefficients){
+ const r=s.rewards;
+ validateCoefficients(coefficients);checkRewardClock(c,coefficients);
+ assert.equal(coefficients.timeBasis,r.coefficients.timeBasis,'reward clock immutable');assert.equal(coefficients.version,r.coefficients.version+1);assert(!r.scheduled,'coefficient update pending');
+ assert.deepEqual(coefficients.calendar??null,r.coefficients.calendar??null,'calendar cannot change with reward coefficients');
+ assert.equal(coefficients.workMeasure??null,r.coefficients.workMeasure??null,'work measure is immutable');
+ if(r.fundedWork){assert.equal(coefficients.alphaPPM,0,'cannot restart legacy emission');assert(amount(coefficients.lifetimeMintLimit)>=amount(r.minted)+unissuedWorkBudget(r),'preserve funded work budget');}
+ if(r.coefficients.calendar)assert(amount(coefficients.lifetimeMintLimit)<=amount(r.coefficients.calendar.budget),'lifetime cap exceeds calendar');
+ assert(amount(coefficients.lifetimeMintLimit)>=amount(r.minted),'cannot erase issued tokens');
+}
+export function scheduleReviewedCoefficients(s,c,terms,decision){
+ assert(s.rewards&&rewardsEnabled(s),'rewards not activated');
+ assert.equal(terms.previous,hash(s.rewards.coefficients),'stale reward coefficients');
+ assert.equal(terms.activation,'after-one-full-period');
+ const p=terms.coefficients;
+ checkNextCoefficients(s,c,p);
+ assert(!s.rewards.calendarService,'calendar service requires stable legacy coefficients');
+ assert(p.alphaPPM===0&&p.periodMintLimit==='0'&&p.lifetimeMintLimit==='0'&&!p.calendar,'bounded rewards are fee-only');
+ const rewards=cloneRewardLedger(s.rewards);
+ rewards.scheduled={afterPeriod:integer(rewards.period.index+1),coefficients:structuredClone(p)};
+ const next={...s,rewards};
+ if(s.centuryFees)next.centuryFees={...s.centuryFees,reviewedCoefficients:{decision:hex(decision),previous:terms.previous,approved:hash(p)}};
+ return next;
+}
 export function applyRewardAction(base,action,author,c,context){
  assert(base.authority,'reward authority unavailable');let s={...base};
  // Governance does not rewrite wallet history. Detach only its writable ledger.
@@ -70,14 +94,10 @@ export function applyRewardAction(base,action,author,c,context){
  assert(rewardsEnabled(s)&&s.rewards,'rewards not activated');const r=s.rewards;
  if(FUNDED_ACTIONS.includes(action.type)){s=applyFundedWork(s,action,author,c);auditRewards(s);return s;}
  if(action.type==='SET_REWARD_COEFFICIENTS_V1'){
-  const b=certify(s,action,c);exact(b,[...common,'activation','coefficients']);validateCoefficients(b.coefficients);checkRewardClock(c,b.coefficients);assert.equal(b.coefficients.timeBasis,r.coefficients.timeBasis,'reward clock immutable');assert.equal(b.coefficients.version,r.coefficients.version+1);assert(!r.scheduled,'coefficient update pending');
-  assert.deepEqual(b.coefficients.calendar??null,r.coefficients.calendar??null,'calendar cannot change with reward coefficients');
-  assert.equal(b.coefficients.workMeasure??null,r.coefficients.workMeasure??null,'work measure is immutable');
-  if(r.fundedWork){assert.equal(b.coefficients.alphaPPM,0,'cannot restart legacy emission');assert(amount(b.coefficients.lifetimeMintLimit)>=amount(r.minted)+unissuedWorkBudget(r),'preserve funded work budget');}
-  if(r.coefficients.calendar)assert(amount(b.coefficients.lifetimeMintLimit)<=amount(r.coefficients.calendar.budget),'lifetime cap exceeds calendar');
+  const b=certify(s,action,c);exact(b,[...common,'activation','coefficients']);checkNextCoefficients(s,c,b.coefficients);
   // Only the next complete period may change. Already accepted work keeps its tariff.
   assert.equal(b.activation,r.period.end);rewardNotice(s,b.activation,b.expires,b.coefficients);
-  assert(amount(b.coefficients.lifetimeMintLimit)>=amount(r.minted),'cannot erase issued tokens');r.scheduled={activation:b.activation,coefficients:b.coefficients};
+  r.scheduled={activation:b.activation,coefficients:b.coefficients};
  }else if(action.type==='ALLOW_REWARD_NODES_V1'){
   const b=certify(s,action,c);exact(b,[...common,'peers']);validatePeers(b.peers);const peers=[...new Set([...r.allowedPeers,...b.peers])].sort();validatePeers(peers);r.allowedPeers=peers;
  }else if(action.type==='REGISTER_REWARD_NODE_V1'){
@@ -185,8 +205,10 @@ export function beginRewards(base,next,context){
   s.rewards.period=openPeriod(s,1,{height:base.height,stateHash:context?.anchorRoot??hash(base)});
  }else if(rewardClock(s)>=s.rewards.period.end){
   if(!utcRewards(s.rewards.coefficients))assert.equal(s.height,s.rewards.period.end,'missed reward period');
-  allocate(s);if(s.rewards.scheduled){assert.equal(s.rewards.scheduled.activation,s.rewards.period.end);s.rewards.coefficients=s.rewards.scheduled.coefficients;s.rewards.scheduled=null;}
+  allocate(s);const pending=s.rewards.scheduled;
+  if(pending&&pending.afterPeriod===undefined){assert.equal(pending.activation,s.rewards.period.end);s.rewards.coefficients=pending.coefficients;s.rewards.scheduled=null;}
   s.rewards.period=openPeriod(s,s.rewards.period.index+1,{height:base.height,stateHash:context?.anchorRoot??hash(base)});
+  if(pending?.afterPeriod!==undefined){assert.equal(pending.afterPeriod,s.rewards.period.index);s.rewards.scheduled={activation:s.rewards.period.end,coefficients:pending.coefficients};}
  }else assert(rewardClock(s)<s.rewards.period.end,'missed reward period');
  if(next.rewards&&context?.nextRewardWorkers)for(const id of context.nextRewardWorkers())ensureRewardWorker(s,id);
  advanceFundedWork(s);advanceCenturySubsidy(s);pay(s,context);if(!context?.indexed)audit(s.money);auditRewards(s,context);return s;
@@ -216,7 +238,7 @@ export function auditRewards(s,context){
  for(const field of ['assigned','witnesses']){assert(Array.isArray(p[field])&&p[field].length<=128&&new Set(p[field]).size===p[field].length);for(const id of p[field])assert(r.nodes[id]?.kind==='witness');}
  for(const id of p.witnesses){assert(p.assigned.includes(id));if(r.fundedWork?.serviceContract)assert.equal(p.work[id]?.witness??'0','0');else assert.equal(p.work[id]?.witness,String(r.coefficients.workMeasure?WORK_UNITS:1n));}
  for(const [peer,id]of Object.entries(r.enrolled)){assert(r.allowedPeers.includes(peer));assert(r.nodes[id]?.kind==='witness');}
- if(r.scheduled){exact(r.scheduled,['activation','coefficients']);assert.equal(r.scheduled.activation,p.end);validateCoefficients(r.scheduled.coefficients);assert.equal(r.scheduled.coefficients.timeBasis,r.coefficients.timeBasis);assert.equal(r.scheduled.coefficients.version,r.coefficients.version+1);}
+ if(r.scheduled){if(Object.hasOwn(r.scheduled,'afterPeriod')){exact(r.scheduled,['afterPeriod','coefficients']);assert.equal(r.scheduled.afterPeriod,p.index+1);}else{exact(r.scheduled,['activation','coefficients']);assert.equal(r.scheduled.activation,p.end);}validateCoefficients(r.scheduled.coefficients);assert.equal(r.scheduled.coefficients.timeBasis,r.coefficients.timeBasis);assert.equal(r.scheduled.coefficients.version,r.coefficients.version+1);}
 }
 export function rewardSummary(s,node){
  const n=s?.rewards?.nodes[node];if(!n)return {available:false,node,accrued:null,pending:null,paid:null};

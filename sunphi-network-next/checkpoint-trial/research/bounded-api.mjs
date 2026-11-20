@@ -17,6 +17,12 @@ export function createBoundedApi(handler,options={}){
     return send(400,{error:'read lease parameters'});
    }
    if(req.method!=='GET')return send(405,{error:'read only'});
+   if(parts[1]==='v1'&&parts.length===4&&['settlement-offers','settlement-order','operator-voting'].includes(parts[2])){
+    const root=u.searchParams.get('root'),token=u.searchParams.get('lease');
+    if(!/^[a-f0-9]{64}$/.test(root)||token!==null&&!/^[a-f0-9]{48}$/.test(token)||[...u.searchParams.keys()].length!==(token===null?1:2))return send(400,{error:'query parameters'});
+    const reader=token?leases.resolve(token,root):handler;if(reader.root!==root)return send(409,{error:'stale root'});
+    return send(200,queryBounded(reader,{type:parts[2],id:parts[3]},root));
+   }
    if(parts[1]==='v1'&&parts.length===4&&['paid-admission','paid-admission-page'].includes(parts[2])){
     const paged=parts[2]==='paid-admission-page',names=paged?['root','offset','limit']:['root'];if(u.searchParams.has('lease'))names.push('lease');
     if([...u.searchParams.keys()].length!==names.length||!names.every(n=>u.searchParams.has(n)))return send(400,{error:'query parameters'});

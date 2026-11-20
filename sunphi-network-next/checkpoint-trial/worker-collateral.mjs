@@ -46,6 +46,15 @@ export function consentedVotingHold(s,id,bond){
  return String(total);
 }
 export const collateralChangeId=b=>hash({domain:COLLATERAL_DOMAIN+'/CHANGE',body:b});
+// Owner-funded capacity after voting, existing work and non-owner funds.
+export function availableWorkingStake(s,id){
+ const n=s.money.nodes[id],f=s.workerFunding?.accounts[id];
+ if(!n||!f||f.release||f.initialStakeMicro===undefined||s.money.liability?.discipline?.[id]?.suspended)return 0n;
+ const held=amount(n.consensusHeld), minimum=amount(preparedVotingMinimum(s)??'0');
+ const free=amount(n.stake)-(held>minimum?held:minimum)-amount(n.taskHeld)-lockedSupport(s,id)-amount(f.initialStakeMicro);
+ const owned=amount(f.depositedMicro)-amount(f.withdrawnMicro);
+ return free<=0n?0n:free<owned?free:owned;
+}
 export const collateralReleaseId=(configHash,node,sequence)=>hash({domain:COLLATERAL_DOMAIN+'/RELEASE',configHash,node,sequence});
 export function auditWorkerFunding(s){
  const f=s.workerFunding;if(!f)return;

@@ -8,7 +8,16 @@ import {spendPolicy} from './spend-protection.mjs';
 import {centuryRestrictedAccounts} from './century-funds.mjs';
 import {centuryWarmupAccounts,memorialPolicy} from './economic-policy-v3.mjs';
 import {reserveAddresses} from './network-reserves.mjs';
-import {FUND_WORKER,COLLATERAL_DOMAIN} from './worker-collateral.mjs';
+import {FUND_WORKER,COLLATERAL_DOMAIN,QUEUE_RELEASE,releasableCollateral} from './worker-collateral.mjs';
+export function prepareReleaseReview(s,{node,owner,valueMicro}){
+ hex(node);publicKey(owner);const a=s.workerFunding?.accounts[node];
+ assert(a?.owner===owner&&!a.release,'Only the funding wallet can withdraw; a pending withdrawal must finish first.');
+ assert(s.money.unitScale==='1000000'&&s.centuryFees,'Withdrawal requires verified DUBYT precision.');
+ const free=releasableCollateral(s,node),value=amount(valueMicro);
+ assert(value>0n&&value<=free,'Withdrawal exceeds available owner collateral. Voting bonds and outstanding work may be locked.');
+ return {type:QUEUE_RELEASE,body:{domain:COLLATERAL_DOMAIN+'/'+QUEUE_RELEASE,configHash:s.configHash,node,owner,valueMicro,sequence:a.sequence+1,issuedAt:s.money.time,expires:s.money.time+300},
+  display:{available:formatToken(String(free),'1000000'),collateral:formatToken(valueMicro,'1000000'),remainingAvailable:formatToken(String(free-value),'1000000')}};
+}
 export function prepareCollateralReview(s,q){
  exact(q,['node','owner','inputs','amount','unitScale']);hex(q.node);publicKey(q.owner);
  assert.equal(s.money.unitScale,'1000000');assert.equal(q.unitScale,s.money.unitScale);assert(s.centuryFees,'qualified fee policy required');

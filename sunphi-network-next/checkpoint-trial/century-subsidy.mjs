@@ -61,7 +61,11 @@ export function applyCenturyPolicy(base,a,c){
  assert.equal(b.domain,a.type);assert.equal(b.network,c.chainId);assert.equal(b.configHash,base.configHash);assert.equal(b.generation,base.authority.generation);assert.equal(b.planHash,book.planHash);
  const access=base.networkReserves.development.access;assert(access&&!access.pending,'stable policy management required');assert.equal(b.managementEpoch,access.epoch);
  integer(b.notBefore,1);integer(b.expires,b.notBefore);assert(b.expires-b.notBefore<=100&&base.height>=b.notBefore&&base.height<=b.expires,'policy inclusion window');validatorQuorum(b,a.certificate.approvals,base.authority.validators);assert(verify(b,a.founderConsent,developmentManager(base.networkReserves)),'founder policy consent');
- const digest=hash(a.certificate),old=book.policyControl;if(old?.lastActionHash===digest)return base;
+ return applySubsidyPolicyTerms(base,b,schedule,hash(a.certificate));
+}
+export function applySubsidyPolicyTerms(base,b,schedule,digest){
+ const book=base.centurySubsidy;assert(book,'subsidy must be prepared');assert.equal(b.planHash,book.planHash);
+ const old=book.policyControl;if(old?.lastActionHash===digest)return base;
  assert.equal(b.previousPolicyHash,hash(book.policy),'stale policy base');assert.equal(b.sequence,(old?.sequence??0)+1,'policy sequence');
  const s=copyControllerState(base,['centurySubsidy']),r=s.centurySubsidy,ctl=r.policyControl??={version:1,revision:1,sequence:0,lastActivatedAt:book.start,lastActionHash:null,history:hash({domain:'DUEBYTE_CENTURY_POLICY_V1',policy:book.policy}),lastStatementPolicy:structuredClone(book.policy),pending:null};
  if(schedule){

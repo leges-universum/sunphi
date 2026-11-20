@@ -1,3 +1,5 @@
+import {assuranceActions} from './settlement-assurance.mjs';
+import {governanceActions} from './operator-ballots.mjs';
 import {OPEN_SERVER_ENROLLMENT,REGISTER_SERVER,NOMINATE_RECIPIENT,ACCEPT_RECIPIENT} from './server-reward-registration.mjs';
 import {OPEN_SEAT,JOIN_SEAT} from '../rotating-seat.mjs';
 import assert from 'node:assert/strict';
@@ -37,17 +39,19 @@ import {OPERATOR_ACTIONS} from './operator-reward-policy.mjs';
 import {CASE_ACTIONS} from './bounded-protection-cases.mjs';
 import {POS_ACTIONS} from './pos-policy-actions.mjs';
 import {RECOVERY_ACTIONS} from '../reserve-recovery.mjs';
-export const CENTURY_ACTIONS=[SCHEDULE_TARIFF,PREPARE_ZERO_STAGE,...SUPPORT_ACTIONS,...ECONOMIC_PREPARATION_ACTIONS,CENTURY_FEES_ACTION,CENTURY_FUNDS_ACTION,...CENTURY_ISSUANCE_ACTIONS,CENTURY_SUBSIDY_ACTION,...CENTURY_POLICY_ACTIONS,CENTURY_HOME_ACTION,INDEXED_HOME_ACTION,...CENTURY_WARMUP_ACTIONS,...MEMORIAL_ACTIONS,...NATIVE_ACTIONS];
+import {SEAL_ORDINARY,sealOrdinaryCurve} from './ordinary-curve-seal.mjs';
+export const CENTURY_ACTIONS=[SEAL_ORDINARY,SCHEDULE_TARIFF,PREPARE_ZERO_STAGE,...SUPPORT_ACTIONS,...ECONOMIC_PREPARATION_ACTIONS,CENTURY_FEES_ACTION,CENTURY_FUNDS_ACTION,...CENTURY_ISSUANCE_ACTIONS,CENTURY_SUBSIDY_ACTION,...CENTURY_POLICY_ACTIONS,CENTURY_HOME_ACTION,INDEXED_HOME_ACTION,...CENTURY_WARMUP_ACTIONS,...MEMORIAL_ACTIONS,...NATIVE_ACTIONS];
 export function parseBoundedTx(bytes,c){
  assert(bytes.length>0&&bytes.length<=65536);const t=JSON.parse(bytes.toString('utf8'));
  if(t?.body?.action?.type===PURCHASE_ACTION)assert(c.purchaseLab,'protected purchase admission disabled');
  if(t?.body?.action?.type===EXCHANGE_ACTION)assert(c.exchangeLab,'two-way exchange admission disabled');
- if(![OPEN_SERVER_ENROLLMENT,REGISTER_SERVER,NOMINATE_RECIPIENT,ACCEPT_RECIPIENT,OPEN_SEAT,JOIN_SEAT,...POS_ACTIONS,...RECOVERY_ACTIONS,...CASE_ACTIONS,...OPERATOR_ACTIONS,PREPARE_MAIN_PROGRAMME,SCHEDULE_DEVELOPMENT_PAYOUT,PREPARE_MAIN_SERVICE,ENABLE_SERVICE,COMPLETE_SERVICE,EXPEDITE_ZERO_STAGE_HOME,HOME_FEE_WORK,REGISTER_HOMES,SCHEDULE_PAID_ADMISSION,EXCHANGE_ACTION,PURCHASE_ACTION,PREPARE_WORKERS,INITIAL_PRECISION,NODE_LINK_ACTION,...COLLATERAL_ACTIONS].includes(t?.body?.action?.type)&&!CENTURY_ACTIONS.includes(t?.body?.action?.type))return parseTx(bytes,c);
+ if(!governanceActions.includes(t?.body?.action?.type)&&!assuranceActions.includes(t?.body?.action?.type)&&![OPEN_SERVER_ENROLLMENT,REGISTER_SERVER,NOMINATE_RECIPIENT,ACCEPT_RECIPIENT,OPEN_SEAT,JOIN_SEAT,...POS_ACTIONS,...RECOVERY_ACTIONS,...CASE_ACTIONS,...OPERATOR_ACTIONS,PREPARE_MAIN_PROGRAMME,SCHEDULE_DEVELOPMENT_PAYOUT,PREPARE_MAIN_SERVICE,ENABLE_SERVICE,COMPLETE_SERVICE,EXPEDITE_ZERO_STAGE_HOME,HOME_FEE_WORK,REGISTER_HOMES,SCHEDULE_PAID_ADMISSION,EXCHANGE_ACTION,PURCHASE_ACTION,PREPARE_WORKERS,INITIAL_PRECISION,NODE_LINK_ACTION,...COLLATERAL_ACTIONS].includes(t?.body?.action?.type)&&!CENTURY_ACTIONS.includes(t?.body?.action?.type))return parseTx(bytes,c);
  // Century clocks are committed UTC; legacy funded controllers stay outside this route.
  // Production issuance requires the interpreter's committed zero-stage mandate.
  exact(t,['body','signature']);exact(t.body,['domain','configHash','action','author']);assert(c.control);assert.equal(t.body.domain,PROFILE+'/TX');assert.equal(t.body.configHash,hash(c));assert(verify(t.body,t.signature,t.body.author),'tx signature');return t;
 }
 export function centuryAction(s,a,author,c){
+ if(a.type===SEAL_ORDINARY)return sealOrdinaryCurve(s,a,c);
  if(a.type===SCHEDULE_TARIFF)return schedulePaymentTariff(s,a,c);
  if(a.type===PREPARE_ZERO_STAGE)return prepareZeroStage(s,a,c);
  if(SUPPORT_ACTIONS.includes(a.type))return applyWorkerSupport(s,a,author,c);

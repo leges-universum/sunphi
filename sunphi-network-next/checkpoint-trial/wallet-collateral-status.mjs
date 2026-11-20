@@ -3,7 +3,7 @@
 import {formatToken} from './token-units.mjs';
 import {V3_BALLOT,NOTICE_SECONDS,ordinaryIssueTarget,nextMinimum} from './bonded-schedule-v3.mjs';
 import {lockedSupport} from './support-accounting.mjs';
-import {outsideCollateralPilot,preparedVotingMinimum} from './worker-collateral.mjs';
+import {availableWorkingStake,outsideCollateralPilot,preparedVotingMinimum} from './worker-collateral.mjs';
 export {outsideCollateralPilot};
 const min=(a,b)=>a<b?a:b,max=(a,b)=>a>b?a:b;
 const bondedNetwork='5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c';
@@ -57,6 +57,7 @@ export function nodeCollateralStatus(s,id,owner){
  const remaining=tracked?min(deposited-withdrawn,max(0n,stake-support-BigInt(a.initialStakeMicro))):owned?null:0n;
  const raw={total:stake,support,deposited,withdrawn,remaining,consensus:BigInt(n.consensusHeld),tasks:BigInt(n.taskHeld),capacity:max(0n,stake-BigInt(n.consensusHeld)-BigInt(n.taskHeld))};
  const display=Object.fromEntries(Object.entries(raw).map(([k,v])=>[k,v===null?null:formatToken(String(v),s.money.unitScale??'1')]));
+ if(tracked)display.working= formatToken(String(availableWorkingStake(s,id)),s.money.unitScale??'1');
  const minimum=preparedVotingMinimum(s);
  const reviewVotingBond=Boolean(minimum && tracked && !a.release && remaining>=BigInt(minimum));
  return {owned,tracked,display,...(minimum?{reviewVotingBond}:{}),outsidePilot:outsideCollateralPilot(s,id),release:owned&&a.release?{amount:formatToken(a.release.valueMicro,s.money.unitScale??'1'),readyAt:a.release.readyAt}:null};

@@ -8,13 +8,15 @@ import {Wallet,balances,outgoingStatus,paymentFee,requestedRecipientDelay} from 
 import {WalletPreparationError} from './wallet-inputs.mjs';
 import {WalletWorkError} from './wallet-work.mjs';
 let paymentNotice=null;
-import {hash} from './crypto.mjs';
+import {hash,sign,exact} from './crypto.mjs';
 import {paymentTariffStatus} from './payment-tariff.mjs';
 import {unitScale} from './token-units.mjs';
 import {displayAmounts,paymentAmounts} from './wallet-amounts.mjs';
 import {scheduled} from './payment-model.mjs';
 import {delayedPaymentsEnabled} from './authority.mjs';
 import {WalletStore} from './wallet-store.mjs';
+import {envelope} from './core.mjs';
+import {candidateConsent,seatMandate,servingExperts,seatsAt,walletBallotActions} from './research/operator-ballots.mjs';
 import {WalletSessionDrain,WalletPaymentLane} from './wallet-session-drain.mjs';
 const sessionDrain=new WalletSessionDrain(),paymentLane=new WalletPaymentLane();
 import {RewardWorker} from './reward-worker.mjs';
@@ -159,8 +161,11 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   }finally{working=false;walletBusy=false;}
  }
  if(req.url==='/authorize-action'){
-  assert(wallet&&['/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/seller/start','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund'].includes(q.path),'supported consent action required');
-  if(q.path==='/seller/start')assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9]{64}$/.test(q.data.profileHash),'seller review required');
+  assert(wallet&&['/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/seller/start','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund'].includes(q.path),'supported consent action required');
+  if(q.path==='/collateral/pay')assert(q.data&&/^[a-f0-9]{64}$/.test(q.data.requestId)&&['withdraw','deposit'].includes(q.data.operation),'Exact collateral instruction required');
+  else if(q.path==='/voting/submit')assert(walletBallotActions.includes(q.data?.type),'Unsupported operator proposal action');
+  else if(q.path==='/voting/candidacy')exact(q.data,['name','organization','history','mandate']);
+  else if(q.path==='/seller/start')assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9]{64}$/.test(q.data.profileHash),'seller review required');
   else if(['/broker/confirm','/broker/fund'].includes(q.path))assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9-]{36}$/.test(q.data.id),'exchange review required');
   else if(q.path==='/send')requestedRecipientDelay(q.data);
   else if(['/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/exchange/confirm','/exchange/resume','/exchange/refund'].includes(q.path))assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9]{64}$/.test(q.data.id),'review required');
@@ -173,7 +178,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   res.setHeader('Content-Type','application/json');res.end(JSON.stringify({permit}));return;
  }
  let actionExpires=null;
- if(['/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/seller/start','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund'].includes(req.url)){
+ if(['/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/seller/start','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund'].includes(req.url)){
   const id=req.headers['x-duebyte-action'],permit=actionPermits.get(id);actionPermits.delete(id);
   assert(permit&&permit.expires>=Date.now()&&permit.digest===hash({path:req.url,data:q,activeId,sessionToken}),'Confirmation expired or changed. Review the payment again.');actionExpires=permit.expires;
  }
@@ -290,6 +295,45 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
    res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;
   }finally{working=false;walletBusy=false;}
  }
+ if(req.url==='/voting/payload-hash'){
+  assert.deepEqual(Object.keys(q),['payload']);
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify(hash(q.payload)));return;
+ }
+ if(['/voting/list','/voting/submit','/voting/candidacy'].includes(req.url)){
+  const active=wallet;assert(active,'Unlock your wallet to view proposals.');
+  const valid=()=>active===wallet&&sessionEpoch===admittedEpoch&&!sessionDrain.pending&&!res.destroyed&&(actionExpires===null||Date.now()<=actionExpires);
+  const result=await paymentLane.run({busy:()=>working||walletBusy,valid,timeoutMs:25000,timeoutMessage:'Network verification is busy. Try again shortly.',execute:async()=>{
+   working=true;walletBusy=true;
+   try{const {certificate,state}=await active.view(),data=await active.client.operatorBallots(certificate,active.key.publicKey);
+    if(req.url==='/voting/list'){
+     assert.deepEqual(q,{});const owned=walletNodeOverview(state,active.key.publicKey).nodes.filter(n=>n.kind==='server'&&n.collateral?.owned);
+     return {...data,seats:seatsAt(data.policy,data.blockTime),serving:servingExperts(data.policy,data.blockTime),servers:owned.map(n=>({id:n.id,active:n.participation?.status==='active'}))};
+    }
+    assert(data.policy,'Operator voting has not been activated by the network.');
+    if(req.url==='/voting/candidacy'){
+     exact(q,['name','organization','history','mandate']);assert.equal(q.history,data.policy.history,'Refresh the election before signing');
+     const mandate=seatMandate(data.policy,q.mandate.seat,data.blockTime);
+     assert.deepEqual(q.mandate,mandate,'The seat or term changed. Review the election again.');
+     for(const v of [q.name,q.organization])assert(typeof v==='string'&&v.trim()===v&&v.length&&Buffer.byteLength(v)<=160&&!/[\u0000-\u001f]/.test(v),'Enter the public candidate and organization names');
+     const profile={name:q.name,organization:hash(q.organization.normalize('NFC').toLowerCase()),key:active.key.publicKey};
+     assert(valid(),'Wallet session expired before signing');
+     return {profile,mandate,signature:sign(candidateConsent(hash(active.client.config),q.history,profile,mandate),active.key.privateKey)};
+    }
+    assert(walletBallotActions.includes(q.type),'Unsupported wallet ballot action');
+    if(q.type==='ADMIT_OPERATOR_QUESTION_V2'){
+     assert(data.phase===q.phase&&data.agendaContext===q.context,'The agenda changed. Refresh the proposal before signing.');
+     const draft=data.proposals.find(p=>p.id===q.id&&p.status==='draft');assert(draft,'This proposal is no longer awaiting admission.');
+     const key=active.key.publicKey;
+     if(data.phase==='expert-review')assert(servingExperts(data.policy,data.blockTime).some(x=>x.key===key),'A serving expert wallet is required.');
+     else assert(key===data.founderExpert&&(data.phase==='warmup'||draft.proposal.slate),'The founder can admit only questions within the current mandate.');
+    }
+    if(q.type==='CAST_OPERATOR_BALLOT_V1'){
+     const r=data.proposals.find(p=>p.id===q.id);assert(r?.status==='open'&&r.weights[active.key.publicKey]&&!r.votes[active.key.publicKey],'No available vote for this wallet');assert(['yes','no'].includes(q.choice));
+    }
+    assert(valid(),'Wallet session expired before signing');const wire=envelope(active.client.config,q,active.key);await active.broadcast(wire);return {submitted:true};
+   }finally{working=false;walletBusy=false;}
+  }});res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;
+ }
  if(req.url.startsWith('/collateral/')){
   const active=wallet;
   assert(active,'Unlock the wallet to review collateral.');
@@ -299,6 +343,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   working=true;walletBusy=true;
   try{let result;
    if(req.url==='/collateral/options'){assert.deepEqual(q,{});const current=await collateral.current();result=collateral.options(current.state);}
+   else if(req.url==='/collateral/pay')result=await collateral.pay(q,valid);
    else if(req.url==='/collateral/review')result=await collateral.review(q);
    else if(req.url==='/collateral/confirm')result=await collateral.confirm(q);
    else if(req.url==='/collateral/status'){assert.deepEqual(q,{});result=await collateral.sync();}
