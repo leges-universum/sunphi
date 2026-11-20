@@ -38,6 +38,33 @@ export class WalletRuleReviews{
   this.wallet=wallet;this.request=request;this.pending=null;
   wallet.db.exec('CREATE TABLE IF NOT EXISTS rule_endorsements(owner TEXT,proposal TEXT,packet TEXT NOT NULL,PRIMARY KEY(owner,proposal))');
   wallet.db.exec('CREATE TABLE IF NOT EXISTS rule_votes(proposal TEXT,signer TEXT,signature TEXT NOT NULL,PRIMARY KEY(proposal,signer))');
+  wallet.db.exec('CREATE TABLE IF NOT EXISTS preparation_feedback(owner TEXT PRIMARY KEY,receipt TEXT NOT NULL)');
+ }
+ preparationFeedback(state){
+  if(this.feedback===undefined){
+   const w=this.wallet,owner=w.key.publicKey;
+   const saved=w.db.prepare('SELECT receipt FROM preparation_feedback WHERE owner=?').get(owner);
+   this.feedback=saved?JSON.parse(saved.receipt):null;
+   if(!saved){
+    const prior=w.db.prepare("SELECT proposal,packet FROM rule_endorsements WHERE owner=? AND json_extract(packet,'$.body.domain')=? ORDER BY rowid DESC LIMIT 1").get(owner,PREPARE_DOMAIN);
+    if(prior){
+     const body=JSON.parse(prior.packet).body;
+     const count=w.db.prepare('SELECT COUNT(*) n FROM rule_votes WHERE proposal=?').get(prior.proposal).n;
+     this.feedback={proposal:prior.proposal,start:body.notBefore,end:body.expires,policy:hash(body.policy),count,stage:'interrupted'};
+    }
+   }
+  }
+  if(!this.feedback)return null;
+  const f=this.feedback;
+  let stage=f.stage;
+  if(state.authority?.posSlashing?.policyHash===f.policy)stage='open';
+  else if(state.height>=f.end)stage='expired';
+  else if(stage==='signing'&&!this.signingPreparation)stage='interrupted';
+  return {...f,stage,height:state.height};
+ }
+ saveFeedback(f){
+  this.wallet.db.prepare('INSERT OR REPLACE INTO preparation_feedback(owner,receipt) VALUES(?,?)').run(this.wallet.key.publicKey,JSON.stringify(f));
+  this.feedback=f;
  }
  builtin(){return JSON.parse(readFileSync(new URL('./public-bonded-rule-v3.json',import.meta.url),'utf8'));}
  async preparationGroup(nodes,issuance=false,noticeState=null){
@@ -47,7 +74,11 @@ export class WalletRuleReviews{
   const w=this.wallet,owner=w.key.publicKey,network=w.client.config.chainId;
   const state=noticeState??(await w.view({rewardIds:nodes})).state;
   if(!nodes.length)nodes=Object.keys(state.rewards?.nodes??{}).filter(id=>state.rewards.nodes[id].payouts?.some(p=>p.wallet===owner)).sort().slice(0,128);
-  const {merged,status}=this.collect(issuance?issuancePacket():preparationPacket(state,network),state);
+  const receipt=issuance?null:this.preparationFeedback(state);
+  if(noticeState&&['signing','submitted','open'].includes(receipt?.stage))return false;
+  const start=receipt&&state.height<receipt.end?receipt.start:undefined;
+  const {merged,status}=this.collect(issuance?issuancePacket():preparationPacket(state,network,start),state);
+  if(!noticeState&&['signing','submitted','open'].includes(receipt?.stage))return {...status,id:null,canSign:false,canSubmit:false,feedback:receipt};
   if(noticeState&&(status.expired||status.sealed||status.approved||issuance&&!status.available||!issuance&&state.authority.posSlashing))return status.canSubmit;
   const scope=issuance?{issuanceMandate:mandateId}:{preparationStart:merged.body.notBefore},grants=[],used=new Set(merged.approvals.map(v=>v.key));
   let weight=BigInt(status.weight),unreachable=false;
@@ -114,6 +145,11 @@ export class WalletRuleReviews{
   const w=this.wallet,b=p.packet.body,g=p.grant;
   if(p.action==='group'){
    let packet=p.packet;
+   const tracked=b.domain===PREPARE_DOMAIN;
+   const update=(stage,reason)=>{if(tracked)this.saveFeedback({proposal:hash(b),start:b.notBefore,end:b.expires,policy:hash(b.policy),count:packet.approvals.length,target:p.packet.approvals.length+p.grants.length,stage,reason});};
+   if(tracked)this.signingPreparation=true;
+   try{
+   update('signing');
    // Each vote passes the same fresh route, ledger, expiry and signature checks
    // as an individual click. Completed signatures persist across partial retries.
    for(const grant of p.grants){
@@ -122,13 +158,16 @@ export class WalletRuleReviews{
     one.pending={...p,packet,grant,action:'sign'};
     const result=await one.confirm(q,valid);
     packet=result.packet;
+    update('signing');
     if(result.status.canSubmit)break;
    }
    const {state}=await w.view(),current=this.collect(packet,state);
-   if(!p.willSubmit||!current.status.canSubmit)return {packet:current.merged,status:current.status,group:true};
+   if(!p.willSubmit||!current.status.canSubmit){update('partial');return {packet:current.merged,status:current.status,group:true};}
    const submit=new WalletRuleReviews(w,this.request);
    submit.pending={...p,grant:null,packet:current.merged,action:'submit'};
-   return {...await submit.confirm(q,valid),group:true};
+   const result=await submit.confirm(q,valid);update('submitted');return {...result,group:true};
+   }catch(error){update('interrupted',String(error.message).slice(0,240));throw error;}
+   finally{if(tracked)this.signingPreparation=false;}
   }
   const {state}=await w.view(g?{rewardIds:[g.node]}:{});
   const {merged,status:before}=this.collect(p.packet,state);

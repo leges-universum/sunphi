@@ -609,9 +609,12 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <p class="hint">Select a server paired by its operator to endorse from Home using the key on that server.</p>
 <label for="rule-packet">Rule proposal file</label><input id="rule-packet" type="file" accept=".json,application/json">
 </details><div id="rule-step" hidden>
-<p id="rule-result" role="status" aria-live="polite"></p><p id="rule-id" class="address"></p>
+<details id="rule-terms" hidden><summary>Proposal details and signing servers</summary><p id="rule-id" class="address"></p>
 <pre id="rule-text" style="white-space:pre-wrap;overflow-wrap:anywhere" hidden></pre>
+</details>
 <button id="rule-confirm" type="button" class="primary" hidden>Endorse this rule text</button>
+<p id="rule-result" role="status" aria-live="polite"></p>
+<button type="button" id="rule-retry" hidden>Review remaining signatures</button>
 <button id="rule-save" type="button" hidden>Save signed proposal</button></div></div></div></details>
 <section class="panel nodes-overview"><div class="panel-head"><h2>Your nodes, collateral &amp; rewards</h2><p class="hint">Nodes funded by this wallet or connected to it for payouts. Amounts update automatically after verification. Rewards show each node’s lifetime totals across its payout wallets.</p></div>
 <div class="panel-body"><p id="nodes-status" role="status">Loading verified nodes and collateral…</p><button id="nodes-refresh" type="button" hidden>Retry loading nodes</button><div id="collateral-summary" hidden></div><div id="nodes-list"></div><div id="collateral-history"></div></div></section>
@@ -676,7 +679,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.128</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.129</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -1104,6 +1107,31 @@ async function submitBallot(action){
 $('ballot-refresh').onclick=()=>loadBallots();
 votingRecords.addEventListener('toggle',()=>{if(votingRecords.open)void loadBallots();});
 let voteIdentity='',voteEpoch=0,voteNext=0,voteBusy=false,voteSignature='',focusedVote=null;
+const preparationNote=element('p','');
+preparationNote.setAttribute('role','status');preparationNote.setAttribute('aria-live','polite');
+preparationNote.hidden=true;$('vote-inbox').append(preparationNote);
+let feedbackKey='';
+let knownVoteItems=[];
+function updateVoteCount(feedback){
+ const count=knownVoteItems.filter(item=>item.id!=='rule-group'||!['signing','submitted','open'].includes(feedback?.stage)).length;
+ voteCount.hidden=count===0;voteCount.textContent=String(count);
+ votingTab.setAttribute('aria-label','Discussion & voting'+(count?', '+count+' awaiting your action':''));
+}
+function showPreparationFeedback(s){
+ const f=s.locked?null:s.preparationFeedback;
+ const parent=$('rule-group').open&&$('rule-group').contains($('rule-result'))?$('rule-step'):$('vote-inbox');
+ if(preparationNote.parentElement!==parent){if(parent===$('rule-step'))$('rule-result').after(preparationNote);else parent.append(preparationNote);}
+ const key=JSON.stringify([s.owner,f?.proposal,f?.stage,f?.count,f?.reason]);
+ if(key===feedbackKey)return;
+ feedbackKey=key;voteNext=0;preparationNote.hidden=!f;updateVoteCount(f);
+ if(!f){preparationNote.textContent='';return;}
+ const count=f.count+(f.target?' of '+f.target:'')+' server signatures';
+ const message={signing:'Collecting signatures. '+count+' saved.',partial:'Approval saved. '+count+' collected. Other operators can add their votes.',
+  submitted:'Certificate submitted. Waiting for network confirmation.',open:'The network confirms that validator bond deposits are open.',
+  expired:'The previous signing window closed at block '+f.end+' with '+count+' saved. A new certificate requires fresh signatures.',
+  interrupted:'Approval stopped with '+count+' saved.'+(f.reason?' '+f.reason:'')+' Review the proposal to continue.'};
+ preparationNote.textContent='Opening validator bond deposits — '+message[f.stage];
+}
 function restoreVote(){
  if(!focusedVote)return;
  const {item,anchor,button}=focusedVote;item.open=false;anchor.replaceWith(item);button.hidden=false;focusedVote=null;
@@ -1126,18 +1154,18 @@ async function openVote(row,button,card){
 async function updateVoteInbox(s){
  const identity=s.locked?'':token+'|'+s.owner;
  if(identity!==voteIdentity){
-  voteIdentity=identity;voteEpoch++;voteNext=0;voteBusy=false;voteSignature='';restoreVote();
+  voteIdentity=identity;voteEpoch++;voteNext=0;voteBusy=false;voteSignature='';knownVoteItems=[];restoreVote();
   voteCount.hidden=true;votingTab.removeAttribute('aria-label');$('vote-items').replaceChildren();
   $('vote-availability').textContent='Checking for votes…';
  }
+ showPreparationFeedback(s);
  if(!identity||!s.owner||s.error||s.working||submitting||voteBusy||document.hidden||Date.now()<voteNext)return;
  voteBusy=true;const epoch=voteEpoch;
  try{
   const nodes=(s.nodesSnapshot?.nodes??[]).filter(n=>n.kind==='server').map(n=>n.id).slice(0,128);
   const {items,incomplete}=await api('/nodes/vote-notices',{nodes});
   if(epoch!==voteEpoch)return;
-  voteCount.textContent=String(items.length);voteCount.hidden=!items.length;
-  votingTab.setAttribute('aria-label','Discussion & voting'+(items.length?', '+items.length+' awaiting your action':''));
+  knownVoteItems=items;updateVoteCount(lastStatus?.preparationFeedback);
   $('vote-availability').textContent=incomplete?'Some voting information is unavailable. Home will check again.':items.length?'':'You have no votes awaiting action.';
   const signature=JSON.stringify(items);
   if(voteSignature!==signature){
@@ -1471,6 +1499,8 @@ $('check-block-votes').onclick=async()=>{
  }catch(e){if(current())status.textContent=e.message;}finally{button.disabled=false;}
 };
 function resetRuleReview(){
+ $('rule-retry').hidden=true;
+ $('rule-confirm').disabled=false;$('rule-terms').open=false;$('rule-terms').hidden=true;
  ruleSequence++;ruleId=null;ruleSigned=null;
  $('rule-confirm').hidden=true;$('rule-save').hidden=true;$('rule-text').hidden=true;
  $('rule-text').textContent='';$('rule-result').textContent='';$('rule-id').textContent='';
@@ -1489,7 +1519,8 @@ async function reviewRulePacket(file,prepare=false,group=false){
   const nodes=(lastStatus?.nodesSnapshot?.nodes??[]).filter(n=>n.kind==='server').map(n=>n.id);
   const result=await api('/nodes/rule-review',group?{builtin:'prepare-linked-servers',nodes}:server?{server,proposal}:proposal);
   if(seq!==ruleSequence||!current())return;
-  $('rule-text').textContent=result.document;$('rule-text').hidden=false;
+  if(result.feedback){$('rule-result').textContent='';showPreparationFeedback({...lastStatus,preparationFeedback:result.feedback});return;}
+  $('rule-text').textContent=result.document;$('rule-text').hidden=false;$('rule-terms').hidden=false;
   $('rule-id').textContent=result.network+' · '+result.proposal+(result.server?' · Server '+result.server+' · Controller '+result.controller:'');
   const status=result.approved?'Quorum reached.':result.expired?'Voting closed.':result.voted?'This key has endorsed the proposal.':result.member?'Review the complete text before endorsing.':'This wallet can view the proposal. Endorsement requires a financial controller.';
   $('rule-result').textContent=status+' Verified weight '+result.weight+' of '+result.required+' required. Checked at block '+result.height+'.';
@@ -1497,7 +1528,7 @@ async function reviewRulePacket(file,prepare=false,group=false){
   $('rule-confirm').textContent=result.canSubmit?'Submit approved bond preparation':result.kind==='preparation'?'Approve opening bond deposits':'Endorse this rule text';
   if(result.kind==='preparation'&&!result.id&&!result.canSubmit)$('rule-result').textContent=result.expired?'The voting window has closed.':'No eligible signing server was verified for this wallet at block '+result.height+'.';
   if(result.group){
-   $('rule-result').textContent='Open bond deposits. '+result.servers.length+' server signatures selected. Expected weight '+result.expectedWeight+' of '+result.required+' required. '+(result.willSubmit?'Home will submit the certificate when the quorum is reached.':'Other operators must also vote to reach the quorum.');
+   $('rule-result').textContent=result.servers.length+' server signatures requested for blocks '+(result.closesAt-100)+'–'+result.closesAt+'. Verified weight '+result.weight+' of '+result.required+' required. '+(result.willSubmit?'Home will submit the certificate when the quorum is reached.':'Other operators must also vote to reach the quorum.');
    $('rule-text').textContent='Servers included in this confirmation:\n'+result.servers.join('\n')+'\n\n'+result.document;
    $('rule-confirm').textContent=result.servers.length?'Approve for '+result.servers.length+' servers'+(result.willSubmit?' and submit':''):'Submit approved bond preparation';
   }
@@ -1514,16 +1545,22 @@ for(const id of ['rule-bonded','rule-group','rule-import']){
  };
 }
 $('rule-packet').onchange=()=>{const file=$('rule-packet').files[0];if(file)void reviewRulePacket(file);};
+$('rule-retry').onclick=()=>reviewRulePacket(null,true,true);
 $('rule-confirm').onclick=async()=>{
  if(!ruleId)return;
- const id=ruleId,seq=ruleSequence,current=noticeContext();ruleId=null;$('rule-confirm').hidden=true;
- $('rule-result').textContent='Submitting the reviewed decision…';
+ const id=ruleId,seq=ruleSequence,current=noticeContext(),button=$('rule-confirm'),group=$('rule-group').contains(button);
+ ruleId=null;button.disabled=true;button.textContent='Approval in progress…';
+ $('rule-result').textContent=group?'Requesting signatures from your servers…':'Submitting the reviewed decision…';
  try{
   const result=await api('/nodes/rule-confirm',{id});
   if(seq!==ruleSequence||!current())return;
   ruleSigned=result.packet;$('rule-save').hidden=false;
-  $('rule-result').textContent=result.submitted?'Preparation certificate submitted. Waiting for a confirmed network block.':(result.remoteController?'Signed on the server.':'Signed on this device.')+' Verified weight '+result.status.weight+' of '+result.status.required+' required.';
- }catch(e){if(seq===ruleSequence&&current())$('rule-result').textContent=e.message;}
+  $('rule-result').textContent=result.submitted?'Certificate submitted. Waiting for network confirmation.':'Approval recorded. Verified weight '+result.status.weight+' of '+result.status.required+' required.';
+ }catch(e){if(seq===ruleSequence&&current()){
+  $('rule-result').textContent='Approval stopped. '+e.message;
+  if(group)$('rule-retry').hidden=false;
+ }}
+ finally{if(current()){if(seq===ruleSequence){button.hidden=true;button.disabled=false;}voteNext=0;void poll();}}
 };
 $('rule-save').onclick=()=>{if(ruleSigned)downloadInstruction(ruleSigned,'duebyte-signed-rule.json');};
 function resetBondReview(){
