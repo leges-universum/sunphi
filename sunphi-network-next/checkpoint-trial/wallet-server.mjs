@@ -291,8 +291,11 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   }finally{working=false;walletBusy=false;}
  }
  if(req.url.startsWith('/collateral/')){
-  assert(wallet&&!working&&!walletBusy,'Wait for current wallet verification.');
-  const active=wallet;if(collateral?.wallet!==active){collateral?.clear();collateral=new WalletFunding(active);}
+  const active=wallet;
+  assert(active,'Unlock the wallet to review collateral.');
+  const valid=()=>wallet===active&&sessionEpoch===admittedEpoch&&!sessionDrain.pending&&!res.destroyed&&(actionExpires===null||Date.now()<=actionExpires);
+  const response=await paymentLane.run({busy:()=>working||walletBusy,valid,timeoutMs:25000,timeoutMessage:'Wallet verification is still running. Review the contribution again.',execute:async()=>{
+  if(collateral?.wallet!==active){collateral?.clear();collateral=new WalletFunding(active);}
   working=true;walletBusy=true;
   try{let result;
    if(req.url==='/collateral/options'){assert.deepEqual(q,{});const current=await collateral.current();result=collateral.options(current.state);}
@@ -302,8 +305,10 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
    else if(req.url==='/collateral/retry')result=await collateral.resume(q);
    else if(req.url==='/collateral/cancel')result=collateral.cancel(q);
    else assert.fail('Unknown collateral action.');
-   assert.equal(sessionEpoch,admittedEpoch,'Wallet session changed.');res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;
+   assert.equal(sessionEpoch,admittedEpoch,'Wallet session changed.');return result;
   }finally{working=false;walletBusy=false;}
+  }});
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify(response));return;
  }
  if(req.url.startsWith('/nodes/')){
   const active=wallet;

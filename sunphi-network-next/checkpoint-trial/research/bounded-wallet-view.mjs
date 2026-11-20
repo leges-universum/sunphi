@@ -87,7 +87,33 @@ export async function loadBoundedWalletView(query,{root,height,configHash,owner,
   assert.deepEqual(Object.keys(payment).sort(),['unitScale','value']);const scale=state.money.unitScale??'1';
   if(payment.unitScale!==null)assert.equal(payment.unitScale,scale,'Payment units changed. Review the amount again.');
   const value=payment.unitScale===null?payment.value:parseToken(payment.value,scale);
-  capacity=await read({type:'payment-capacity',id:{value,unitScale:scale}});
+  try{capacity=await read({type:'payment-capacity',id:{value,unitScale:scale}});}
+  catch(error){
+   if(error.message!=='indexed query failed')throw error;
+   const {plan}=await import('../payment-plan.mjs'),{formatToken}=await import('../token-units.mjs');
+   const unavailable='Payment capacity could not be verified. Check the connection and review again.';
+   // An index rejection alone cannot certify a limit. Derive advice only from
+   // a complete, bounded worker roster proven at the same verified root.
+   const nodes={};let offset=0,total=null;
+   do{
+    const page=await read({type:'worker-page',id:{offset,limit:8}});
+    total??=page.total;
+    assert(total===page.total&&total<=32&&page.offset===offset,unavailable);
+    for(const row of page.items){assert(!Object.hasOwn(nodes,row.id),unavailable);nodes[row.id]=row.value;}
+    offset=page.next;
+   }while(offset!==null);
+   assert(Object.keys(nodes).length===total,unavailable);
+   const money={...state.money,nodes};
+   const fits=v=>{try{plan(money,String(v));return true;}catch(e){
+    if(['trial plan limit','not enough independent worker capacity'].includes(e.message.split('\n')[0]))return false;
+    throw e;
+   }};
+   if(fits(value))throw Error(unavailable);
+   let low=0n,high=BigInt(value)-1n;
+   while(low<high){const mid=(low+high+1n)/2n;if(fits(mid))low=mid;else high=mid-1n;}
+   assert(low>0n,'No payment capacity is available at this block. Review again later.');
+   throw Error('At block '+height+', the largest single payment is '+formatToken(String(low),scale)+' DUBYT. Enter that amount or less and review the fee.');
+  }
  }
  const history=await loadBoundedHistoryPage(query,{root,height,configHash,owner,allowIsolated});
  for(const {id,value}of history.items)state.money.requests[id]=value;
