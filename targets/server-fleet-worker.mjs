@@ -107,10 +107,24 @@ async function apply(c){
   const file='/etc/systemd/system/'+unit+'.d/zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-duebyte-managed.conf';
   fs.mkdirSync(path.dirname(file),{recursive:true});
   const old=fs.existsSync(file)?fs.readFileSync(file):null;
-  const before=await evidence();assert(candidate||before.validator);
-  const anchor=(await rpc('block',{height:String(before.height)})).block_id.hash;
-  assert(/^[A-F0-9]{64}$/.test(anchor));
-  await evidence();
+  let before,anchor;
+  try{
+   before=await evidence();assert(candidate||before.validator);
+   anchor=(await rpc('block',{height:String(before.height)})).block_id.hash;
+   assert(/^[A-F0-9]{64}$/.test(anchor));
+   await evidence();
+  }catch{
+   // No unit file or running process has been touched at this point.
+   return {id,version:release.version,state:'waiting-quorum',restarted:false};
+  }
+  const current='/opt/duebyte-server/current',management='duebyte-management.service';
+  const followCurrent=candidate&&Object.keys(roster).length===1&&fs.lstatSync(current).isSymbolicLink()&&fs.realpathSync(current)===root&&system('is-active',management)==='active'&&system('show',management,'-p','ExecStart','--value').includes('argv[]='+current+'/runtime/node '+current+sub+'server-management.mjs');
+  const switchCurrent=dir=>{
+   const temporary=fs.mkdtempSync('/opt/duebyte-server/.fleet-current-');
+   try{const link=path.join(temporary,'current');fs.symlinkSync(dir,link);fs.renameSync(link,current);}
+   finally{fs.rmSync(temporary,{recursive:true,force:true});}
+  };
+  let switched=false;
   try{
    fs.writeFileSync(file,'[Service]\nExecStart=\nExecStart='+next.join(' ')+'\n',{flush:true});
    system('daemon-reload');system('restart',unit);
@@ -127,9 +141,14 @@ async function apply(c){
     }catch{/* Wait for local replay and the first new signature. */}
    }
    assert(proof,'Validator did not resume signing');
+   if(followCurrent){
+    switchCurrent(target);switched=true;system('restart',management);
+    assert.equal(fs.realpathSync('/proc/'+system('show',management,'-p','MainPID','--value')+'/exe'),next[0]);
+   }
    if(!candidate){row.argv=next;row.version=d.version;core.writeJSON(registry,entries);}
    return {id,version:d.version,state:'current',height:proof.height};
   }catch(err){
+   if(switched){switchCurrent(root);system('restart',management);}
    if(old)fs.writeFileSync(file,old,{flush:true});else fs.rmSync(file,{force:true});
    system('daemon-reload');system('restart',unit);throw err;
   }
