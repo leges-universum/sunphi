@@ -139,7 +139,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=(req.url==='/nodes/rule-review'?131072:16384));chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
  assert.equal(admittedEpoch,sessionEpoch,'Wallet session changed. Retry the action in the current session.');
  assert(!sessionDrain.pending,'Wallet switching is in progress. Please wait.');
- const proposalRead=req.url==='/nodes/rule-review'||req.url==='/voting/list';
+ const proposalRead=['/nodes/rule-review','/nodes/vote-notices','/voting/list'].includes(req.url);
  const voteSubmission=['/nodes/rule-confirm','/voting/submit'].includes(req.url==='/authorize-action'?q?.path:req.url);
  assert(!paymentLane.pending||proposalRead||voteSubmission||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
  assert(Date.now()>=updateDrainUntil,'The node is installing an update. Please reopen the wallet after it restarts.');
@@ -367,6 +367,29 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
     if(nodeLinks?.wallet!==active){nodeLinks?.clear();nodeLinks=new WalletNodeLinks(active);}
     working=true;walletBusy=true;
     try{
+       if(req.url==='/nodes/vote-notices'){
+        exact(q,['nodes']);assert(Array.isArray(q.nodes)&&q.nodes.length<=128&&q.nodes.every(id=>/^[a-f0-9]{64}$/.test(id)));
+        const {state,certificate}=await active.view({rewardIds:q.nodes}),owner=active.key.publicKey,items=[];
+        let incomplete=false;
+        try{
+         const data=await active.client.operatorBallots(certificate,owner);
+         for(const r of data.proposals??[]){
+          const vote=r.status==='open'&&data.blockTime<r.ends&&BigInt(r.weights?.[owner]??0)>0n&&!r.votes?.[owner];
+          const founder=data.phase==='warmup'||data.phase==='expert-election';
+          const expert=founder?owner===data.founderExpert&&(data.phase!=='expert-election'||!!r.proposal.slate):servingExperts(data.policy,data.blockTime).some(x=>x.key===owner);
+          const reviewed=r.admissionContext===data.agendaContext&&r.admissionPhase===data.phase&&r.admissions?.some(x=>x.key===owner);
+          const admission=r.status==='draft'&&data.blockTime<r.expires&&expert&&!reviewed;
+          if(vote||admission)items.push({id:r.id,title:r.subject??r.proposal.title,kind:vote?'vote':'review',ends:vote?r.ends:r.expires});
+         }
+        }catch{incomplete=true;}
+        if(!ruleReviewSessions.has(active))ruleReviewSessions.set(active,new WalletRuleReviews(active));
+        const reviewer=ruleReviewSessions.get(active);
+        for(const [id,title] of [['rule-group','Opening validator bond deposits'],['issuance-terms','Smooth issuance schedule']]){
+         try{if(await reviewer.preparationGroup(q.nodes,id==='issuance-terms',state))items.push({id,title,kind:'financial'});}
+         catch{incomplete=true;}
+        }
+        assert(valid(),'Wallet session changed');return {items,incomplete};
+       }
        if(req.url==='/nodes/block-votes'){
         assert.deepEqual(q,{});return await recentBlockSignatures(active);
        }

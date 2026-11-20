@@ -459,6 +459,11 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 #funding-feedback:not(:empty){color:var(--text);font-weight:600;line-height:1.4}
 #funding-feedback[data-state="COMMITTED"]{color:var(--green,#38ba82)}
 @media(max-width:600px){.governance-actions{display:grid;grid-template-columns:minmax(0,1fr)}.governance-actions>button{width:100%}}
+.vote-count:not([hidden]){display:inline-grid;place-items:center;min-width:1.45em;height:1.45em;padding:0 .25em;border-radius:1em;background:#b42331;color:#fff;font:700 12px/1 system-ui}
+#vote-inbox{grid-column:1/-1;max-width:52rem}
+#vote-items>article{border-inline-start:3px solid #cf3946;padding:12px 18px;margin:12px 0;background:var(--section)}
+#vote-items h3{margin:0 0 .5rem}
+#vote-inbox .panel-body{padding:0}
 </style></head><body>
 <header><span class="duebyte-logo" role="img" aria-label="DueByte DUBYT"><span class="duebyte-mark"></span></span><span class="tag">DueByte network</span><button id="theme" type="button" aria-label="Switch to light theme" title="Switch to light theme"><svg class="theme-sun" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="theme-moon" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.2A8.5 8.5 0 0 1 10.8 3.5 8.5 8.5 0 1 0 20.5 13.2Z"/></svg></button></header>
 <main><div id="entry-layout"><div id="entry-intro"><p class="eyebrow">YOUR KEYS. YOUR INSTRUCTIONS.</p><h1>Welcome to DueByte Wallet</h1><p class="lead">Open your wallet, create a new one or restore an encrypted backup.</p><p class="hint">Each wallet has its own address and password. Keep an encrypted backup and its password safe; both are needed for recovery.</p><section class="connection-status"><div id="sync" class="sync" data-health="connecting"><span class="duebyte-coin duebyte-coin-solid" aria-hidden="true"><span class="duebyte-coin-body"><i class="duebyte-coin-rim" style="--facet:0"></i><i class="duebyte-coin-rim" style="--facet:1"></i><i class="duebyte-coin-rim" style="--facet:2"></i><i class="duebyte-coin-rim" style="--facet:3"></i><i class="duebyte-coin-rim" style="--facet:4"></i><i class="duebyte-coin-rim" style="--facet:5"></i><i class="duebyte-coin-rim" style="--facet:6"></i><i class="duebyte-coin-rim" style="--facet:7"></i><i class="duebyte-coin-rim" style="--facet:8"></i><i class="duebyte-coin-rim" style="--facet:9"></i><i class="duebyte-coin-rim" style="--facet:10"></i><i class="duebyte-coin-rim" style="--facet:11"></i><i class="duebyte-coin-rim" style="--facet:12"></i><i class="duebyte-coin-rim" style="--facet:13"></i><i class="duebyte-coin-rim" style="--facet:14"></i><i class="duebyte-coin-rim" style="--facet:15"></i><i class="duebyte-coin-rim" style="--facet:16"></i><i class="duebyte-coin-rim" style="--facet:17"></i><i class="duebyte-coin-rim" style="--facet:18"></i><i class="duebyte-coin-rim" style="--facet:19"></i><i class="duebyte-coin-rim" style="--facet:20"></i><i class="duebyte-coin-rim" style="--facet:21"></i><i class="duebyte-coin-rim" style="--facet:22"></i><i class="duebyte-coin-rim" style="--facet:23"></i><i class="duebyte-coin-rim" style="--facet:24"></i><i class="duebyte-coin-rim" style="--facet:25"></i><i class="duebyte-coin-rim" style="--facet:26"></i><i class="duebyte-coin-rim" style="--facet:27"></i><i class="duebyte-coin-rim" style="--facet:28"></i><i class="duebyte-coin-rim" style="--facet:29"></i><i class="duebyte-coin-rim" style="--facet:30"></i><i class="duebyte-coin-rim" style="--facet:31"></i></span></span><div><strong role="status"><span class="connection-dot" aria-hidden="true"></span><span id="phase">Verifying data</span></strong><small id="connection-help">Please wait for the first verification to finish.</small><small id="explain" hidden>Last successful check: <button id="check-time" type="button" class="check-value" aria-describedby="check-time-local" aria-expanded="false"></button><span id="check-time-local" role="tooltip" hidden></span> · block <span id="check-height" class="check-value"></span></small></div></div><p id="message" role="status"></p></section>
@@ -671,7 +676,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.123</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.124</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -860,7 +865,7 @@ function renderWaiting(){
  else if(s?.checkedAt&&!s.error){$('connection-help').hidden=!s.working;$('connection-help').textContent=s.working?'Checking current network data…':'';}
 }
 function operationLabel(path){return ({'/send':'Sending your payment…','/quote':'Preparing your payment…','/history':'Loading payment history…','/assets':'Loading balances…','/unlock':'Opening your wallet…','/create':'Creating your wallet…','/restore':'Restoring your wallet…','/lock':'Finishing the current operation…','/select-wallet':'Switching wallet…','/change-password':'Updating your wallet password…','/backup':'Preparing your encrypted backup…','/nodes':'Loading your nodes…'})[path]||'Processing your request…';}
-async function api(path,data){const pending=Symbol();if(!['/status','/authorize-action','/external/prices','/external/receipt'].includes(path)){pendingOperations.set(pending,operationLabel(path));renderWaiting();}try{const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(path==='/status'&&!document.querySelector('[data-screen="network"]').hidden)headers['X-DueByte-Analytics']='1';if(['/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund','/seller/start'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok){const e=Error(v.error);if(v.paymentOutcome==='not_created')e.paymentOutcome=v.paymentOutcome;throw e;}if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}finally{pendingOperations.delete(pending);renderWaiting();}}
+async function api(path,data){const pending=Symbol();if(!['/status','/authorize-action','/external/prices','/external/receipt','/nodes/vote-notices'].includes(path)){pendingOperations.set(pending,operationLabel(path));renderWaiting();}try{const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(path==='/status'&&!document.querySelector('[data-screen="network"]').hidden)headers['X-DueByte-Analytics']='1';if(['/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund','/seller/start'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok){const e=Error(v.error);if(v.paymentOutcome==='not_created')e.paymentOutcome=v.paymentOutcome;throw e;}if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}finally{pendingOperations.delete(pending);renderWaiting();}}
 function renderPaymentTariff(s){const t=s.paymentTariff,p=t?.active,fmt=n=>(Number(n)/1000000).toFixed(6).replace(/0+$/,'').replace(/\.$/,'');let text=!t?'Waiting for the verified network tariff.':!p?'Current legacy network fee: 3%, rounded up to the smallest supported unit.':p.version==='DUEBYTE_PAYMENT_FEE_006_V2'?'Network fee: 0.06% of the payment, with a minimum of '+fmt(p.baseMicro)+' DUBYT. The larger amount applies; there is no upper fee cap or extra fee for coverage parts. Amounts round up to 0.000001 DUBYT. The initial minimum uses $1 per DUBYT as a planning reference, not a promised exchange rate. On expiry or cancellation, '+fmt(String(Math.ceil(Number(p.baseMicro)/10)))+' DUBYT of the quoted fee is retained; the remaining quoted fee is released.':'Legacy network fee: 0.001%, minimum '+fmt(p.baseMicro)+', base-fee cap '+fmt(p.capMicro)+' DUBYT, plus '+fmt(p.additionalPartMicro)+' DUBYT per additional coverage part.';if(t?.pending)text+=' A new tariff is scheduled for '+new Date(t.pending.activation*1000).toISOString()+'.';$('fee-help').textContent=text+' Review the exact total before signing. BTC and Ethereum fees are separate.';}
 function moneyText(record,key){return record?.display?.[key]??((record?.unitScale??'1')==='1'?record?.[key]:'—');}
 function connectionHealth(health){const verified=health==='verified',text=verified?'Data verified':health==='attention'?'Data not verified':'Verifying data',help=health==='attention'?'Check the node connection. Verification will retry automatically.':'Please wait for the first verification to finish.';$('sync').dataset.health=health;if($('phase').textContent!==text)$('phase').textContent=text;$('connection-help').hidden=verified;if($('connection-help').textContent!==help)$('connection-help').textContent=help;}
@@ -934,10 +939,14 @@ $('switch-wallet').title='Lock this wallet and choose another saved wallet';$('l
 const screens={overview:['Wallet overview','Check your available balance, then send or receive a payment.'],send:['Send payment','Enter the recipient and amount, review the total, then confirm.'],receive:['Receive','Share your public address. Your password and private key stay private.'],activity:['Payment activity','Follow the original payment until it is confirmed or its reservation is released.'],exchange:['Exchange','Buy DUBYT with Bitcoin or USDC when an offer is available.'],network:['Network analytics','Inspect the latest verified snapshot. These figures are not live market prices or speed estimates.'],security:['Security','Protect access to your wallet and understand each payment option.']};
 screens.collateral=['My nodes','See your nodes, deposited collateral and rewards.'];
 const collateralTab=document.createElement('button');collateralTab.dataset.tab='collateral';collateralTab.textContent='My nodes';document.querySelector('[data-tab=security]').before(collateralTab);
-screens.voting=['Discussion & voting','Submit questions, review them and vote on admitted proposals.'];
+screens.voting=['Discussion & voting','Questions awaiting your vote or review.'];
 const votingTab=document.createElement('button');votingTab.dataset.tab='voting';votingTab.textContent=screens.voting[0];collateralTab.after(votingTab);
 const votingScreen=document.createElement('div');votingScreen.className='screen screen-grid';votingScreen.dataset.screen='voting';votingScreen.hidden=true;
-document.querySelector('[data-screen="collateral"]').after(votingScreen);votingScreen.append($('node-votes'));$('node-votes').open=true;
+document.querySelector('[data-screen="collateral"]').after(votingScreen);
+votingScreen.innerHTML='<section id="vote-inbox"><h2>Needs your attention</h2><p id="vote-availability" role="status">Checking for votes…</p><div id="vote-items"></div></section>';
+const voteCount=document.createElement('span');voteCount.className='vote-count';voteCount.hidden=true;voteCount.setAttribute('aria-hidden','true');votingTab.append(voteCount);
+const votingRecords=$('node-votes');votingRecords.querySelector('summary').textContent='Governance records and tools';
+document.querySelector('[data-screen="activity"]').append(votingRecords);
 screens.external=['External assets','View reference prices and check transfers on their original networks.'];
 const externalTab=document.createElement('button');externalTab.dataset.tab='external';externalTab.textContent='External assets';document.querySelector('[data-tab=exchange]').before(externalTab);
 const passwordDialog=$('password-dialog'),passwordForm=$('password-change-form');
@@ -1023,7 +1032,7 @@ async function loadBallots(openedId=null){
   const servers=data.servers??[];$('ballot-node').replaceChildren(...servers.map(n=>{const option=element('option',n.id);option.value=n.id;return option;}));
   status.textContent=data.proposals.length?'Choose a question to see its exact text, reviews and voting weight.':'There are no open proposals.';
   for(const r of data.proposals){
-   const card=element('details','','panel-band'),weight=r.weights?.[lastStatus.owner]??'0';
+   const card=element('details','','panel-band'),weight=r.weights?.[lastStatus.owner]??'0';card.dataset.proposal=r.id;
    card.append(element('summary',(r.subject??r.proposal.title)+' · '+r.status));
    if(r.subject){
     const note=element('details','');note.append(element('summary','Author’s explanation'),element('p',r.proposal.title),element('p',r.proposal.text));card.append(note);
@@ -1092,7 +1101,60 @@ async function submitBallot(action){
  const current=noticeContext();if(!window.confirm('Sign this proposal action in your wallet?'))return;
  await api('/voting/submit',action);if(current()){$('ballot-status').textContent='Signed and submitted. Refresh to verify inclusion.';}return true;
 }
-votingTab.addEventListener('click',loadBallots);$('ballot-refresh').onclick=loadBallots;
+$('ballot-refresh').onclick=()=>loadBallots();
+votingRecords.addEventListener('toggle',()=>{if(votingRecords.open)void loadBallots();});
+let voteIdentity='',voteEpoch=0,voteNext=0,voteBusy=false,voteSignature='',focusedVote=null;
+function restoreVote(){
+ if(!focusedVote)return;
+ const {item,anchor,button}=focusedVote;item.open=false;anchor.replaceWith(item);button.hidden=false;focusedVote=null;
+}
+async function openVote(row,button,card){
+ const current=noticeContext();
+ restoreVote();button.disabled=true;
+ try{
+  let item;
+  if(row.kind==='financial')item=$(row.id);
+  else{
+   await loadBallots();if(!current()||!card.isConnected)return;
+   item=[...$('ballots').children].find(el=>el.dataset.proposal===row.id);
+  }
+  if(!item){button.textContent='Check proposal again';return;}
+  const anchor=document.createComment('proposal');item.before(anchor);card.append(item);
+  focusedVote={item,anchor,button};button.hidden=true;item.open=true;
+ }finally{button.disabled=false;}
+}
+async function updateVoteInbox(s){
+ const identity=s.locked?'':token+'|'+s.owner;
+ if(identity!==voteIdentity){
+  voteIdentity=identity;voteEpoch++;voteNext=0;voteBusy=false;voteSignature='';restoreVote();
+  voteCount.hidden=true;votingTab.removeAttribute('aria-label');$('vote-items').replaceChildren();
+  $('vote-availability').textContent='Checking for votes…';
+ }
+ if(!identity||!s.owner||s.error||s.working||submitting||voteBusy||document.hidden||Date.now()<voteNext)return;
+ voteBusy=true;const epoch=voteEpoch;
+ try{
+  const nodes=(s.nodesSnapshot?.nodes??[]).filter(n=>n.kind==='server').map(n=>n.id).slice(0,128);
+  const {items,incomplete}=await api('/nodes/vote-notices',{nodes});
+  if(epoch!==voteEpoch)return;
+  voteCount.textContent=String(items.length);voteCount.hidden=!items.length;
+  votingTab.setAttribute('aria-label','Discussion & voting'+(items.length?', '+items.length+' awaiting your action':''));
+  $('vote-availability').textContent=incomplete?'Some voting information is unavailable. Home will check again.':items.length?'':'You have no votes awaiting action.';
+  const signature=JSON.stringify(items);
+  if(voteSignature!==signature){
+   const box=$('vote-items'),ids=new Set(items.map(r=>r.id));
+   for(const card of [...box.children])if(!ids.has(card.dataset.id)){if(card.contains(focusedVote?.item??null))restoreVote();card.remove();}
+   for(const r of items){
+    if([...box.children].some(card=>card.dataset.id===r.id))continue;
+    const card=element('article','');card.dataset.id=r.id;
+    card.append(element('h3',r.title),element('p',(r.kind==='review'?'Your expert review is requested.':'Your vote is requested.')+(r.ends?' Closes '+utc(r.ends)+'.':'')));
+    const b=element('button',r.kind==='review'?'Review question':'Review proposal');b.type='button';b.onclick=()=>openVote(r,b,card);card.append(b);box.append(card);
+   }
+   voteSignature=signature;
+  }
+  voteNext=Date.now()+(incomplete?30000:60000);
+ }catch{if(epoch===voteEpoch){$('vote-availability').textContent='Could not refresh voting notices. Home will check again.';voteNext=Date.now()+15000;}}
+ finally{if(epoch===voteEpoch)voteBusy=false;}
+}
 $('ballot-form').onsubmit=async e=>{
  e.preventDefault();if(!ballotView?.policy)return;
  try{
@@ -1691,6 +1753,7 @@ function safeFundingRow(node){
  return latest??null;
 }
 function renderCollateralState(s){
+ void updateVoteInbox(s);
  if(issuanceOwner!==(s.locked?null:s.owner)){issuanceOwner=s.locked?null:s.owner;$('issuance-terms').open=false;for(const id of ['rule-bonded','rule-group','rule-import'])$(id).open=false;resetIssuance();resetRuleReview();lastFundingReply=null;fundingError=null;fundingAttempt=null;}
  if(s.locked||s.error||collateralOwner!==s.owner||!s.nodesSnapshot)renderVotingNotices(null);
  renderFundingRequests(s.locked?[]:(s.collateralRequests??[]));

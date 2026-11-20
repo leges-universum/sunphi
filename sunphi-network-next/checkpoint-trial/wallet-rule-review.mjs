@@ -40,28 +40,31 @@ export class WalletRuleReviews{
   wallet.db.exec('CREATE TABLE IF NOT EXISTS rule_votes(proposal TEXT,signer TEXT,signature TEXT NOT NULL,PRIMARY KEY(proposal,signer))');
  }
  builtin(){return JSON.parse(readFileSync(new URL('./public-bonded-rule-v3.json',import.meta.url),'utf8'));}
- async preparationGroup(nodes,issuance=false){
-  this.pending=null;
+ async preparationGroup(nodes,issuance=false,noticeState=null){
+  if(!noticeState)this.pending=null;
   assert(Array.isArray(nodes)&&nodes.length<=128&&new Set(nodes).size===nodes.length,'Invalid linked server list.');
   nodes.forEach(node=>hex(node));
   const w=this.wallet,owner=w.key.publicKey,network=w.client.config.chainId;
-  const {state}=await w.view({rewardIds:nodes});
+  const state=noticeState??(await w.view({rewardIds:nodes})).state;
   if(!nodes.length)nodes=Object.keys(state.rewards?.nodes??{}).filter(id=>state.rewards.nodes[id].payouts?.some(p=>p.wallet===owner)).sort().slice(0,128);
   const {merged,status}=this.collect(issuance?issuancePacket():preparationPacket(state,network),state);
+  if(noticeState&&(status.expired||status.sealed||status.approved||issuance&&!status.available||!issuance&&state.authority.posSlashing))return status.canSubmit;
   const scope=issuance?{issuanceMandate:mandateId}:{preparationStart:merged.body.notBefore},grants=[],used=new Set(merged.approvals.map(v=>v.key));
-  let weight=BigInt(status.weight);
+  let weight=BigInt(status.weight),unreachable=false;
   for(const node of [...nodes].sort()){
    if(weight>=BigInt(status.required))break;
    const payouts=state.rewards?.nodes?.[node]?.payouts;
    if(payouts?.length!==1||payouts[0].wallet!==owner)continue;
    let reply;
-   try{reply=await this.request(w,node,{operation:RULE_ROUTE,node,owner,...scope});}catch{continue;}
+   try{reply=await this.request(w,node,{operation:RULE_ROUTE,node,owner,...scope});}catch{unreachable=true;continue;}
    const grant=verifyRuleRoute(reply,state,network,node,owner);
    assert(grant.domain===merged.body.domain&&grant.proposal===status.proposal,'Server reviewed a different proposal');
    if(used.has(grant.controller)||!reviewRuleText(merged,state,network,grant.controller).canSign)continue;
+   if(noticeState)return true;
    used.add(grant.controller);grants.push(grant);
    weight+=BigInt(state.authority.validators.find(v=>v.key===grant.controller).power);
   }
+  if(noticeState){if(unreachable)throw Error('Server eligibility could not be verified.');return status.canSubmit;}
   if(!grants.length&&!status.canSubmit)return {...status,id:null,canSign:false,servers:[],saved:merged.approvals.length?merged:null};
   assert(grants.length||status.canSubmit,'No eligible linked server is available for this proposal.');
   const id=randomBytes(32).toString('hex');
