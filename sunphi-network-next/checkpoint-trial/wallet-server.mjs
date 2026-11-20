@@ -139,7 +139,41 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=(req.url==='/nodes/rule-review'?131072:16384));chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
  assert.equal(admittedEpoch,sessionEpoch,'Wallet session changed. Retry the action in the current session.');
  assert(!sessionDrain.pending,'Wallet switching is in progress. Please wait.');
- const proposalRead=['/nodes/rule-review','/nodes/vote-notices','/voting/list'].includes(req.url);
+ const proposalRead=['/nodes/rule-review','/nodes/vote-notices','/voting/list','/nodes/server-versions'].includes(req.url);
+ const voteSubmission=['/nodes/rule-confirm','/voting/submit'].includes(req.url==='/authorize-action'?q?.path:req.url);
+ assert(!paymentLane.pending||proposalRead||voteSubmission||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
+ assert(Date.now()>=updateDrainUntil,'The node is installing an update. Please reopen the wallet after it restarts.');
+ if(wallet && token !== sessionToken) throw new Error('Wallet is open in another session. Lock it there first.');
+ if(!wallet)assert(['/status','/unlock','/create','/restore','/select-wallet','/lock'].includes(req.url),'unlock your wallet first');
+ if(req.url==='/nodes/server-versions'){
+  assert(wallet&&view);
+  const ids=walletNodeOverview(view.state,owner).nodes.filter(n=>n.kind==='server').map(n=>n.id);
+  const response=await fetch(new URL('/server-versions',connection.rpc),{redirect:'error',signal:AbortSignal.timeout(3500)});
+  assert(response.ok,'Server versions unavailable');
+  const chunks=[];let length=0;
+  for await(const chunk of response.body){length+=chunk.length;assert(length<=262144);chunks.push(chunk);}
+  const data=JSON.parse(Buffer.concat(chunks));const rows={};
+  for(const id of ids){const r=data[id];if(r&&Number.isSafeInteger(r.checkedAt)&&r.checkedAt<=Date.now()+30000)
+   rows[id]={version:/^\d+\.\d+\.\d+$/.test(r.version)?r.version:null,state:r.state,checkedAt:r.checkedAt};}
+  assert(admittedEpoch===sessionEpoch&&wallet);
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify(rows));return;
+ }
+ if(req.method==='GET'&&req.url==='/backup'){assert(wallet,'unlock your wallet first');res.setHeader('Content-Type','application/json');res.end(JSON.stringify(store.backup(activeId),null,2));return;}
+ if(req.method==='GET'&&req.url==='/status'){
+  const snapshot=status(),epoch=sessionEpoch;
+  if(wallet&&bounded&&view&&req.headers['x-duebyte-analytics']==='1'){
+   snapshot.analytics=await networkPresentation(view,owner);
+   assert.equal(sessionEpoch,epoch,'Wallet session changed.');
+  }
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify(snapshot));return;
+ }
+ // Reading the request body yields to lock/unlock and wallet-selection requests.
+ // Bind admission to this session lifetime, including when the same token is reused.
+ const admittedEpoch=sessionEpoch;
+ assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=(req.url==='/nodes/rule-review'?131072:16384));chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
+ assert.equal(admittedEpoch,sessionEpoch,'Wallet session changed. Retry the action in the current session.');
+ assert(!sessionDrain.pending,'Wallet switching is in progress. Please wait.');
+ const proposalRead=['/nodes/rule-review','/nodes/vote-notices','/voting/list','/nodes/server-versions'].includes(req.url);
  const voteSubmission=['/nodes/rule-confirm','/voting/submit'].includes(req.url==='/authorize-action'?q?.path:req.url);
  assert(!paymentLane.pending||proposalRead||voteSubmission||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
  assert(Date.now()>=updateDrainUntil,'The node is installing an update. Please reopen the wallet after it restarts.');
