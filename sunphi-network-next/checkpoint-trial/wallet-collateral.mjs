@@ -7,6 +7,8 @@ import {prepareCollateralReview,prepareReleaseReview} from './worker-collateral-
 import {outsideCollateralPilot} from './wallet-collateral-status.mjs';
 import {spendPolicy} from './spend-protection.mjs';
 import {stateHash} from './core.mjs';
+import {consolidationEnabled,LEGACY_INPUTS} from './payment-input-policy.mjs';
+import {MAX} from './payment-model.mjs';
 import {isBoundedWalletView,assertBoundedWalletView} from './research/bounded-wallet-view.mjs';
 const available=(s,owner)=>Object.entries(s.money.outputs).filter(([,o])=>o.owner===owner&&o.unlock<=s.money.time&&BigInt(o.value)>0n);
 export function collateralOptions(s,owner){
@@ -14,7 +16,7 @@ export function collateralOptions(s,owner){
  const protection=spendPolicy(s,owner),reason=(s.money.unitScale??'1')!=='1000000'||!s.centuryFees?'Collateral funding awaits the compatible network activation.':protection?.enabled||protection?.pending?'Separate collateral approval is not yet available for this protected wallet.':!nodes.length?'No linked or funded server worker is available in this wallet.':null;
  return {enabled:!reason,reason,nodes,available:formatToken(String(available(s,owner).reduce((a,[,o])=>a+BigInt(o.value),0n)),s.money.unitScale??'1'),mode:'CONSENT_ONLY',broadcastEnabled:false};
 }
-function plan(s,owner,q){
+function plan(s,owner,q,allowConsolidation=false){
  if(q.operation==='withdraw'){
   exact(q,['operation','node','amount','unitScale']);assert.equal(q.unitScale,s.money.unitScale);
   return prepareReleaseReview(s,{node:q.node,owner,valueMicro:parseToken(q.amount,q.unitScale)});
@@ -25,8 +27,15 @@ function plan(s,owner,q){
  const outputs=available(s,owner).sort(([a,x],[b,y])=>BigInt(x.value)===BigInt(y.value)?a<b?-1:1:BigInt(x.value)>BigInt(y.value)?-1:1);
  const total=outputs.reduce((a,[,o])=>a+BigInt(o.value),0n);
  assert(need<=total,'Amount exceeds your confirmed available balance of '+formatToken(String(total),q.unitScale)+' DUBYT.');
- for(const [id,o]of outputs){if(inputs.length===8||sum>=need)break;inputs.push(id);sum+=BigInt(o.value);}
- assert(sum>=need,'Your balance covers this amount, but it requires more than eight funding inputs under the current network rules. No deposit was submitted.');
+ for(const [id,o]of outputs){if(sum>=need)break;inputs.push(id);sum+=BigInt(o.value);}
+ if(inputs.length>LEGACY_INPUTS){
+  assert(allowConsolidation&&consolidationEnabled(s),'Your balance covers this amount, but free consolidation is not active for this deposit. No deposit was submitted.');
+  const check=prepareCollateralReview(s,{...q,owner,amount:'0.000001',inputs:[inputs[0]]});
+  assert(BigInt(s.money.nodes[q.node].stake)+need<=MAX&&BigInt(s.workerFunding?.accounts[q.node]?.depositedMicro??0)+need<=MAX,'Collateral overflow.');
+  return {preparation:{domain:'DUEBYTE_HOME_CONSOLIDATED_DEPOSIT_V1',configHash:s.configHash,node:q.node,owner,
+   worker:s.money.nodes[q.node].key,sequence:check.body.sequence,unitScale:q.unitScale,valueMicro:String(need),inputs,
+   created:s.money.time,expires:s.money.time+86400}};
+ }
  const result=prepareCollateralReview(s,{...q,owner,inputs});
  result.display.available=collateralOptions(s,owner).available;
  result.display.remainingAvailable=formatToken(String(total-need),q.unitScale);
@@ -38,7 +47,7 @@ export class WalletCollateral{
   if(isBoundedWalletView(state))assertBoundedWalletView(state,certificate,w.client.config,w.key.publicKey);else assert.equal(stateHash(state,w.client.config),certificate.appHash,'unverified collateral view');
   assert.equal(state.height,certificate.appHeight);return v;
  }
- async review(q){const {state,certificate}=await this.current({rewardIds:[q.node]}),review=plan(state,this.wallet.key.publicKey,q);this.pending.clear();const id=randomBytes(32).toString('hex');
+ async review(q,{allowConsolidation=false}={}){const {state,certificate}=await this.current({rewardIds:[q.node]}),review=plan(state,this.wallet.key.publicKey,q,allowConsolidation);this.pending.clear();if(review.preparation)return review;const id=randomBytes(32).toString('hex');
   this.pending.set(id,{q:structuredClone(q),review,expires:this.now()+120000,workerKey:state.money.nodes[q.node].key});
   return {id,body:review.body,display:review.display,verifiedHeight:certificate.height,mode:'CONSENT_ONLY',expiresAt:state.money.time+300};
  }

@@ -3,6 +3,9 @@
 import assert from 'node:assert/strict';
 export const INPUT_FEATURE='DUEBYTE_SHARED_PAYMENT_INPUTS_V1';
 export const INPUT_ACTION='ENABLE_SHARED_PAYMENT_INPUTS_V1';
+export const CONSOLIDATION_FEATURE='DUEBYTE_OWNED_OUTPUT_CONSOLIDATION_V1';
+export const ENABLE_CONSOLIDATION='ENABLE_OWNED_OUTPUT_CONSOLIDATION_V1';
+export const consolidationEnabled=s=>!!s.authority?.collateralConsolidation&&s.height>=s.authority.collateralConsolidation.activation;
 export const LEGACY_INPUTS=8;
 export const BLOCK_INPUTS=64*LEGACY_INPUTS;
 export const sharedInputsEnabled=s=>!!s.authority?.sharedPaymentInputs&&s.height>=s.authority.sharedPaymentInputs.activation;

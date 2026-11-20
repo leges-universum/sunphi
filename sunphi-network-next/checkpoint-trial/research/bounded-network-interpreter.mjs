@@ -25,7 +25,7 @@ import {SCHEDULE_PAID_ADMISSION,schedulePaidAdmission,auditPaidAdmission} from '
 import {EXPEDITE_ZERO_STAGE_HOME,expediteZeroStageHome} from './bounded-zero-stage-admission.mjs';
 import {REGISTER_HOMES,registerHomeKeys,auditHomeRegistration} from './bounded-home-registration.mjs';
 import {INITIAL_PRECISION,prepareInitialPrecision} from './bounded-initial-precision.mjs';
-import {FUND_WORKER,fundWorker,COLLATERAL_ACTIONS,releaseWorkerCollateral} from '../worker-collateral.mjs';
+import {FUND_WORKER,fundWorker,COLLATERAL_ACTIONS,releaseWorkerCollateral,MERGE_OWNED,consolidateOwned} from '../worker-collateral.mjs';
 import {OPEN_SUPPORT,reconcileWorkerSupport} from '../worker-support.mjs';
 import {NODE_LINK_ACTION,applyNodeLink} from '../node-wallet-link.mjs';
 import {PURCHASE_ACTION,executeNativePurchase} from './purchase-native.mjs';
@@ -314,6 +314,7 @@ export class BoundedNetworkInterpreter{
    if(n?.payouts.length&&hash(n.payouts)!==hash(a.body.payouts))assert.equal(nodeLinkBlockers(s,a.body.node).length,0,'Settle existing reward obligations before changing payout wallets.');
   }
   if(a.type===FUND_WORKER)return fundWorker(s,a,author);
+  if(a.type===MERGE_OWNED)return consolidateOwned(s,a,author);
   if(COLLATERAL_ACTIONS.includes(a.type))return releaseWorkerCollateral(s,a,author);
   if(a.type===PREPARE_WORKERS)return prepareInitialWorkers(s,a,this.config,{anchor:tx.get('meta/anchor')}).state;
   if(a.type===SCHEDULE_PAID_ADMISSION)return schedulePaidAdmission(s,a,this.config,tx);

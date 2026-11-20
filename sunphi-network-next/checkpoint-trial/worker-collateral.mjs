@@ -9,13 +9,40 @@ import {centuryRestrictedAccounts} from './century-funds.mjs';
 import {centuryWarmupAccounts,memorialPolicy} from './economic-policy-v3.mjs';
 import {reserveAddresses} from './network-reserves.mjs';
 import {bondedAdmissionPolicy} from './bond-request.mjs';
+import {LEGACY_INPUTS,consolidationEnabled} from './payment-input-policy.mjs';
 export const FUND_WORKER='FUND_PAYMENT_WORKER_V1';
 export const QUEUE_RELEASE='QUEUE_WORKER_COLLATERAL_RELEASE_V1';
 export const CANCEL_RELEASE='CANCEL_WORKER_COLLATERAL_RELEASE_V1';
 export const EXECUTE_RELEASE='EXECUTE_WORKER_COLLATERAL_RELEASE_V1';
-export const COLLATERAL_ACTIONS=[FUND_WORKER,QUEUE_RELEASE,CANCEL_RELEASE,EXECUTE_RELEASE];
+export const MERGE_OWNED='CONSOLIDATE_OWNED_OUTPUTS_V1';
+export const COLLATERAL_ACTIONS=[FUND_WORKER,QUEUE_RELEASE,CANCEL_RELEASE,EXECUTE_RELEASE,MERGE_OWNED];
 export const RELEASE_DELAY_SECONDS=86400;
 export const COLLATERAL_DOMAIN='DUEBYTE_WORKER_COLLATERAL_V1';
+export function consolidatedOutput(configHash,owner,inputs){
+ return hash({domain:MERGE_OWNED,configHash,owner,inputs});
+}
+export function consolidateOwned(s,action,owner){
+ exact(action,['type','inputs']);assert.equal(action.type,MERGE_OWNED);publicKey(owner);
+ assert(consolidationEnabled(s),'Free consolidation is not active.');
+ const protection=spendPolicy(s,owner);
+ assert(!protection?.enabled&&!protection?.pending,'Protected wallet consolidation is unavailable.');
+ assertOrdinaryOwner(s,owner);
+ const ids=action.inputs;
+ assert(Array.isArray(ids)&&ids.length>=2&&ids.length<=LEGACY_INPUTS,'consolidation input count');
+ ids.forEach(hex);assert.deepEqual(ids,[...new Set(ids)].sort(),'canonical consolidation inputs');
+ const output=consolidatedOutput(s.configHash,owner,ids);assert(!s.money.outputs[output],'consolidation already applied');
+ let total=0n;
+ for(const id of ids){
+  const o=s.money.outputs[id];assert(o?.owner===owner&&o.unlock<=s.money.time,'Consolidation requires confirmed spendable funds from this wallet.');
+  const value=amount(o.value);assert(value>0n);total+=value;
+ }
+ assert(total<=MAX);for(const id of ids)delete s.money.outputs[id];
+ s.money.outputs[output]={owner,value:String(total),unlock:0};return s;
+}
+function assertOrdinaryOwner(s,owner){
+ const restricted=[...centuryRestrictedAccounts(s.configHash),...centuryWarmupAccounts(s.configHash),memorialPolicy(s.configHash).account,...Object.values(reserveAddresses(s.configHash))];
+ assert(!restricted.includes(owner)&&owner!==supportAccount(s.configHash),'programme funds cannot bypass custody');
+}
 const bondedPolicyHash=hash(bondedAdmissionPolicy);
 export function preparedVotingMinimum(s){
  const p=s.authority?.posSlashing;
@@ -82,8 +109,7 @@ export function fundWorker(s,a,author){
  // A payment approval is not a collateral approval. Fail closed until the
  // separate protected-wallet collateral consent UI/contract is qualified.
  const protection=spendPolicy(s,b.owner);assert(!protection?.enabled&&!protection?.pending,'protected wallet collateral unsupported');
- const restricted=[...centuryRestrictedAccounts(s.configHash),...centuryWarmupAccounts(s.configHash),memorialPolicy(s.configHash).account,...Object.values(reserveAddresses(s.configHash))];
- assert(!restricted.includes(b.owner)&&b.owner!==supportAccount(s.configHash),'programme funds cannot bypass custody');
+ assertOrdinaryOwner(s,b.owner);
  integer(b.sequence,1);const value=amount(b.valueMicro);assert(value>0n);
  assert(Array.isArray(b.inputs)&&b.inputs.length>0&&b.inputs.length<=8);b.inputs.forEach(hex);assert.deepEqual(b.inputs,[...new Set(b.inputs)].sort(),'canonical funding inputs');
  const prior=s.workerFunding?.accounts[b.node],digest=hash(b);
@@ -112,7 +138,7 @@ export function releasableCollateral(s,node){
  return free<owned?free:owned;
 }
 export function releaseWorkerCollateral(s,a,author){
- assert(COLLATERAL_ACTIONS.includes(a.type)&&a.type!==FUND_WORKER);
+ assert([QUEUE_RELEASE,CANCEL_RELEASE,EXECUTE_RELEASE].includes(a.type));
  assert.equal(s.money.unitScale,'1000000');assert(s.centuryFees,'qualified precision and fee policy required');
  assert(!s.money.liability||s.money.liability.policy.version>=2,'UTC liability required');
  if(a.type===EXECUTE_RELEASE){

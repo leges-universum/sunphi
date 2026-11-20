@@ -1,7 +1,7 @@
 import {seatUpdates} from './rotating-seat.mjs';
 // Ordered control-plane transitions; never move money or authorize monetary work.
 import assert from 'node:assert/strict';
-import {INPUT_FEATURE,INPUT_ACTION} from './payment-input-policy.mjs';
+import {INPUT_FEATURE,INPUT_ACTION,CONSOLIDATION_FEATURE,ENABLE_CONSOLIDATION} from './payment-input-policy.mjs';
 import {hash,exact,integer,hex,publicKey,verify} from './crypto.mjs';
 import {validatorSet,validatorQuorum} from './validator-authority.mjs';
 import {CHANGE_VALIDATORS,changeValidators} from './validator-membership.mjs';
@@ -12,7 +12,7 @@ export const CONTROL='DUEBYTE_TRIAL_CONTROL_V1';
 export const DELAYED_FEATURE='DUEBYTE_SCHEDULED_PAYMENT_V1';
 export const RESOURCE_FEATURE='DUEBYTE_RESOURCE_LIMITS_V1';
 export const SPEND_FEATURE='DUEBYTE_SPEND_PROTECTION_V1';
-export function controlActions(config){return [INPUT_ACTION,'RENEW_POLICY','ENABLE_DELAYED_PAYMENTS','ENABLE_RESOURCE_LIMITS','ENABLE_SPEND_PROTECTION_V1',CHANGE_VALIDATORS,...(config.control?.version===2?[]:['ROTATE_VALIDATOR',UPGRADE_AUTHORITY])];}
+export function controlActions(config){return [INPUT_ACTION,ENABLE_CONSOLIDATION,'RENEW_POLICY','ENABLE_DELAYED_PAYMENTS','ENABLE_RESOURCE_LIMITS','ENABLE_SPEND_PROTECTION_V1',CHANGE_VALIDATORS,...(config.control?.version===2?[]:['ROTATE_VALIDATOR',UPGRADE_AUTHORITY])];}
 export function resourceLimitsEnabled(state){const p=state.authority?.resourceLimits;return !!p&&state.height>=p.activation;}
 export function delayedPaymentsEnabled(state){const p=state.authority?.delayedPayments;return !!p&&state.height>=p.activation;}
 export function policyFields(p){return {version:p.version,members:p.members,threshold:p.threshold,maxAge:p.maxAge,notAfter:p.notAfter};}
@@ -48,12 +48,12 @@ export function applyControl(a,action,{config,height,time,reusableKeys=[]}){
  assert(a,'control transitions not enabled in this genesis');const context={network:config.chainId,configHash:hash(config)};
  if(action.type===UPGRADE_AUTHORITY)return upgradeAuthority(a,action,{config,height});
  if(action.type===CHANGE_VALIDATORS)return changeValidators(a,action,{config,height,reusableKeys});
- if([INPUT_ACTION,'ENABLE_DELAYED_PAYMENTS','ENABLE_RESOURCE_LIMITS','ENABLE_SPEND_PROTECTION_V1'].includes(action.type)){
+ if([INPUT_ACTION,ENABLE_CONSOLIDATION,'ENABLE_DELAYED_PAYMENTS','ENABLE_RESOURCE_LIMITS','ENABLE_SPEND_PROTECTION_V1'].includes(action.type)){
   exact(action,['type','certificate']);const cert=action.certificate;exact(cert,['body','approvals']);const b=cert.body;
   exact(b,['domain','network','configHash','generation','feature','activation','notBefore','expires']);
   assert.equal(b.domain,CONTROL+'/FEATURE');assert.equal(b.network,context.network);assert.equal(b.configHash,context.configHash);assert.equal(b.generation,a.generation);
-  const field=action.type===INPUT_ACTION?'sharedPaymentInputs':action.type==='ENABLE_RESOURCE_LIMITS'?'resourceLimits':action.type==='ENABLE_SPEND_PROTECTION_V1'?'spendProtection':'delayedPayments';
-  assert.equal(b.feature,field==='sharedPaymentInputs'?INPUT_FEATURE:field==='resourceLimits'?RESOURCE_FEATURE:field==='spendProtection'?SPEND_FEATURE:DELAYED_FEATURE);assert(!a[field],'feature already enabled');
+  const field=action.type===ENABLE_CONSOLIDATION?'collateralConsolidation':action.type===INPUT_ACTION?'sharedPaymentInputs':action.type==='ENABLE_RESOURCE_LIMITS'?'resourceLimits':action.type==='ENABLE_SPEND_PROTECTION_V1'?'spendProtection':'delayedPayments';
+  assert.equal(b.feature,field==='collateralConsolidation'?CONSOLIDATION_FEATURE:field==='sharedPaymentInputs'?INPUT_FEATURE:field==='resourceLimits'?RESOURCE_FEATURE:field==='spendProtection'?SPEND_FEATURE:DELAYED_FEATURE);assert(!a[field],'feature already enabled');
   integer(b.notBefore,1);integer(b.expires,1);integer(b.activation,1);
   assert(b.expires>=b.notBefore&&b.expires-b.notBefore<=100&&height>=b.notBefore&&height<=b.expires,'feature inclusion height');
   assert(b.activation>=b.expires+2&&b.activation<=b.expires+10000,'feature activation height');
