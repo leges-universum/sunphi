@@ -11,13 +11,14 @@ import {isBoundedWalletView,assertBoundedWalletView} from './research/bounded-wa
 // view must fetch a fresh certified owner view, including the selected worker.
 export async function signWorkerFunding(consent,{config,key,scope,view,now=Date.now}){
  consent=structuredClone(consent);scope=structuredClone(scope);config=structuredClone(config);
- exact(scope,['configHash','node','owner','valueMicro']);
+ exact(scope,['configHash','node','owner','valueMicro',...(Object.hasOwn(scope,'votingValidator')?['votingValidator']:[])]);
  assert.equal(scope.configHash,hash(config),'unexpected network configuration');
  exact(consent,['format','type','body','ownerSignature','expectedWorkerKey','workerSignatureRequired','submitted']);
  assert.equal(consent.format,'DUEBYTE_COLLATERAL_OWNER_CONSENT_V1');
  assert.equal(consent.type,FUND_WORKER);assert.equal(consent.workerSignatureRequired,true);assert.equal(consent.submitted,false);
  const b=consent.body;
- exact(b,['domain','configHash','node','owner','sequence','issuedAt','expires','unitScale','inputs','valueMicro']);
+ exact(b,['domain','configHash','node','owner','sequence','issuedAt','expires','unitScale','inputs','valueMicro',...(Object.hasOwn(b,'votingValidator')?['votingValidator']:[])]);
+ assert.equal(b.votingValidator,scope.votingValidator,'outside approved voting bond scope');
  for(const field of ['configHash','node','owner','valueMicro'])assert.equal(b[field],scope[field],'outside approved funding scope');
  assert.equal(consent.expectedWorkerKey,key.publicKey,'unexpected worker signing key');
  assert(verify(b,consent.ownerSignature,scope.owner),'funding owner signature');
@@ -37,7 +38,7 @@ export async function signWorkerFunding(consent,{config,key,scope,view,now=Date.
  }
  integer(b.issuedAt,1);integer(b.expires,b.issuedAt+1);
  assert(b.expires-b.issuedAt<=600&&b.issuedAt<=s.money.time&&utc<b.expires,'funding consent expired or premature');
- const review=prepareCollateralReview(s,{node:b.node,owner:b.owner,inputs:b.inputs,amount:formatToken(b.valueMicro,b.unitScale),unitScale:b.unitScale});
+ const review=prepareCollateralReview(s,{node:b.node,owner:b.owner,inputs:b.inputs,...(b.votingValidator?{votingValidator:b.votingValidator}:{}),amount:formatToken(b.valueMicro,b.unitScale),unitScale:b.unitScale});
  assert.deepEqual({...review.body,issuedAt:b.issuedAt,expires:b.expires},b,'funding terms changed');
  const workerSignature=sign(b,key.privateKey);
  assert(verify(b,workerSignature,key.publicKey),'worker signing key mismatch');

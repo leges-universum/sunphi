@@ -11,6 +11,10 @@ import {ensureWorkRoutes} from './wallet-work.mjs';
 import {prepareCollateralReview,prepareReleaseReview} from './worker-collateral-plan.mjs';import {rpc} from './client.mjs';
 import {QUEUE_RELEASE,EXECUTE_RELEASE} from './worker-collateral.mjs';
 const terminal=new Set(['COMMITTED','REJECTED','CANCELLED','EXPIRED','CONFLICT']);
+export function validateFundingInstruction(q){
+ exact(q,['requestId','operation','node','amount','unitScale']);hex(q.requestId);
+ assert(['deposit','withdraw','vote-bond'].includes(q.operation),'Exact collateral instruction required');
+}
 export class WalletFunding extends WalletCollateral{
  inFlight=new Map();
  clear(){this.closed=true;super.clear();}
@@ -21,10 +25,10 @@ export class WalletFunding extends WalletCollateral{
  async current(options){const v=await super.current(options);if(this.checkPayments){for(const row of this.wallet.db.prepare('SELECT body FROM outgoing').all()){const intent=JSON.parse(row.body).body.action.signed.intent;if(intent.sender!==this.wallet.key.publicKey||this.wallet.terminalRecords?.()[intent.pid])continue;assert(!['QUEUED','HISTORY_UNAVAILABLE','REVIEW_REQUIRED'].includes(outgoingStatus(v.state,intent)),'Resolve pending payments before contributing collateral');}}return v;}
  async review(q,options){this.checkPayments=true;assert(!pendingFunding(this.wallet.db),'Finish or cancel the pending contribution first');hex(q.node);if(!this.wallet.routes[q.node])await ensureWorkRoutes({parts:[{nodes:[q.node]}],routes:this.wallet.routes,gateway:this.wallet.url});return {...await super.review(q,options),mode:'NETWORK'};}
  async pay(q,valid){
-  exact(q,['requestId','operation','node','amount','unitScale']);hex(q.requestId);assert(['deposit','withdraw'].includes(q.operation));
+  validateFundingInstruction(q);
   const prior=this.wallet.db.prepare('SELECT record FROM collateral_outgoing WHERE owner=? AND json_extract(record,\'$.clientId\')=?').get(this.wallet.key.publicKey,q.requestId);
   if(prior){const r=JSON.parse(prior.record);assert.equal(r.terms,hash(q),'Payment reference already used');return this.present(r);}
-  const review=await this.review({node:q.node,amount:q.amount,unitScale:q.unitScale,...(q.operation==='withdraw'?{operation:'withdraw'}:{})},{allowConsolidation:true});
+  const review=await this.review({node:q.node,amount:q.amount,unitScale:q.unitScale,...(q.operation!=='deposit'?{operation:q.operation}:{})},{allowConsolidation:true});
   if(review.preparation){
    assert(valid()&&!this.closed,'Wallet session expired before signature');
    assert(!pendingFunding(this.wallet.db),'A contribution is already pending');
@@ -42,7 +46,7 @@ export class WalletFunding extends WalletCollateral{
  }
  present(r){
   const b=r.consent?.body??r.preparation;
-  return {id:r.id,node:b.node,createdAt:r.createdAt,operation:r.consent?.type===QUEUE_RELEASE?'withdraw':'deposit',
+  return {id:r.id,node:b.node,createdAt:r.createdAt,operation:r.consent?.type===QUEUE_RELEASE?'withdraw':b.votingValidator?'vote-bond':'deposit',
    amount:formatToken(b.valueMicro,b.unitScale??'1000000'),expires:b.expires,status:r.status,verifiedHeight:r.verifiedHeight,
    transactionId:r.wire?createHash('sha256').update(JSON.stringify(r.wire)).digest('hex').toUpperCase():null,
    canCancel:!r.wire&&!terminal.has(r.status),canRetry:!terminal.has(r.status),message:r.message??null,
@@ -84,7 +88,7 @@ export class WalletFunding extends WalletCollateral{
    if(s.money.time>=b.expires){r.status='EXPIRED';r.message='The request expired without a confirmed deposit. Review again to create a new contribution.';this.save(r);return this.present(r);}
    if(r.status==='RECONCILE_REQUIRED')return this.present(r);
    assert.equal(s.money.nodes[b.node]?.key,r.consent.expectedWorkerKey,'Server key changed');
-   const review=withdrawal?prepareReleaseReview(s,b):prepareCollateralReview(s,{node:b.node,owner:b.owner,inputs:b.inputs,amount:formatToken(b.valueMicro,b.unitScale),unitScale:b.unitScale});assert.deepEqual({...review.body,issuedAt:b.issuedAt,expires:b.expires},b,'Funding terms changed');
+   const review=withdrawal?prepareReleaseReview(s,b):prepareCollateralReview(s,{node:b.node,owner:b.owner,inputs:b.inputs,...(b.votingValidator?{votingValidator:b.votingValidator}:{}),amount:formatToken(b.valueMicro,b.unitScale),unitScale:b.unitScale});assert.deepEqual({...review.body,issuedAt:b.issuedAt,expires:b.expires},b,'Funding terms changed');
    if(!r.wire){const reply=await this.request(b.node,r.consent);if(!active())return this.present(latest());exact(reply,['body','signature','action']);const rb=reply.body;exact(rb,['domain','id','node','status','actionHash']);assert.equal(rb.domain,FUNDING_REPLY);assert.equal(rb.id,bodyId);assert.equal(rb.node,b.node);assert(verify(rb,reply.signature,r.consent.expectedWorkerKey),'Unverified server response');
     assert(['pending','approved','rejected','committed'].includes(rb.status));assert.equal(rb.actionHash,reply.action?hash(reply.action):null);
     if(rb.status==='rejected'){r.status='REJECTED';r.message='The server operator declined this contribution.';this.save(r);return this.present(r);}

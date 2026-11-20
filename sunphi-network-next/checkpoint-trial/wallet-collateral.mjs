@@ -16,12 +16,18 @@ export function collateralOptions(s,owner){
  const protection=spendPolicy(s,owner),reason=(s.money.unitScale??'1')!=='1000000'||!s.centuryFees?'Collateral funding awaits the compatible network activation.':protection?.enabled||protection?.pending?'Separate collateral approval is not yet available for this protected wallet.':!nodes.length?'No linked or funded server worker is available in this wallet.':null;
  return {enabled:!reason,reason,nodes,available:formatToken(String(available(s,owner).reduce((a,[,o])=>a+BigInt(o.value),0n)),s.money.unitScale??'1'),mode:'CONSENT_ONLY',broadcastEnabled:false};
 }
+function depositTerms(s,q){
+ if(q.operation!=='vote-bond')return q;
+ const {operation,...terms}=q,validator=s.workerFunding?.accounts[q.node]?.votingBond?.validator;
+ assert(validator,'No voting bond is registered for this server.');
+ return {...terms,votingValidator:validator};
+}
 function plan(s,owner,q,allowConsolidation=false){
  if(q.operation==='withdraw'){
   exact(q,['operation','node','amount','unitScale']);assert.equal(q.unitScale,s.money.unitScale);
   return prepareReleaseReview(s,{node:q.node,owner,valueMicro:parseToken(q.amount,q.unitScale)});
  }
- exact(q,['node','amount','unitScale']);assert(!outsideCollateralPilot(s,q.node),'Deposits are limited to servers in the current collateral pilot.');assert(collateralOptions(s,owner).enabled,collateralOptions(s,owner).reason);
+ exact(q,['node','amount','unitScale',...(q.operation==='vote-bond'?['operation']:[])]);q=depositTerms(s,q);assert(!outsideCollateralPilot(s,q.node),'Deposits are limited to servers in the current collateral pilot.');assert(collateralOptions(s,owner).enabled,collateralOptions(s,owner).reason);
  const need=BigInt(parseToken(q.amount,q.unitScale)),inputs=[];let sum=0n;
  assert(need>0n,'Enter a positive collateral amount.');
  const outputs=available(s,owner).sort(([a,x],[b,y])=>BigInt(x.value)===BigInt(y.value)?a<b?-1:1:BigInt(x.value)>BigInt(y.value)?-1:1);
@@ -33,7 +39,7 @@ function plan(s,owner,q,allowConsolidation=false){
   const check=prepareCollateralReview(s,{...q,owner,amount:'0.000001',inputs:[inputs[0]]});
   assert(BigInt(s.money.nodes[q.node].stake)+need<=MAX&&BigInt(s.workerFunding?.accounts[q.node]?.depositedMicro??0)+need<=MAX,'Collateral overflow.');
   return {preparation:{domain:'DUEBYTE_HOME_CONSOLIDATED_DEPOSIT_V1',configHash:s.configHash,node:q.node,owner,
-   worker:s.money.nodes[q.node].key,sequence:check.body.sequence,unitScale:q.unitScale,valueMicro:String(need),inputs,
+   worker:s.money.nodes[q.node].key,...(q.votingValidator?{votingValidator:q.votingValidator}:{}),sequence:check.body.sequence,unitScale:q.unitScale,valueMicro:String(need),inputs,
    created:s.money.time,expires:s.money.time+86400}};
  }
  const result=prepareCollateralReview(s,{...q,owner,inputs});
@@ -57,7 +63,7 @@ export class WalletCollateral{
   if(p.q.operation==='withdraw')fresh=plan(state,owner,p.q);
   else{
    assert(!outsideCollateralPilot(state,b.node),'The server can no longer accept collateral.');
-   fresh=prepareCollateralReview(state,{...p.q,owner,inputs:b.inputs});
+   fresh=prepareCollateralReview(state,{...depositTerms(state,p.q),owner,inputs:b.inputs});
   }
   assert(state.money.time>=b.issuedAt&&state.money.time<b.expires,'Collateral consent expired. Review again.');
   assert.equal(state.money.nodes[b.node].key,p.workerKey,'Worker key changed. Review again.');

@@ -50,9 +50,43 @@ export function bindConsensusBond(tx,s,consent,{height,time,network=s.network}){
   assert(b.notBefore>(history.lastConsentAt??0),'Retired or superseded bond consent');
   history.lastConsentAt=b.notBefore;tx.set(disciplineKey(b.node),history);
  }else assert(amount(b.bond)<=amount(node.consensusHeld),'reserved consensus collateral');
+ if(h.policy.ballot===V3_BALLOT&&s.authority?.bondedAdmission?.boundary)funding.votingBond={validator:b.validator,heldMicro:b.bond};
  const signing=newSigningInfo(b.validator,{height:Math.max(height,h.activation??height),time,bond:b.bond});
  tx.set(signingKey(address),{node:b.node,owner:b.owner,consent:hash(consent),signing});tx.set(bondKey(b.node),h.policy.ballot===V3_BALLOT?{address,previousHold}:{address});h.count++;tx.set(POS_HEAD,h);
  return address;
+}
+
+const increaseKey=(a,n)=>'pos/increases/'+addr(a)+'/'+integer(n,1);
+
+export function increasesBefore(get,row,height){
+ let left=1,right=row.increases??0,total=0n;
+ while(left<=right){
+  const mid=Math.floor((left+right)/2),entry=get(increaseKey(row.signing.address,mid));
+  assert(entry,'missing voting bond increase');
+  if(entry.height<height){total=amount(entry.total);left=mid+1;}else right=mid-1;
+ }
+ return total;
+}
+
+export function increaseConsensusBond(tx,s,b){
+ const rules=s.authority?.bondedAdmission,link=tx.get(bondKey(b.node));
+ assert(rules?.ballot===V3_BALLOT&&link,'Voting bond is not active for this server.');
+ const row=tx.get(signingKey(link.address)),i=row.signing;
+ assert.equal(i.key,b.votingValidator,'Voting validator changed.');
+ assert.equal(row.owner,b.owner);assert(!i.tombstoned,'Permanently excluded validator.');
+ const value=amount(b.valueMicro);
+ const original=row.originalBond??i.initialBond;
+ const voting=s.authority.posSlashing.voting;
+ const observed=voting.usedKeys.includes(i.key)||i.observations>0||i.removedHeight!==null;
+ i.bond=String(amount(i.bond)+value);i.initialBond=String(amount(i.initialBond)+value);
+ if(observed){
+  row.originalBond=original;row.increases=integer((row.increases??0)+1,1);
+  tx.set(increaseKey(link.address,row.increases),{height:s.height,total:String(amount(i.initialBond)-amount(original))});
+ }
+ s.money.nodes[b.node].consensusHeld=consentedVotingHold(s,b.node,i.bond,{increase:true});
+ tx.set(signingKey(link.address),row);
+ s.workerFunding.accounts[b.node].votingBond={validator:i.key,heldMicro:i.bond};
+
 }
 
 // Changes are indexed by the validator's monotonic penalty sequence. Historical
@@ -63,7 +97,8 @@ export function historicalConsensusBond(get,row,height){
  while(low<=high){const middle=Math.floor((low+high)/2),r=get(eventKey(i.address,middle));assert(r,'missing historical slash');assert.equal(r.sequence,middle);
   if(r.height<height){found=r;low=middle+1;}else high=middle-1;
  }
- return found?.remaining??i.initialBond;
+ const added=increasesBefore(get,row,height);
+ return String(found?amount(found.remaining)+added-increasesBefore(get,row,found.height):amount(row.originalBond??i.initialBond)+added);
 }
 
 function persistFine(tx,s,row,event,blockHeight){
@@ -72,6 +107,7 @@ function persistFine(tx,s,row,event,blockHeight){
  assert(amount(node.stake)-n>=amount(node.consensusHeld)-n+amount(node.taskHeld),'payment collateral must remain covered');
  const key=eventKey(i.address,i.sequence);assert(!tx.get(key),'slash sequence already paid');
  node.stake=String(amount(node.stake)-n);node.consensusHeld=String(amount(node.consensusHeld)-n);
+ if(s.workerFunding?.accounts[row.node]?.votingBond)s.workerFunding.accounts[row.node].votingBond.heldMicro=i.bond;
  const l=s.money.liability;assert(l?.protection,'existing protection reserve required');l.pool=String(amount(l.pool)+n);l.protection.collected=String(amount(l.protection.collected)+n);
  const h=tx.get(POS_HEAD);h.collected=String(amount(h.collected)+n);tx.set(POS_HEAD,h);
  const record={...event,height:blockHeight,observedHeight:event.height,sequence:i.sequence,node:row.node,remaining:i.bond};tx.set(key,record);
@@ -160,6 +196,7 @@ export function assertConsensusBondHeld(get,s,nodeId){
  assert(amount(node.stake)>=amount(node.consensusHeld)+amount(node.taskHeld),'pending payment coverage');
  if(s.authority?.posSlashing&&Object.hasOwn(s.authority.posSlashing,'voting')){
   const f=s.workerFunding?.accounts[nodeId],held=amount(row.signing.bond);
+  if(f?.votingBond)assert.deepEqual(f.votingBond,{validator:row.signing.key,heldMicro:row.signing.bond});
   assert(f&&f.owner===row.owner&&held<=amount(f.depositedMicro)-amount(f.withdrawnMicro),'owner bond coverage');
   assert(held+amount(f.initialStakeMicro)+lockedSupport(s,nodeId)+amount(node.taskHeld)<=amount(node.stake),'owner bond cannot be replaced by support or task collateral');
  }
@@ -172,6 +209,7 @@ export function releaseConsensusBond(tx,s,key,{height,time,author}){
  assert(neverScheduled||bondReleaseAllowed(row.signing,h.policy,{height,time}),'evidence liability period remains');
  const b=tx.get(bondKey(row.node));assert.equal(b?.address,a,'bond already released');assertConsensusBondHeld(tx.get,s,row.node);tx.delete(bondKey(row.node));
  if(p?.admissions)p.admissions.entries=p.admissions.entries.filter(entry=>entry.key!==key);
+ if(s.workerFunding?.accounts[row.node]?.votingBond)delete s.workerFunding.accounts[row.node].votingBond;
  if(neverScheduled)tx.delete(signingKey(a));
  // Release only the remaining consensus hold. This does not transfer funds;
  // the existing collateral withdrawal rules still govern any later withdrawal.

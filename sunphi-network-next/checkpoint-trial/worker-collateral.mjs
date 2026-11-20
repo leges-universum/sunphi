@@ -62,12 +62,12 @@ export function outsideCollateralPilot(s,id){
 // Project the consensus hold only after validating the owner's tracked deposit.
 // A prior reservation stays locked. The three-party consent specifies the total
 // bond, so an already reserved portion is never locked twice.
-export function consentedVotingHold(s,id,bond){
+export function consentedVotingHold(s,id,bond,{increase=false}={}){
  const node=s.money.nodes[id],f=s.workerFunding?.accounts[id];
  assert(node&&f&&!f.release&&Object.hasOwn(f,'initialStakeMicro'),'tracked owner deposit required');
  const value=amount(bond),reserved=amount(node.consensusHeld),stake=amount(node.stake);
  const total=reserved>value?reserved:value;
- assert(value>=100000000n&&value<=amount(f.depositedMicro)-amount(f.withdrawnMicro),'100 DUBYT of owner deposits required');
+ assert(value>0n&&(increase||value>=100000000n)&&value<=amount(f.depositedMicro)-amount(f.withdrawnMicro),increase?'Insufficient owner deposits.':'100 DUBYT of owner deposits required');
  assert(total+amount(node.taskHeld)<=stake,'insufficient free collateral');
  assert(value+amount(node.taskHeld)+lockedSupport(s,id)+amount(f.initialStakeMicro)<=stake,'insufficient operator-owned stake');
  return String(total);
@@ -89,17 +89,19 @@ export function auditWorkerFunding(s){
  const entries=Object.entries(f.accounts);assert(entries.length<=1024);
  for(const [node,a]of entries){
   hex(node);const tracked=Object.hasOwn(a,'initialStakeMicro');
-  exact(a,['owner','sequence','depositedMicro','lastBodyHash',...(tracked?['initialStakeMicro','withdrawnMicro','release','lastRelease']:[])]);
+  exact(a,['owner','sequence','depositedMicro','lastBodyHash',...(a.votingBond?['votingBond']:[]),...(tracked?['initialStakeMicro','withdrawnMicro','release','lastRelease']:[])]);
   publicKey(a.owner);integer(a.sequence,1);assert(amount(a.depositedMicro)>0n);hex(a.lastBodyHash);
+  if(a.votingBond){exact(a.votingBond,['validator','heldMicro']);publicKey(a.votingBond.validator);amount(a.votingBond.heldMicro);}
   if(tracked){amount(a.initialStakeMicro);assert(amount(a.withdrawnMicro)<=amount(a.depositedMicro));
    if(a.release){exact(a.release,['sequence','valueMicro','queuedAt','readyAt']);integer(a.release.sequence,1);assert(a.release.sequence<=a.sequence);assert(amount(a.release.valueMicro)>0n);integer(a.release.queuedAt,1);integer(a.release.readyAt,a.release.queuedAt+RELEASE_DELAY_SECONDS);}
    if(a.lastRelease){exact(a.lastRelease,['sequence','valueMicro','output']);integer(a.lastRelease.sequence,1);assert(a.lastRelease.sequence<=a.sequence);assert(amount(a.lastRelease.valueMicro)>0n);hex(a.lastRelease.output);}
   }
  }
 }
-export function fundWorker(s,a,author){
+export function fundWorker(s,a,author,increaseVoting){
  exact(a,['type','body','ownerSignature','workerSignature']);assert.equal(a.type,FUND_WORKER);const b=a.body;
- exact(b,['domain','configHash','node','owner','sequence','issuedAt','expires','unitScale','inputs','valueMicro']);
+ exact(b,['domain','configHash','node','owner','sequence','issuedAt','expires','unitScale','inputs','valueMicro',...(Object.hasOwn(b,'votingValidator')?['votingValidator']:[])]);
+ if(Object.hasOwn(b,'votingValidator')){publicKey(b.votingValidator);assert(increaseVoting,'Voting bond increases require indexed execution.');}
  assert.equal(b.domain,COLLATERAL_DOMAIN);assert.equal(b.configHash,s.configHash);hex(b.node);publicKey(b.owner);assert.equal(author,b.owner);
  assert.equal(s.money.unitScale,'1000000');assert.equal(b.unitScale,s.money.unitScale);assert(s.centuryFees,'qualified precision and fee policy required');
  integer(b.issuedAt,1);integer(b.expires,b.issuedAt+1);assert(b.expires-b.issuedAt<=600&&b.issuedAt<=s.money.time&&s.money.time<b.expires,'collateral UTC window');
@@ -127,6 +129,7 @@ export function fundWorker(s,a,author){
  s.workerFunding={version:COLLATERAL_DOMAIN,accounts:{...s.workerFunding?.accounts,[b.node]:{...tracking,owner:b.owner,sequence:b.sequence,depositedMicro:String(deposited),lastBodyHash:digest}}};
  const pilot=s.centuryFunds?.zeroStage?.body;
  if(pilot?.settings.ramp==='TERMINAL_WEEK_V2' && pilot.workers.some(w=>w.node===b.node))activatePilotSupport(s,b.node,s.centuryFunds.support?.book.grants[b.node]);
+ if(b.votingValidator)increaseVoting(b);
  auditWorkerFunding(s);return s;
 }
 // Reserve pre-existing stake conservatively. Losses consume the newly funded

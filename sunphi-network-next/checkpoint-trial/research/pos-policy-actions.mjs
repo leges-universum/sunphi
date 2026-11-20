@@ -9,6 +9,10 @@ import {STANDARD_SLASHING,BONDED_SLASHING,validateSlashingPolicy,auditSigningInf
 import {POS_HEAD,signingKey,preparePosRecords,bindConsensusBond,assertConsensusBondHeld,releaseConsensusBond,unjailConsensusRecord,assertConsensusAdmission} from './bounded-pos-records.mjs';
 import {JOIN_BONDED,LEAVE_QUEUE,updateBondApplication,auditBondQueue,initialBondQueue} from './bonded-queue.mjs';
 
+function bondedNetwork(chainId,configHash){
+ return chainId==='duebyte-trial-bonded-v3-lab'||
+  (chainId==='duebyte-trial-fresh-20261109-v45'&&configHash==='5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c');
+}
 export const PREPARE_POS='PREPARE_POS_SLASHING_V1',BIND_POS='BIND_CONSENSUS_BOND_V1',ENABLE_POS='ENABLE_POS_SLASHING_V1',RELEASE_POS='RELEASE_CONSENSUS_BOND_V1';
 export const UNJAIL_POS='UNJAIL_CONSENSUS_VALIDATOR_V1';
 export const POS_ACTIONS=[PREPARE_POS,BIND_POS,ENABLE_POS,RELEASE_POS,UNJAIL_POS,JOIN_BONDED,LEAVE_QUEUE];
@@ -51,8 +55,7 @@ export function posPolicyAction(s,a,c,tx,author){
   const b=certificate(s,a,c,['policy']);assert(!s.authority.posSlashing);validateSlashingPolicy(b.policy);
   // Use the selected standard parameters, not a discretionary economic model.
   const profile=b.policy.ballot===BONDED_SLASHING.ballot?BONDED_SLASHING:STANDARD_SLASHING;
-  if(profile===BONDED_SLASHING)assert(c.chainId==='duebyte-trial-bonded-v3-lab'||
-   (c.chainId==='duebyte-trial-fresh-20261109-v45'&&s.configHash==='5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c'),'Unknown bonded admission network');
+  if(profile===BONDED_SLASHING)assert(bondedNetwork(c.chainId,s.configHash),'Unknown bonded admission network');
   for(const [key,value]of Object.entries(profile))assert.equal(b.policy[key],value,'slashing parameter');
   for(const [key,value]of Object.entries(COMET_EVIDENCE_LIMITS))assert.equal(b.policy[key],value,'Comet evidence retention parameter');
   preparePosRecords(tx,b.policy,{activation:null});s.authority.posSlashing={version:1,policyHash:hash(b.policy),activation:null};
@@ -69,7 +72,7 @@ export function posPolicyAction(s,a,c,tx,author){
   const equalVotes=Object.hasOwn(s.authority.posSlashing,'voting');
   const b=certificate(s,a,c,['policyHash','activation'],equalVotes),h=tx.get(POS_HEAD);assert.equal(h.activation,null,'PoS already enabled');assert.equal(b.policyHash,hash(h.policy));
   if(equalVotes){
-   assert.equal(c.chainId,'duebyte-trial-bonded-v3-lab','Bonded voting cutover is still under qualification');
+   assert(bondedNetwork(c.chainId,s.configHash),'Unknown bonded admission network');
    assert(!s.authority.rotatingSeat&&!s.authority.archiveVoting,'Wait for the current voting programme to end');
    const {generation,validators,usedKeys}=s.authority;
    s.authority.posSlashing.voting=structuredClone({version:2,generation,validators,usedKeys,pending:null});
@@ -80,7 +83,9 @@ export function posPolicyAction(s,a,c,tx,author){
   }
   integer(b.activation,b.expires+2);assert(b.activation<=b.expires+10000);assert(!s.authority.pending&&!s.authority.posNext,'membership change pending');
   for(const v of s.authority.validators){const key=signingKey(consensusAddress(v.key)),r=tx.get(key);assert(r,'every active validator must consent and retain a bond');assertConsensusBondHeld(tx.get,s,r.node);
-   const i=r.signing;assert(!i.jailed&&!i.tombstoned&&i.removedHeight===null&&i.sequence===0);i.startHeight=b.activation;i.lastHeight=b.activation-1;auditSigningInfo(i,h.policy);tx.set(key,r);
+   const i=r.signing;
+   if(equalVotes)assert(BigInt(i.bond)>=BigInt(s.authority.bondedAdmission?.minimumMicro??'100000000'),'Every incumbent must meet the same effective bond minimum as a new validator');
+   assert(!i.jailed&&!i.tombstoned&&i.removedHeight===null&&i.sequence===0);i.startHeight=b.activation;i.lastHeight=b.activation-1;auditSigningInfo(i,h.policy);tx.set(key,r);
   }
   h.activation=b.activation;tx.set(POS_HEAD,h);s.authority.posSlashing.activation=b.activation;
   if(s.authority.posSlashing.voting)s.authority.posSlashing.admissions=initialBondQueue();

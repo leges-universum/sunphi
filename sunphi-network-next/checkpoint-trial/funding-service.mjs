@@ -14,13 +14,13 @@ export const FUNDING_REQUEST='DUEBYTE_COLLATERAL_REQUEST_V1',FUNDING_REPLY='DUEB
 export function checkFundingConsent(consent,s,key,{now=Date.now}={}){
  exact(consent,['format','type','body','ownerSignature','expectedWorkerKey','workerSignatureRequired','submitted']);
  assert.equal(consent.format,'DUEBYTE_COLLATERAL_OWNER_CONSENT_V1');assert([FUND_WORKER,QUEUE_RELEASE].includes(consent.type));assert.equal(consent.workerSignatureRequired,true);assert.equal(consent.submitted,false);
- const b=consent.body;exact(b,['domain','configHash','node','owner','sequence','issuedAt','expires','valueMicro',...(consent.type===FUND_WORKER?['unitScale','inputs']:[])]);
+ const b=consent.body;exact(b,['domain','configHash','node','owner','sequence','issuedAt','expires','valueMicro',...(consent.type===FUND_WORKER?['unitScale','inputs',...(Object.hasOwn(b,'votingValidator')?['votingValidator']:[])]:[])]);
  assert.equal(b.node,key.node);assert.equal(s.money.nodes[b.node]?.key,key.publicKey);assert.equal(consent.expectedWorkerKey,key.publicKey);assert.equal(b.configHash,s.configHash);assert(verify(b,consent.ownerSignature,b.owner),'Owner signature invalid');
  assert(Math.abs(Math.floor(now()/1000)-s.money.time)<=60,'Node is not current');
  const prior=s.workerFunding?.accounts[b.node];
  if(prior?.sequence===b.sequence&&prior.lastBodyHash===hash(b)&&prior.owner===b.owner)return 'committed';
  assert(b.issuedAt<=s.money.time&&s.money.time<b.expires&&b.expires-b.issuedAt<=600,'Funding request expired');
- const r=consent.type===QUEUE_RELEASE?prepareReleaseReview(s,b):prepareCollateralReview(s,{node:b.node,owner:b.owner,inputs:b.inputs,amount:formatToken(b.valueMicro,b.unitScale),unitScale:b.unitScale});
+ const r=consent.type===QUEUE_RELEASE?prepareReleaseReview(s,b):prepareCollateralReview(s,{node:b.node,owner:b.owner,inputs:b.inputs,...(b.votingValidator?{votingValidator:b.votingValidator}:{}),amount:formatToken(b.valueMicro,b.unitScale),unitScale:b.unitScale});
  assert.deepEqual({...r.body,issuedAt:b.issuedAt,expires:b.expires},b,'Funding terms changed');return 'current';
 }
 export class FundingQueue{

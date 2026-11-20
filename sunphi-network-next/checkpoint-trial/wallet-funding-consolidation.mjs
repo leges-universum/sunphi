@@ -70,7 +70,7 @@ export async function advanceConsolidation(record,wallet,state,save,active,now){
   return;
  }
  const reviewed=prepareCollateralReview(state,{node:plan.node,owner:plan.owner,unitScale:plan.unitScale,
-  inputs:roots,amount:formatToken(plan.valueMicro,plan.unitScale)});
+  ...(plan.votingValidator?{votingValidator:plan.votingValidator}:{}),inputs:roots,amount:formatToken(plan.valueMicro,plan.unitScale)});
  assert.equal(reviewed.body.sequence,plan.sequence);assert.equal(reviewed.body.valueMicro,plan.valueMicro);
  reviewed.body.expires=Math.min(reviewed.body.expires,plan.expires);
  if(!active())return;

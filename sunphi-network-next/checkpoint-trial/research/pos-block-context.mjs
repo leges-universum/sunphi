@@ -5,10 +5,11 @@ import {hash} from '../crypto.mjs';
 import {consensusAddress} from '../consensus-context.mjs';
 import {applyPosContext,markConsensusRemoval,markConsensusAdmission,signingKey} from './bounded-pos-records.mjs';
 import {schedulePosExclusion,posVotingAuthority,INITIAL_BONDED_SET,normalizedVotingSet,normalizedUpdates} from './pos-authority-transition.mjs';
+import {advanceVotingMinimum} from './issued-voting-minimum.mjs';
 import {advanceBondQueue} from './bonded-queue.mjs';
 
 export function posContextMode(s){const activation=s.authority?.posSlashing?.activation;return activation?{version:1,activation}:null;}
-export function applyPosBlock(tx,s,request,lastValidators){
+export function applyPosBlock(tx,s,request,lastValidators,ordinaryMicro){
  const mode=posContextMode(s),active=mode&&request.height>=mode.activation;
  const p=s.authority?.posSlashing;
  if(mode&&p?.voting&&request.height===mode.activation-2){
@@ -23,8 +24,11 @@ export function applyPosBlock(tx,s,request,lastValidators){
  for(const v of lastValidators)if(!current.has(v.key)&&tx.get(signingKey(consensusAddress(v.key))))markConsensusRemoval(tx,v.key,{height:request.height,time:request.time});
  const previous=new Set(lastValidators.map(v=>v.key));
  for(const v of voters)if(!previous.has(v.key))markConsensusAdmission(tx,s,v.key,{height:request.height,time:request.time});
- applyPosContext(tx,s,request.consensus,{height:request.height,time:request.time,lastValidators,scheduleJail:keys=>{
-  s.authority=schedulePosExclusion(s.authority,{height:request.height,keys,contextHash:hash({height:request.height,blockHash:request.blockHash,context:request.consensus})});
- }});
+ const excluded=[];
+ applyPosContext(tx,s,request.consensus,{height:request.height,time:request.time,lastValidators,scheduleJail:keys=>excluded.push(...keys)});
+ if(p.voting)excluded.push(...advanceVotingMinimum(tx,s,request,ordinaryMicro,excluded));
+ if(excluded.length){
+  s.authority=schedulePosExclusion(s.authority,{height:request.height,keys:excluded,contextHash:hash({height:request.height,blockHash:request.blockHash,context:request.consensus})});
+ }
  advanceBondQueue(tx,s,tx.get('meta/network').blockHash);
 }

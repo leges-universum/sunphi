@@ -29,7 +29,7 @@ import {SunPhiConnection} from './sunphi-connection.mjs';
 import {SunPhiApproval} from './sunphi-approval.mjs';
 import {spendPolicy,protectionEnabled} from './spend-protection.mjs';
 import {walletAnalytics} from './research/bounded-wallet-presentation.mjs';
-import {WalletFunding} from './wallet-funding.mjs';
+import {WalletFunding,validateFundingInstruction} from './wallet-funding.mjs';
 import {WalletBond} from './wallet-bond.mjs';
 const bondSessions=new WeakMap();
 const ruleReviewSessions=new WeakMap();
@@ -198,7 +198,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  }
  if(req.url==='/authorize-action'){
   assert(wallet&&['/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/seller/start','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund'].includes(q.path),'supported consent action required');
-  if(q.path==='/collateral/pay')assert(q.data&&/^[a-f0-9]{64}$/.test(q.data.requestId)&&['withdraw','deposit'].includes(q.data.operation),'Exact collateral instruction required');
+  if(q.path==='/collateral/pay')validateFundingInstruction(q.data);
   else if(q.path==='/voting/submit')assert(walletBallotActions.includes(q.data?.type),'Unsupported operator proposal action');
   else if(q.path==='/voting/candidacy')exact(q.data,['name','organization','history','mandate']);
   else if(q.path==='/seller/start')assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9]{64}$/.test(q.data.profileHash),'seller review required');

@@ -9,7 +9,7 @@ const min=(a,b)=>a<b?a:b,max=(a,b)=>a>b?a:b;
 const bondedNetwork='5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c';
 const wholeMicro=value=>typeof value==='string'&&/^(0|[1-9][0-9]{0,19})$/.test(value);
 export function votingBondSchedule(s){
- if(s.configHash!==bondedNetwork||s.money.unitScale!=='1000000')return null;
+ if((s.configHash!==bondedNetwork&&!(s.authority?.bondedAdmission&&preparedVotingMinimum(s)))||s.money.unitScale!=='1000000')return null;
  const p=s.authority?.bondedAdmission;
  if(!p)return {status:'proposed',target:null};
  if(p.version!==3||p.ballot!==V3_BALLOT||!wholeMicro(p.ordinaryIssuedMicro))return {status:'unavailable'};
@@ -23,12 +23,13 @@ export function votingBondSchedule(s){
    !Number.isSafeInteger(s.money.time)||!Number.isSafeInteger(next.announcedAt)||next.announcedAt<=0||next.announcedAt>s.money.time||
    !Number.isSafeInteger(next.effectiveAt)||next.effectiveAt>253402300799||
    next.effectiveAt-next.announcedAt<NOTICE_SECONDS))return {status:'unavailable'};
- return {status:'active',target:String(target),minimum:String(minimum),
+ return {status:'active',target:String(target),minimum:String(minimum),...(p.deferred?{deferred:p.deferred}:{}),
    next:next&&{minimum:formatToken(next.minimumMicro,s.money.unitScale),announcedAt:next.announcedAt,effectiveAt:next.effectiveAt}};
 }
 export function votingBondNotice(s,id,owner,schedule){
  if(schedule?.status!=='active')return null;
- const bond=s.money.nodes[id]?.votingBond;
+ const account=s.workerFunding?.accounts[id];
+ const bond=account?.votingBond?{...account.votingBond,owner:account.owner}:s.money.nodes[id]?.votingBond;
  if(!bond||bond.owner!==owner||!wholeMicro(bond.heldMicro))return null;
  const held=BigInt(bond.heldMicro),policy=s.authority.bondedAdmission;
  const now=BigInt(policy.minimumMicro),next=policy.next;
@@ -40,7 +41,7 @@ export function validatorParticipation(s,id,schedule){
  if(!schedule||schedule.status==='unavailable')return null;
  const node=s.money.nodes[id];
  if(!node)return null;
- const bond=node.votingBond;
+ const bond=s.workerFunding?.accounts[id]?.votingBond??node.votingBond;
  const held=bond?.heldMicro??'0';
  if(!wholeMicro(held))return null;
  const minimum=schedule.status==='proposed'?100000000n:BigInt(s.authority.bondedAdmission.minimumMicro);
@@ -60,7 +61,7 @@ export function nodeCollateralStatus(s,id,owner){
  if(tracked)display.working= formatToken(String(availableWorkingStake(s,id)),s.money.unitScale??'1');
  const minimum=preparedVotingMinimum(s);
  const reviewVotingBond=Boolean(minimum && tracked && !a.release && remaining>=BigInt(minimum));
- return {owned,tracked,display,...(minimum?{reviewVotingBond}:{}),outsidePilot:outsideCollateralPilot(s,id),release:owned&&a.release?{amount:formatToken(a.release.valueMicro,s.money.unitScale??'1'),readyAt:a.release.readyAt}:null};
+ return {owned,tracked,display,...(owned&&a.votingBond&&s.authority?.bondedAdmission?.boundary?{canIncreaseVotingBond:true}:{}),...(minimum?{reviewVotingBond}:{}),outsidePilot:outsideCollateralPilot(s,id),release:owned&&a.release?{amount:formatToken(a.release.valueMicro,s.money.unitScale??'1'),readyAt:a.release.readyAt}:null};
 }
 export function walletCollateralSummary(s,owner){
  const ids=Object.keys(s.workerFunding?.accounts??{}).filter(id=>s.workerFunding.accounts[id].owner===owner);

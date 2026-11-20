@@ -55,7 +55,8 @@ import {OPERATOR_ACTIONS,operatorPolicyAction,isOperatorRecord,auditOperatorRewa
 import {CASE_ACTIONS,protectionCaseAction,protectionCaseContext,isProtectionCaseRecord,auditProtectionCaseBinding,auditProtectionCases} from './bounded-protection-cases.mjs';
 import {validateConsensusContext,blockEventBytes} from '../consensus-context.mjs';
 import {POS_ACTIONS,posPolicyAction,auditPosPolicy,posReadmissionKeys} from './pos-policy-actions.mjs';
-import {assertConsensusBondHeld} from './bounded-pos-records.mjs';
+import {ordinaryIssued} from './issued-voting-minimum.mjs';
+import {increaseConsensusBond,assertConsensusBondHeld} from './bounded-pos-records.mjs';
 import {isPosRecord,auditPosRecords} from './pos-record-audit.mjs';
 import {applyPosBlock,posContextMode} from './pos-block-context.mjs';
 export {BOUNDED_DOMAIN} from './bounded-schema.mjs';
@@ -198,6 +199,7 @@ export class BoundedNetworkInterpreter{
    return withControllerContext(money,ctx,()=>{
     const ceiling=this.isolatedIssuance?null:productionIssuanceLimit(s,action,{at:at??s.money.time});
     s=apply(s,rules,tx,rewardContext(s,book))??s;
+    if(s.authority?.bondedAdmission?.boundary)s.authority.bondedAdmission.ordinaryIssuedMicro=ordinaryIssued(s);
     for(const bucket of ['outputs','requests','nodes'])assert.equal(s.money[bucket],money[bucket],'shared bounded monetary collection');
     Object.assign(money,s.money);s.money=money;reconcileWorkerSupport(s,touched);supported(s);auditMembership(s.authority,this.config,s.height);auditControllers(s);auditServiceBinding(tx.get,s);
     auditProtectionCaseBinding(tx.get,s);
@@ -238,9 +240,9 @@ export class BoundedNetworkInterpreter{
  #blockRules(request,expectedRoot,event,filter,observeRead){const requestDigest=hash(event);
   return raw=>{const source=boundedRecordReads(raw),readKeys=new Set(),guarded={...source,get:key=>{readKeys.add(key);if(readKeys.size>16384)throw new StorageReadError('block read budget');try{const value=source.get(key);observeRead?.(key,value);return value;}catch(e){throw new StorageReadError('authenticated storage read failed',{cause:e});}}},staged=overlay(guarded),decoded=decodedSections(staged),head=staged.get('meta/blockHead');if(request.height===head.height){assert.equal(head.requestDigest,requestDigest,'conflicting committed block replay');return {duplicate:true,codes:head.codes};}assert.equal(head.height+1,request.height,'consecutive block height');let readCount=0;
    const archive=staged.get('meta/anchor').archive;if(archive)assert.equal(archive.status,'READY','incomplete archive migration');
-   readCount+=this._frame(decoded,(s,rules,tx,context)=>{assert.equal(s.height,head.height);const baseHeight=s.height,lastValidators=posVotingAuthority(s.authority)?.validators??[];assert(request.time>=s.money.time&&request.time-s.money.time<=31*86400,'block time bounds');s.money.height=integer(s.money.height+Math.max(1,Math.ceil((request.time-s.money.time)/policy.maxAdvance)));s.money.time=request.time;s.height=request.height;s.blockHash=request.blockHash;if(s.authority)s.authority=activate(s.authority,s.height);s=beginRewards({height:baseHeight},s,{...context,anchorRoot:expectedRoot});if(s.rewards){const book=tx.get('meta/economics');book.seed=emptySeed();tx.set('meta/economics',book);}s=advanceSpendPolicies(s);executeLiabilityAdvance(s);
+   readCount+=this._frame(decoded,(s,rules,tx,context)=>{assert.equal(s.height,head.height);const priorOrdinary=ordinaryIssued(s),baseHeight=s.height,lastValidators=posVotingAuthority(s.authority)?.validators??[];assert(request.time>=s.money.time&&request.time-s.money.time<=31*86400,'block time bounds');s.money.height=integer(s.money.height+Math.max(1,Math.ceil((request.time-s.money.time)/policy.maxAdvance)));s.money.time=request.time;s.height=request.height;s.blockHash=request.blockHash;if(s.authority)s.authority=activate(s.authority,s.height);s=beginRewards({height:baseHeight},s,{...context,anchorRoot:expectedRoot});if(s.rewards){const book=tx.get('meta/economics');book.seed=emptySeed();tx.set('meta/economics',book);}s=advanceSpendPolicies(s);executeLiabilityAdvance(s);
     advanceSeat(s.authority,s.height);
-    applyPosBlock(tx,s,request,lastValidators);
+    applyPosBlock(tx,s,request,lastValidators,priorOrdinary);
     s=advanceMainProgramme(s);s=advanceServiceRewards(s,tx,expectedRoot,head.height);
     if(delayedPaymentsEnabled(s))for(const pid of Object.keys(rules.active).sort()){const r=rules.active[pid];if(r.status==='SCHEDULED'&&r.executeAt<=s.money.time){const before=structuredClone(s.money.requests[pid]);executeScheduledRelease(s.money,pid);s=this._settled(s,pid,before,tx);}}
     if(resourceLimitsEnabled(s)){const due=Object.keys(rules.active).filter(pid=>rules.active[pid].status==='RESERVED'&&paymentClock(s.money,rules.active[pid],s.money.height+1)>rules.active[pid].deadline).sort();for(const pid of due){const r=s.money.requests[pid];s.money.height++;executePaymentAction(s.money,{type:'EXPIRE',pid,request:r.digest});}}
@@ -313,7 +315,7 @@ export class BoundedNetworkInterpreter{
    const n=s.rewards?.nodes[a.body?.node];
    if(n?.payouts.length&&hash(n.payouts)!==hash(a.body.payouts))assert.equal(nodeLinkBlockers(s,a.body.node).length,0,'Settle existing reward obligations before changing payout wallets.');
   }
-  if(a.type===FUND_WORKER)return fundWorker(s,a,author);
+  if(a.type===FUND_WORKER)return fundWorker(s,a,author,(b)=>increaseConsensusBond(tx,s,b));
   if(a.type===MERGE_OWNED)return consolidateOwned(s,a,author);
   if(COLLATERAL_ACTIONS.includes(a.type))return releaseWorkerCollateral(s,a,author);
   if(a.type===PREPARE_WORKERS)return prepareInitialWorkers(s,a,this.config,{anchor:tx.get('meta/anchor')}).state;
