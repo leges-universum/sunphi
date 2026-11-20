@@ -1,22 +1,22 @@
 {
-  "version": "0.3.118",
+  "version": "0.3.119",
   "network": "duebyte-trial-fresh-20261109-v45",
   "files": [
     {
-      "name": "DueByte-Home-0.3.118-Windows-x64.zip",
+      "name": "DueByte-Home-0.3.119-Windows-x64.zip",
       "platform": "windows-x64",
       "edition": "home",
-      "bytes": 333623789,
-      "sha256": "804377fac830ed3fd43fa894eb6ebe0c138fdd3429a8e5c89835f55a54ce3c12",
-      "manifestSha256": "f24c425c0141ecf5a726651612355c59684e05fc6211e169aa2867aef6f151d8"
+      "bytes": 333625897,
+      "sha256": "b7437b6c993a2bbc9e141ec3f88878c4a5d5a07fdbdb5bb4d6176708172b7c26",
+      "manifestSha256": "9730a9cb44ea6d656a4b14160a8352c4964e6b99290e267b9bb4a2456bf4fa39"
     },
     {
-      "name": "DueByte-Home-0.3.118-Linux-x64.tar.gz",
+      "name": "DueByte-Home-0.3.119-Linux-x64.tar.gz",
       "platform": "linux-x64",
       "edition": "home",
-      "bytes": 191662975,
-      "sha256": "a016f0712968618dea4cf73359af1af0843dd9eadff20afa1f60490735bd2340",
-      "manifestSha256": "b1ac168a8e2bf6ed63e755ee5183b1be90452fd43550745d8ee6db8acd95acbb"
+      "bytes": 191663829,
+      "sha256": "d803e6b81149171ae3d643bf35660ef5880377931f58097f99707b9d84308e86",
+      "manifestSha256": "baa5e71b16f7b2239e4ea5ff55b01342d0ca3d2c7e8e41cbcbc8cc4abd780be0"
     }
   ]
 }

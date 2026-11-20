@@ -8,7 +8,7 @@ export function checkRuleGrant(grant,state,network,node){
  hex(grant.proposal);hex(grant.nonce);
  assert.equal(grant.network,network);assert.equal(grant.configHash,state.configHash);
  assert.equal(grant.generation,state.authority?.generation);assert.equal(grant.node,hex(node));
- assert(['DUEBYTE_OFFCHAIN_RULE_REVIEW_V1',PREPARE_DOMAIN].includes(grant.domain));integer(grant.expiresHeight,state.height);
+ assert(['DUEBYTE_OFFCHAIN_RULE_REVIEW_V1',PREPARE_DOMAIN,'SEAL_ORDINARY_EMISSION_CURVE_V1'].includes(grant.domain));integer(grant.expiresHeight,state.height);
  publicKey(grant.owner);publicKey(grant.controller);
  assert(state.authority.validators.some(v=>v.key===grant.controller),'Controller no longer eligible');
 }

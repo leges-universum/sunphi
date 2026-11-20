@@ -21,13 +21,15 @@ function plan(s,owner,q){
  }
  exact(q,['node','amount','unitScale']);assert(!outsideCollateralPilot(s,q.node),'Deposits are limited to servers in the current collateral pilot.');assert(collateralOptions(s,owner).enabled,collateralOptions(s,owner).reason);
  const need=BigInt(parseToken(q.amount,q.unitScale)),inputs=[];let sum=0n;
- // Largest first avoids refusing a sufficiently funded wallet with many dust outputs.
+ assert(need>0n,'Enter a positive collateral amount.');
  const outputs=available(s,owner).sort(([a,x],[b,y])=>BigInt(x.value)===BigInt(y.value)?a<b?-1:1:BigInt(x.value)>BigInt(y.value)?-1:1);
+ const total=outputs.reduce((a,[,o])=>a+BigInt(o.value),0n);
+ assert(need<=total,'Amount exceeds your confirmed available balance of '+formatToken(String(total),q.unitScale)+' DUBYT.');
  for(const [id,o]of outputs){if(inputs.length===8||sum>=need)break;inputs.push(id);sum+=BigInt(o.value);}
- assert(need>0n&&sum>=need,'Insufficient spendable funds within the eight-input limit.');
+ assert(sum>=need,'Your balance covers this amount, but it requires more than eight funding inputs under the current network rules. No deposit was submitted.');
  const result=prepareCollateralReview(s,{...q,owner,inputs});
  result.display.available=collateralOptions(s,owner).available;
- const total=outputs.reduce((a,[,o])=>a+BigInt(o.value),0n);result.display.remainingAvailable=formatToken(String(total-need),q.unitScale);
+ result.display.remainingAvailable=formatToken(String(total-need),q.unitScale);
  return result;
 }
 export class WalletCollateral{
@@ -41,11 +43,18 @@ export class WalletCollateral{
   return {id,body:review.body,display:review.display,verifiedHeight:certificate.height,mode:'CONSENT_ONLY',expiresAt:state.money.time+300};
  }
  async confirm(q){exact(q,['id']);const p=this.pending.get(q.id);this.pending.delete(q.id);assert(p&&this.now()<p.expires,'Collateral review expired. Review again.');
-  const {state}=await this.current({rewardIds:[p.q.node]}),fresh=plan(state,this.wallet.key.publicKey,p.q),b=p.review.body;
+  const {state}=await this.current({rewardIds:[p.q.node]}),b=p.review.body,owner=this.wallet.key.publicKey;
+  let fresh;
+  if(p.q.operation==='withdraw')fresh=plan(state,owner,p.q);
+  else{
+   assert(!outsideCollateralPilot(state,b.node),'The server can no longer accept collateral.');
+   fresh=prepareCollateralReview(state,{...p.q,owner,inputs:b.inputs});
+  }
   assert(state.money.time>=b.issuedAt&&state.money.time<b.expires,'Collateral consent expired. Review again.');
   assert.equal(state.money.nodes[b.node].key,p.workerKey,'Worker key changed. Review again.');
   assert.equal(hash({...fresh.body,issuedAt:b.issuedAt,expires:b.expires}),hash(b),'Balance or collateral terms changed. Review again.');
-  assert.deepEqual(fresh.display,p.review.display,'Available balance changed. Review again.');
+  if(p.q.operation==='withdraw')assert.deepEqual(fresh.display,p.review.display,'Withdrawable collateral changed. Review again.');
+  else assert.equal(fresh.display.selectedFunds,p.review.display.selectedFunds,'Selected funds changed. Review again.');
   return {format:'DUEBYTE_COLLATERAL_OWNER_CONSENT_V1',type:fresh.type,body:b,ownerSignature:sign(b,this.wallet.key.privateKey),expectedWorkerKey:p.workerKey,workerSignatureRequired:true,submitted:false};
  }
  clear(){this.pending.clear();}

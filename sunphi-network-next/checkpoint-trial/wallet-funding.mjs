@@ -25,6 +25,7 @@ export class WalletFunding extends WalletCollateral{
  }
  async confirm(q,valid=()=>true,tracking={}){this.checkPayments=true;assert(!pendingFunding(this.wallet.db),'A contribution is already pending');const consent=await super.confirm(q),id=hash(consent.body);
   assert(valid(),'Wallet session expired before submission');
+  assert(!pendingFunding(this.wallet.db),'A contribution is already pending');
   this.save({id,consent,...tracking,wire:null,status:'AWAITING_SERVER',createdAt:this.now(),verifiedHeight:null});return this.resume({id});
  }
  present(r){const b=r.consent.body;return {id:r.id,node:b.node,operation:r.consent.type===QUEUE_RELEASE?'withdraw':'deposit',amount:formatToken(b.valueMicro,b.unitScale??'1000000'),expires:b.expires,status:r.status,verifiedHeight:r.verifiedHeight,canCancel:!r.wire&&!terminal.has(r.status),canRetry:!terminal.has(r.status),message:r.message??null};}
@@ -33,7 +34,7 @@ export class WalletFunding extends WalletCollateral{
   try{const {state:s,certificate}=await this.current({rewardIds:[r.consent.body.node]}),b=r.consent.body,a=s.workerFunding?.accounts[b.node];
    const withdrawal=r.consent.type===QUEUE_RELEASE;
    if(withdrawal&&a?.owner===b.owner&&a.lastRelease?.sequence===b.sequence){
-    r.status='COMMITTED';r.verifiedHeight=certificate.height;r.message='Returned to your wallet.';this.save(r);return this.present(r);
+    r.status='COMMITTED';r.verifiedHeight=certificate.appHeight;r.message='Returned to your wallet.';this.save(r);return this.present(r);
    }
    if(a?.owner===b.owner&&a.sequence===b.sequence&&a.lastBodyHash===r.id){
     if(withdrawal){
@@ -44,7 +45,7 @@ export class WalletFunding extends WalletCollateral{
       r.message='Return submitted. Waiting for network confirmation.';
      }
     }else{r.status='COMMITTED';r.message=null;}
-    r.verifiedHeight=certificate.height;this.save(r);return this.present(r);
+    r.verifiedHeight=certificate.appHeight;this.save(r);return this.present(r);
    }
    if((a?.sequence??0)>=b.sequence){r.status=a.sequence===b.sequence?'CONFLICT':'RECONCILE_REQUIRED';r.message='Another collateral operation was confirmed. Check the server balance before continuing.';this.save(r);return this.present(r);}
    if(s.money.time>=b.expires){r.status='EXPIRED';r.message='The request expired without a confirmed deposit. Review again to create a new contribution.';this.save(r);return this.present(r);}

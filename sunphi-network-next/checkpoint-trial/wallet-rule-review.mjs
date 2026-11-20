@@ -7,10 +7,12 @@ import {requestRuleVote,verifyRuleRoute,RULE_ROUTE,RULE_VOTE} from './home-rule-
 import {PREPARE_DOMAIN,reviewPreparation,preparationPacket} from './bond-preparation-ballot.mjs';
 import {PREPARE_TYPE} from './bond-preparation-ballot.mjs';
 import {envelope} from './core.mjs';
+import {issuancePacket,mandateId,reviewIssuance} from './ordinary-issuance-ballot.mjs';
 
 // This signature domain only endorses the text of a rule. Executable changes
 // keep their own certificates and explicit activation height.
 export function reviewRuleText(packet,state,network,owner){
+ if(packet?.body?.domain==='SEAL_ORDINARY_EMISSION_CURVE_V1')return reviewIssuance(packet,state,network,owner);
  if(packet?.body?.domain===PREPARE_DOMAIN)return reviewPreparation(packet,state,network,owner);
  exact(packet,['body','document','approvals']);
  const {body,document,approvals}=packet,a=state.authority;
@@ -38,14 +40,14 @@ export class WalletRuleReviews{
   wallet.db.exec('CREATE TABLE IF NOT EXISTS rule_votes(proposal TEXT,signer TEXT,signature TEXT NOT NULL,PRIMARY KEY(proposal,signer))');
  }
  builtin(){return JSON.parse(readFileSync(new URL('./public-bonded-rule-v3.json',import.meta.url),'utf8'));}
- async preparationGroup(nodes){
+ async preparationGroup(nodes,issuance=false){
   this.pending=null;
-  assert(Array.isArray(nodes)&&nodes.length>0&&nodes.length<=128&&new Set(nodes).size===nodes.length,'Open a wallet with linked servers.');
+  assert(Array.isArray(nodes)&&(issuance||nodes.length>0)&&nodes.length<=128&&new Set(nodes).size===nodes.length,'Open a wallet with linked servers.');
   nodes.forEach(node=>hex(node));
   const w=this.wallet,owner=w.key.publicKey,network=w.client.config.chainId;
   const {state}=await w.view({rewardIds:nodes});
-  const {merged,status}=this.collect(preparationPacket(state,network),state);
-  const scope={preparationStart:merged.body.notBefore},grants=[],used=new Set(merged.approvals.map(v=>v.key));
+  const {merged,status}=this.collect(issuance?issuancePacket():preparationPacket(state,network),state);
+  const scope=issuance?{issuanceMandate:mandateId}:{preparationStart:merged.body.notBefore},grants=[],used=new Set(merged.approvals.map(v=>v.key));
   let weight=BigInt(status.weight);
   for(const node of [...nodes].sort()){
    if(weight>=BigInt(status.required))break;
@@ -54,11 +56,12 @@ export class WalletRuleReviews{
    let reply;
    try{reply=await this.request(w,node,{operation:RULE_ROUTE,node,owner,...scope});}catch{continue;}
    const grant=verifyRuleRoute(reply,state,network,node,owner);
-   assert(grant.domain===PREPARE_DOMAIN&&grant.proposal===status.proposal,'Server reviewed a different proposal');
-   if(used.has(grant.controller)||!reviewPreparation(merged,state,network,grant.controller).canSign)continue;
+   assert(grant.domain===merged.body.domain&&grant.proposal===status.proposal,'Server reviewed a different proposal');
+   if(used.has(grant.controller)||!reviewRuleText(merged,state,network,grant.controller).canSign)continue;
    used.add(grant.controller);grants.push(grant);
    weight+=BigInt(state.authority.validators.find(v=>v.key===grant.controller).power);
   }
+  if(issuance&&!grants.length)return {...status,id:null,servers:[],saved:merged.approvals.length?merged:null};
   assert(grants.length||status.canSubmit,'No eligible linked server is available for this proposal.');
   const id=randomBytes(32).toString('hex');
   const willSubmit=weight>=BigInt(status.required);
