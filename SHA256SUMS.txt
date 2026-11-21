@@ -1,2 +1,2 @@
-aefb8497b06f1fc89dbed874de9ecb2efd51d851fa24dccb7ef42ef77d701e3f  DueByte-Home-0.3.129-Windows-x64.zip
-26a707635a6107a1fa5b1107bce7f3832cc115d74fd74dcee8869d5c1569856c  DueByte-Home-0.3.129-Linux-x64.tar.gz
+ec17f9f2f0b23a1a95c95fcde527f533ba744c2759cede73562137a57e3dae56  DueByte-Home-0.3.130-Windows-x64.zip
+da03150d03edf779214a737c3ae01d259acf813e1a171c83a83248274d64060f  DueByte-Home-0.3.130-Linux-x64.tar.gz

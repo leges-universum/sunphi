@@ -373,7 +373,8 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  if(req.url.startsWith('/nodes/')){
   const active=wallet;
   assert(active,'Unlock the wallet to review a server.');
-  const valid=()=>wallet===active&&sessionEpoch===admittedEpoch&&!sessionDrain.pending&&!res.destroyed&&(actionExpires===null||Date.now()<=actionExpires);
+  const sessionValid=()=>wallet===active&&sessionEpoch===admittedEpoch&&!sessionDrain.pending&&!res.destroyed;
+  const valid=()=>sessionValid()&&(actionExpires===null||Date.now()<=actionExpires);
   const result=await paymentLane.run({busy:()=>working||walletBusy,valid,waitForCurrent:proposalRead||voteSubmission,timeoutMs:60000,
    timeoutMessage:proposalRead?'The wallet is still busy. Check signing eligibility again when the current operation finishes.':'Wallet verification is still running. Check Network, then select Review server again.',
    execute:async()=>{
@@ -409,7 +410,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
        if(req.url==='/nodes/rule-review'||req.url==='/nodes/rule-confirm'){
         if(!ruleReviewSessions.has(active))ruleReviewSessions.set(active,new WalletRuleReviews(active));
         const reviewer=ruleReviewSessions.get(active);
-        if(req.url==='/nodes/rule-confirm')return await reviewer.confirm(q,valid);
+        if(req.url==='/nodes/rule-confirm')return await reviewer.confirm(q,valid,sessionValid);
         if(q.builtin==='prepare-linked-servers'||q.builtin==='smooth-issuance'){
          assert.deepEqual(Object.keys(q).sort(),['builtin','nodes']);
          const result=await reviewer.preparationGroup(q.nodes,q.builtin==='smooth-issuance');assert(valid(),'Wallet session changed');return result;

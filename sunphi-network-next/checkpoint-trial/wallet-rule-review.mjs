@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash,randomBytes} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {rpc} from './client.mjs';
 import {exact,hash,hex,integer,sign} from './crypto.mjs';
 import {validatorApprovalBody,validatorSet,verifyValidatorApprovals} from './validator-authority.mjs';
 import {requestRuleVote,verifyRuleRoute,RULE_ROUTE,RULE_VOTE} from './home-rule-route.mjs';
@@ -34,8 +35,8 @@ export function reviewRuleText(packet,state,network,owner){
 }
 
 export class WalletRuleReviews{
- constructor(wallet,request=requestRuleVote){
-  this.wallet=wallet;this.request=request;this.pending=null;
+ constructor(wallet,request=requestRuleVote,history=rpc){
+  this.wallet=wallet;this.request=request;this.history=history;this.pending=null;
   wallet.db.exec('CREATE TABLE IF NOT EXISTS rule_endorsements(owner TEXT,proposal TEXT,packet TEXT NOT NULL,PRIMARY KEY(owner,proposal))');
   wallet.db.exec('CREATE TABLE IF NOT EXISTS rule_votes(proposal TEXT,signer TEXT,signature TEXT NOT NULL,PRIMARY KEY(proposal,signer))');
   wallet.db.exec('CREATE TABLE IF NOT EXISTS preparation_feedback(owner TEXT PRIMARY KEY,receipt TEXT NOT NULL)');
@@ -57,7 +58,14 @@ export class WalletRuleReviews{
   if(!this.feedback)return null;
   const f=this.feedback;
   let stage=f.stage;
-  if(state.authority?.posSlashing?.policyHash===f.policy)stage='open';
+  if(state.authority?.posSlashing?.policyHash===f.policy){
+   stage='open';
+   if(!f.confirmedHeight&&!this.lookup&&this.wallet.client.historyUrl&&Date.now()>=(this.lookupAfter??0)){
+    this.lookup=this.confirmationBlock(f,state.height).then(height=>{
+     if(height&&this.feedback?.proposal===f.proposal)this.saveFeedback({...this.feedback,confirmedHeight:height});
+    }).catch(()=>{}).finally(()=>{this.lookup=null;this.lookupAfter=Date.now()+60000;});
+   }
+  }
   else if(state.height>=f.end)stage='expired';
   else if(stage==='signing'&&!this.signingPreparation)stage='interrupted';
   return {...f,stage,height:state.height};
@@ -65,6 +73,46 @@ export class WalletRuleReviews{
  saveFeedback(f){
   this.wallet.db.prepare('INSERT OR REPLACE INTO preparation_feedback(owner,receipt) VALUES(?,?)').run(this.wallet.key.publicKey,JSON.stringify(f));
   this.feedback=f;
+ }
+ async confirmationBlock(f,verifiedHeight){
+  const w=this.wallet,peers=[...new Set([w.url,w.client.historyUrl])];
+  if(peers.length!==2||peers.some(url=>!url))return null;
+  const matches=encoded=>{
+   const wire=JSON.parse(Buffer.from(encoded,'base64')),a=wire.body?.action;
+   return a?.type===PREPARE_TYPE&&hash(a.certificate.body)===f.proposal;
+  };
+  let digest=f.txHash;
+  if(!digest){
+   // Earlier versions kept the certificate and window but no transaction hash.
+   for(let h=f.start;h<=Math.min(f.end,verifiedHeight)&&!digest;h++){
+    const {block}=await this.history(peers[0],'block',{height:String(h)});
+    assert.equal(block.header.chain_id,w.client.config.chainId);assert.equal(Number(block.header.height),h);
+    const raw=(block.data.txs??[]).find(matches);
+    if(raw)digest=createHash('sha256').update(Buffer.from(raw,'base64')).digest('hex');
+   }
+  }
+  if(!digest)return null;
+  const rows=await Promise.all(peers.map(async url=>{
+   const tx=await this.history(url,'tx',{hash:Buffer.from(digest,'hex').toString('base64'),prove:true});
+   const height=Number(tx.height);
+   assert(Number.isSafeInteger(height)&&height>=f.start&&height<=Math.min(f.end,verifiedHeight));
+   assert.equal(Number(tx.tx_result.code),0);assert(matches(tx.tx));
+   assert.equal(createHash('sha256').update(Buffer.from(tx.tx,'base64')).digest('hex'),digest);
+   const {block,block_id}=await this.history(url,'block',{height:tx.height});
+   assert.equal(block.header.chain_id,w.client.config.chainId);assert.equal(Number(block.header.height),height);
+   const transactions=block.data.txs;
+   assert.equal(transactions[tx.index],tx.tx);assert(/^[0-9a-f]{64}$/i.test(block_id.hash));
+   const sha=bytes=>createHash('sha256').update(bytes).digest();
+   function root(first,count){
+    if(count===1)return sha(Buffer.concat([Buffer.from([0]),sha(Buffer.from(transactions[first],'base64'))]));
+    const split=2**Math.floor(Math.log2(count-1));
+    return sha(Buffer.concat([Buffer.from([1]),root(first,split),root(first+split,count-split)]));
+   }
+   assert.equal(root(0,transactions.length).toString('hex'),block.header.data_hash.toLowerCase());
+   assert.equal(tx.proof.root_hash,block.header.data_hash);
+   return {height,blockHash:block_id.hash};
+  }));
+  assert.deepEqual(rows[0],rows[1]);return rows[0].height;
  }
  builtin(){return JSON.parse(readFileSync(new URL('./public-bonded-rule-v3.json',import.meta.url),'utf8'));}
  async preparationGroup(nodes,issuance=false,noticeState=null){
@@ -139,15 +187,21 @@ export class WalletRuleReviews{
   if(id)this.pending={id,action,expires:Date.now()+120000,packet:structuredClone(merged),grant,scope};
   return {...status,id,saved:merged.approvals.length?merged:null};
  }
- async confirm(q,valid){
+ async confirm(q,valid,sessionValid=valid){
   exact(q,['id']);const p=this.pending;this.pending=null;
   assert(p&&p.id===q.id&&Date.now()<p.expires,'Review the proposal again');
   const w=this.wallet,b=p.packet.body,g=p.grant;
   if(p.action==='group'){
    let packet=p.packet;
    const tracked=b.domain===PREPARE_DOMAIN;
-   const update=(stage,reason)=>{if(tracked)this.saveFeedback({proposal:hash(b),start:b.notBefore,end:b.expires,policy:hash(b.policy),count:packet.approvals.length,target:p.packet.approvals.length+p.grants.length,stage,reason});};
-   if(tracked)this.signingPreparation=true;
+   let txHash;
+   const update=(stage,reason)=>{if(tracked)this.saveFeedback({proposal:hash(b),start:b.notBefore,end:b.expires,policy:hash(b.policy),count:packet.approvals.length,target:p.packet.approvals.length+p.grants.length,stage,reason,txHash});};
+   if(tracked){
+    assert(valid(),'Approval expired before collection started.');
+    // Only the reviewed grant list and body proceed. The server and the wallet
+    // recheck eligibility and the signed block window before each endorsement.
+    valid=sessionValid;p.expires=Infinity;this.signingPreparation=true;
+   }
    try{
    update('signing');
    // Each vote passes the same fresh route, ledger, expiry and signature checks
@@ -165,7 +219,7 @@ export class WalletRuleReviews{
    if(!p.willSubmit||!current.status.canSubmit){update('partial');return {packet:current.merged,status:current.status,group:true};}
    const submit=new WalletRuleReviews(w,this.request);
    submit.pending={...p,grant:null,packet:current.merged,action:'submit'};
-   const result=await submit.confirm(q,valid);update('submitted');return {...result,group:true};
+   const result=await submit.confirm(q,valid);txHash=result.txHash;update('submitted');return {...result,group:true};
    }catch(error){update('interrupted',String(error.message).slice(0,240));throw error;}
    finally{if(tracked)this.signingPreparation=false;}
   }
@@ -176,7 +230,7 @@ export class WalletRuleReviews{
    assert(valid()&&Date.now()<p.expires,'Wallet session or review expired');
    const wire=envelope(w.client.config,{type:PREPARE_TYPE,certificate:{body:b,approvals:merged.approvals}},w.key);
    await w.broadcast(wire);
-   return {packet:merged,status:before,submitted:true};
+   return {packet:merged,status:before,submitted:true,txHash:createHash('sha256').update(JSON.stringify(wire)).digest('hex')};
   }
   const signer=g?.controller??w.key.publicKey;
   assert((g?reviewRuleText(merged,state,w.client.config.chainId,signer):before).canSign,'Ballot is closed or signer is ineligible');
