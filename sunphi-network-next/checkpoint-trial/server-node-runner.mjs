@@ -29,7 +29,26 @@ export async function runServerNode(root,state){
   let selected=homeLaunchProfile(root,state),runtime=await consumerRuntime(root,selected.profile,selected.pin),p=runtime.profile;
   let setup=await runtime.load('consumer-setup');setup.consumerIdentity(state,p,selected.pin);
   let delivery=null,candidate=null;
-  if(selected.pin===loadRelease(root).networkPin)try{delivery=await stageTransitionProfile({root,state});candidate=verifiedTransitionDelivery(delivery).profile;}catch{}
+  if(selected.pin===loadRelease(root).networkPin){
+   while(!stopping){
+    try{
+     delivery=await stageTransitionProfile({root,state});
+     candidate=verifiedTransitionDelivery(delivery).profile;
+     break;
+    }catch(error){
+     if(runtime.kind==='current')break;
+     const expired=String(error.message).includes('expired/future profile');
+     report('connecting',{message:expired?'Waiting for a renewed, signed network profile. Retrying automatically.':'Fetching the signed network profile. Retrying automatically.'});
+     await new Promise(resolve=>{
+      const finish=()=>{clearTimeout(timer);controller.signal.removeEventListener('abort',finish);resolve();};
+      const timer=setTimeout(finish,10000);
+      controller.signal.addEventListener('abort',finish,{once:true});
+      if(controller.signal.aborted)finish();
+     });
+    }
+   }
+   if(stopping)return;
+  }
   const transports=candidate??p;
   fs.writeFileSync(join(state,'known_hosts'),transports.hosts.map(h=>`[${h.ip}]:${h.port} ${h.pin}`).join('\n')+'\n',{mode:0o600});
   const links=transports.hosts.map(async(h,i)=>{while(!stopping){const child=launch('transport-'+i,'ssh',consumerTransportArgs(h,state));await new Promise(r=>child.once('close',r));if(!stopping)await delay(5000);}});

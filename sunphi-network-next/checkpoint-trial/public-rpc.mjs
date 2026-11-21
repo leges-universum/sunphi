@@ -49,9 +49,18 @@ export function publicServer(route,{budget={active:0},upstream=fetch,timeoutMs=1
    if(!enrollment&&!permitted(route.kind,req.method,req.url,body))return reply(403,'not permitted');
    let target=enrollment?route.homeAdmissionTarget:route.target,forwardBody=body,workProbe=null;
    if(route.kind==='rpc'&&req.method==='POST'&&body?.method==='abci_query'&&body.params?.path==='/work'&&typeof body.params.data==='string'){
-    const encoded=body.params.data;if(encoded.length>1024||!/^([a-fA-F0-9]{2})+$/.test(encoded))return reply(400,'invalid work query');
+    const encoded=body.params.data;if(encoded.length>16384||encoded.length%2||!/^[a-fA-F0-9]+$/.test(encoded))return reply(400,'invalid work query');
     let data;try{data=JSON.parse(Buffer.from(encoded,'hex'));}catch{return reply(400,'invalid work query');}
-    if(data&&Object.hasOwn(data,'node')){
+    const routed=data?.operation==='DUEBYTE_VALIDATOR_ENROLLMENT_V1'?data.node:
+     data?.operation==='DUEBYTE_SERVER_RULE_ROUTE_V1'?data.node:
+     data?.operation==='DUEBYTE_SERVER_RULE_VOTE_V1'?data.intent?.node:
+     data?.operation==='DUEBYTE_COLLATERAL_REQUEST_V1'?data.consent?.body?.node:undefined;
+    if(routed!==undefined){
+     if(typeof routed!=='string'||!/^[a-f0-9]{64}$/.test(routed)||!Object.hasOwn(workers,routed))return reply(503,'worker route unavailable');
+     if(Object.keys(body.params).sort().join(',')!=='data,path')return reply(400,'invalid work query');
+     target=workers[routed];
+    }else if(encoded.length>1024)return reply(400,'invalid work query');
+    else if(data&&Object.hasOwn(data,'node')){
      if(!/^[a-f0-9]{64}$/.test(data.node)||!Object.hasOwn(workers,data.node))return reply(503,'worker route unavailable');
      if(Object.keys(body.params).sort().join(',')!=='data,path')return reply(400,'invalid work query');
      if(Object.keys(data).length===1)workProbe={domain:'DUEBYTE_WORK_ROUTE_V1',node:data.node,available:true};

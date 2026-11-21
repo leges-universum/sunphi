@@ -61,7 +61,10 @@ export function nodeCollateralStatus(s,id,owner){
  if(tracked)display.working= formatToken(String(availableWorkingStake(s,id)),s.money.unitScale??'1');
  const minimum=preparedVotingMinimum(s);
  const reviewVotingBond=Boolean(minimum && tracked && !a.release && remaining>=BigInt(minimum));
- return {owned,tracked,display,...(owned&&a.votingBond&&s.authority?.bondedAdmission?.boundary?{canIncreaseVotingBond:true}:{}),...(minimum?{reviewVotingBond}:{}),outsidePilot:outsideCollateralPilot(s,id),release:owned&&a.release?{amount:formatToken(a.release.valueMicro,s.money.unitScale??'1'),readyAt:a.release.readyAt}:null};
+ const payouts=s.rewards?.nodes?.[id]?.payouts;
+ const linked=payouts?.length===1&&payouts[0].wallet===owner&&payouts[0].weight===1;
+ const enrollment=linked&&minimum&&!a?.votingBond&&!a?.release&&(!a||owned)?{bond:minimum,policyHash:s.authority.posSlashing.policyHash}:null;
+ return {owned,tracked,display,...(enrollment?{enrollment}:{}),...(owned&&a.votingBond&&s.authority?.bondedAdmission?.boundary?{canIncreaseVotingBond:true}:{}),...(minimum?{reviewVotingBond}:{}),outsidePilot:outsideCollateralPilot(s,id),release:owned&&a.release?{amount:formatToken(a.release.valueMicro,s.money.unitScale??'1'),readyAt:a.release.readyAt}:null};
 }
 export function walletCollateralSummary(s,owner){
  const ids=Object.keys(s.workerFunding?.accounts??{}).filter(id=>s.workerFunding.accounts[id].owner===owner);

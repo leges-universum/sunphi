@@ -28,6 +28,8 @@ import {verifyIndexedSchemaActivation,openGuardedIndexedSchemaBoundary} from './
 import {acquireStateAccess,assertStateInstallationComplete} from './state-access.mjs';
 import {BootstrapProgress} from './bootstrap-progress.mjs';
 import {FundingQueue,FUNDING_REQUEST,fundingState} from './funding-service.mjs';
+import {ServerEnrollment} from './server-validator-enrollment.mjs';
+import {enrollmentRoute} from './validator-enrollment.mjs';
 import {queryBounded} from './research/bounded-query.mjs';
 import {prepareOperatorLink,signOperatorLink} from './operator-link.mjs';
 const [directory,portText]=process.argv.slice(2),home=resolve(directory),port=Number(portText);assert(Number.isInteger(port)&&port>=1024&&port<=65535);
@@ -67,6 +69,12 @@ const indexedSettings=schemaSettings??freshSettings??(existsSync(join(home,'inde
 let indexed=null,indexedApi=null,indexedCheckpoints=null,indexedReceiver=null,indexedInstalling=false,stopJournalMaintenance=()=>{};
 let archivePreparation=null,indexedChunkIndexes=new Set();
 let fundingQueue=null;
+let validatorEnrollment;
+function enrollment(){
+ assert(indexed&&work&&!indexedInstalling&&!bootstrapPending,'Validator service is synchronizing.');
+ return validatorEnrollment??=new ServerEnrollment(home,config,work,indexed.handler);
+}
+let ruleWindow=0,ruleRequests=0;
 function funding(){assert(indexed&&work&&!indexedInstalling&&!bootstrapPending,'Funding service is not ready');
  if(!fundingQueue)fundingQueue=new FundingQueue(join(home,'funding-requests.sqlite'),{configHash:hash(config),key:work,view:b=>fundingState(indexed.handler,work.node,b)});return fundingQueue;
 }
@@ -122,6 +130,7 @@ function dispatch(q){
   assert.equal(read('run-settings.json').isValidator,false,'validator recovery cannot reset consensus metadata');
   const own=Buffer.from(read('config/priv_validator_key.json').pub_key.value,'base64').toString('base64url');
   assert(!(indexed.blocks.header.authority?.validators??config.control.validators).some(v=>v.key===own),'voter cannot use bootstrap recovery');
+  assert(!indexed.blocks.header.authority?.archiveVoting?.leases.some(v=>v.key===own),'archive voter cannot use bootstrap recovery');
   return bootstrapRecoveryAnchor({pending:bootstrapPending,header:indexed.blocks.header,root:indexed.handler.root,config,policy,previous:read('indexed-checkpoint.json').document,sources:configuredArchiveSources(home)});
  }
  if(q.method==='prepareArchive'||q.method==='archivePreparation'){
@@ -170,9 +179,34 @@ function dispatch(q){
   if(q.method==='installCheckpoint'){assert(indexedCheckpoints);return indexedCheckpoints.install(q.document,q.manifest);}
   if(q.method==='publicCheckpoint'&&indexedCheckpoints?.current)return {value:indexedCheckpoints.publication()};
   if(q.method==='fundingList'){exact(q,['method']);return {node:work?.node??null,requests:funding().list()};}
+  if(q.method==='publicWork'&&q.key.includes(enrollmentRoute)){
+   assert(Buffer.byteLength(q.key)<=4096);
+   const second=Math.floor(Date.now()/1000);
+   if(ruleWindow!==second){ruleWindow=second;ruleRequests=0;}
+   assert(++ruleRequests<=8,'Validator service is busy.');
+   return {value:enrollment().request(JSON.parse(q.key))};
+  }
+  if(q.method==='publicWork'&&q.key.includes('DUEBYTE_SERVER_RULE_')){
+   assert(indexed&&work&&!indexedInstalling&&!bootstrapPending&&Buffer.byteLength(q.key)<=4096);
+   const second=Math.floor(Date.now()/1000);
+   if(ruleWindow!==second){ruleWindow=second;ruleRequests=0;}
+   assert(++ruleRequests<=8,'Server voting is busy');
+   const request=JSON.parse(q.key);
+   const meta=queryBounded(indexed.handler,{type:'wallet-meta',id:null},indexed.handler.root).result;
+   assert(!meta.isolatedIssuance&&Math.abs(meta.data.money.time-second)<120,'Wait for server synchronization');
+   return import('./server-rule-vote.mjs').then(({localRuleVote})=>({
+    value:localRuleVote(request,{home,state:{...meta.data.network,money:meta.data.money},network:config.chainId,worker:work,
+     payouts:queryBounded(indexed.handler,{type:'reward-account',id:work.node},indexed.handler.root).result.data?.payouts})
+   }));
+  }
   if(q.method==='fundingDecide'){exact(q,['method','id','decision']);return funding().decide({id:q.id,decision:q.decision});}
   if(q.method==='publicWork'){const request=JSON.parse(q.key);if([ARCHIVE_SNAPSHOTS,ARCHIVE_SNAPSHOT_CHUNK].includes(request?.operation)){assert(indexed&&!indexedInstalling&&!bootstrapPending&&Buffer.byteLength(q.key)<=1024);return {value:archiveSnapshotQuery(indexedCheckpoints,request)};}if([ARCHIVE_READ,ARCHIVE_ROW].includes(request?.operation)){assert(indexed&&!indexedInstalling&&Buffer.byteLength(q.key)<=1024);return {value:archiveChunk(indexed.handler.store,request)};}if(request?.operation===FUNDING_REQUEST){assert(Buffer.byteLength(q.key)<=8192);return {value:funding().request(request)};}}
-  if(indexed){const result=indexed.dispatch(q,{work,publication});if(q.method==='commit'&&bootstrapPending&&indexed.blocks.header.height>bootstrapPending.height)clearBootstrapPending();return result;}
+  if(indexed){const result=indexed.dispatch(q,{work,publication});if(q.method==='commit'&&bootstrapPending&&indexed.blocks.header.height>bootstrapPending.height)clearBootstrapPending();
+   if(q.method==='commit'&&work&&!bootstrapPending&&!indexedInstalling&&(validatorEnrollment||existsSync(join(home,'validator-enrollment.sqlite')))){
+    // Maintenance errors must never interrupt consensus application commits.
+    try{enrollment().tick();}catch(e){console.warn('Validator enrollment unavailable:',e.message);}
+   }
+   return result;}
   assert(['info','init','runtime','status','publicCheckpoint'].includes(q.method),'indexed bootstrap incomplete');
   if(freshSettings||schemaSettings){
    if(q.method==='init'){assert.equal(q.chain,config.chainId);assert.equal(hash(JSON.parse(Buffer.from(q.state,'base64'))),validateConfig(config));}
