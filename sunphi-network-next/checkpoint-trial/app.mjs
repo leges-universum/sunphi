@@ -194,6 +194,12 @@ function dispatch(q){
    const request=JSON.parse(q.key);
    const meta=queryBounded(indexed.handler,{type:'wallet-meta',id:null},indexed.handler.root).result;
    assert(!meta.isolatedIssuance&&Math.abs(meta.data.money.time-second)<120,'Wait for server synchronization');
+   if(Object.hasOwn(request,'cutoverStart')){
+    const root=indexed.handler.root;
+    return Promise.all([import('./bonded-cutover.mjs'),import('./local-validator-key.mjs')]).then(([{signCutoverRequest},{validatorKey}])=>({value:signCutoverRequest(request,{state:meta.data.network,network:config.chainId,worker:work,
+     payouts:queryBounded(indexed.handler,{type:'reward-account',id:work.node},root).result.data?.payouts,
+     get:k=>indexed.handler.store.proof(k,root).value,key:()=>validatorKey(home)})}));
+   }
    return import('./server-rule-vote.mjs').then(({localRuleVote})=>({
     value:localRuleVote(request,{home,state:{...meta.data.network,money:meta.data.money},network:config.chainId,worker:work,
      payouts:queryBounded(indexed.handler,{type:'reward-account',id:work.node},indexed.handler.root).result.data?.payouts})

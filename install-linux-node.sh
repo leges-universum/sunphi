@@ -3,8 +3,8 @@
 set -euo pipefail
 umask 022
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
-version=0.3.131
-archive_sha256=48ec5ef98228e9fc1338b7e7f675969b0fe2ae61fcd99f2e6ca844a7a0ae83f7
+version=0.3.132
+archive_sha256=99bec02fb1219e50f1fb778490bdb4fc7d14064800b783f573f16409ac0a5c2c
 package="DueByte-Server-$version-Linux-x64"
 prefix=/opt/duebyte-server
 current="$prefix/current"

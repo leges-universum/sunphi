@@ -679,7 +679,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.131</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.132</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -1163,10 +1163,10 @@ async function updateVoteInbox(s){
  voteBusy=true;const epoch=voteEpoch;
  try{
   const nodes=(s.nodesSnapshot?.nodes??[]).filter(n=>n.kind==='server').map(n=>n.id).slice(0,128);
-  const {items,incomplete}=await api('/nodes/vote-notices',{nodes});
+  const {items,incomplete,cutoverStatus}=await api('/nodes/vote-notices',{nodes});
   if(epoch!==voteEpoch)return;
   knownVoteItems=items;updateVoteCount(lastStatus?.preparationFeedback);
-  $('vote-availability').textContent=incomplete?'Some voting information is unavailable. Home will check again.':items.length?'':'You have no votes awaiting action.';
+  $('vote-availability').textContent=cutoverStatus||(incomplete?'Some voting information is unavailable. Home will check again.':items.length?'':'You have no votes awaiting action.');
   const signature=JSON.stringify(items);
   if(voteSignature!==signature){
    const box=$('vote-items'),ids=new Set(items.map(r=>r.id));
@@ -1174,6 +1174,18 @@ async function updateVoteInbox(s){
    for(const r of items){
     if([...box.children].some(card=>card.dataset.id===r.id))continue;
     const card=element('article','');card.dataset.id=r.id;
+    if(r.kind==='cutover'){
+     card.append(element('h3',r.title),element('p','At block '+r.activation+', the ten validators will enter bonded consensus. Double signing can cost 5% of a bond. Repeated downtime can cost 0.1%.'));
+     const button=element('button','Approve activation');button.type='button';
+     const result=element('p','');result.setAttribute('role','status');
+     button.onclick=async()=>{
+      button.disabled=true;result.textContent='Collecting validator approvals and readiness signatures…';
+      try{await api('/nodes/rule-confirm',{id:r.id});button.hidden=true;result.textContent='Certificate submitted. Waiting for network confirmation.';}
+      catch(e){result.textContent=e.message;}
+      finally{voteNext=0;voteSignature='';if(!button.hidden){button.disabled=false;}void poll();}
+     };
+     card.append(button,result);box.append(card);continue;
+    }
     card.append(element('h3',r.title),element('p',(r.kind==='review'?'Your expert review is requested.':'Your vote is requested.')+(r.ends?' Closes '+utc(r.ends)+'.':'')));
     const b=element('button',r.kind==='review'?'Review question':'Review proposal');b.type='button';b.onclick=()=>openVote(r,b,card);card.append(b);box.append(card);
    }

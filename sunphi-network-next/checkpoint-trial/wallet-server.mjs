@@ -33,6 +33,8 @@ import {WalletFunding,validateFundingInstruction} from './wallet-funding.mjs';
 import {WalletBond} from './wallet-bond.mjs';
 const bondSessions=new WeakMap();
 const ruleReviewSessions=new WeakMap();
+import {cutoverOpen,cutoverBody,submitCutover} from './bonded-cutover.mjs';
+const cutoverReviews=new WeakMap();
 import {WalletRuleReviews} from './wallet-rule-review.mjs';
 import {recentBlockSignatures} from './wallet-block-votes.mjs';
 let collateral=null;
@@ -398,11 +400,23 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
         }catch{incomplete=true;}
         if(!ruleReviewSessions.has(active))ruleReviewSessions.set(active,new WalletRuleReviews(active));
         const reviewer=ruleReviewSessions.get(active);
+        let cutoverStatus=null;
+        active.db.exec('CREATE TABLE IF NOT EXISTS bonded_cutover(owner TEXT PRIMARY KEY, activation INTEGER, expires INTEGER)');
+        const submitted=active.db.prepare('SELECT activation,expires FROM bonded_cutover WHERE owner=?').get(owner);
+        if(submitted&&state.authority?.posSlashing?.activation===submitted.activation){
+         cutoverStatus='Network activation confirmed for block '+submitted.activation+'.';
+        }else if(submitted&&submitted.expires>=state.height){
+         cutoverStatus='Certificate submitted. Waiting for network confirmation.';
+        }else if(cutoverOpen(state,config.chainId,owner)&&Object.entries(state.workerFunding.accounts).filter(([id,f])=>f.owner===owner&&state.money.nodes[id]?.consensusHeld==='100000000').length===10){
+         let body=cutoverReviews.get(active);
+         if(!body||body.expires-state.height<15){body=cutoverBody(state.height);cutoverReviews.set(active,body);}
+         items.push({id:hash(body),kind:'cutover',title:'Activate bonded consensus',activation:body.activation});
+        }
         for(const [id,title] of [['rule-group','Opening validator bond deposits'],['issuance-terms','Smooth issuance schedule']]){
          try{if(await reviewer.preparationGroup(q.nodes,id==='issuance-terms',state))items.push({id,title,kind:'financial'});}
          catch{incomplete=true;}
         }
-        assert(valid(),'Wallet session changed');return {items,incomplete};
+        assert(valid(),'Wallet session changed');return {items,incomplete,cutoverStatus};
        }
        if(req.url==='/nodes/block-votes'){
         assert.deepEqual(q,{});return await recentBlockSignatures(active);
@@ -410,7 +424,16 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
        if(req.url==='/nodes/rule-review'||req.url==='/nodes/rule-confirm'){
         if(!ruleReviewSessions.has(active))ruleReviewSessions.set(active,new WalletRuleReviews(active));
         const reviewer=ruleReviewSessions.get(active);
-        if(req.url==='/nodes/rule-confirm')return await reviewer.confirm(q,valid,sessionValid);
+        if(req.url==='/nodes/rule-confirm'){
+         const body=cutoverReviews.get(active);
+         if(body&&hash(body)===q.id){
+          exact(q,['id']);assert(valid(),'Approval expired.');cutoverReviews.delete(active);
+          const result=await submitCutover(active,body,sessionValid);
+          active.db.prepare('INSERT OR REPLACE INTO bonded_cutover VALUES(?,?,?)').run(active.key.publicKey,body.activation,body.expires);
+          return result;
+         }
+         return await reviewer.confirm(q,valid,sessionValid);
+        }
         if(q.builtin==='prepare-linked-servers'||q.builtin==='smooth-issuance'){
          assert.deepEqual(Object.keys(q).sort(),['builtin','nodes']);
          const result=await reviewer.preparationGroup(q.nodes,q.builtin==='smooth-issuance');assert(valid(),'Wallet session changed');return result;

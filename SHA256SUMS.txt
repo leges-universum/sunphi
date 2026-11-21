@@ -1,4 +1,4 @@
-43b60e0349abc8dbfd5604fcd71838f73f7c44c3439330f917d196c0038ce7e8  DueByte-Home-0.3.131-Windows-x64.zip
-ae04c7262bd923408f604ed7d9f19276cec87b89b1d4a286759e4fa71c1a0b6c  DueByte-Home-0.3.131-Linux-x64.tar.gz
-48ec5ef98228e9fc1338b7e7f675969b0fe2ae61fcd99f2e6ca844a7a0ae83f7  DueByte-Server-0.3.131-Linux-x64.tar.gz
-8654399f734e294c123183a3656f94d201e1ff6a753c28c703169768fcdc8b64  install-linux-node.sh
+cd56de62640ad4f6a9a33cab9720f15115becd38b5b6c204f3de9d08f79d9ac1  DueByte-Home-0.3.132-Windows-x64.zip
+afa0b3b9bc8f8b28bb9638845858c5b119f335822d1a44a3580aa3e6a98e5579  DueByte-Home-0.3.132-Linux-x64.tar.gz
+99bec02fb1219e50f1fb778490bdb4fc7d14064800b783f573f16409ac0a5c2c  DueByte-Server-0.3.132-Linux-x64.tar.gz
+c2ae9b5e8acc03df6d5c746d3f24dd2178a12e9a3948b5aca63c0aff5a122cae  install-linux-node.sh
