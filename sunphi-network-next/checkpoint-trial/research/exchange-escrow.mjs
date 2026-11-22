@@ -3,36 +3,79 @@ import assert from 'node:assert/strict';
 import {hash,digest,hex,integer,publicKey,verify,exact} from '../crypto.mjs';
 import {AuthenticatedRecordStore} from './authenticated-record-store.mjs';
 import {EXCHANGE_V2,applyExchangeResolution,checkExchangePlan} from './exchange-resolution.mjs';
+import {RESERVE_TRIAL} from './network-reserve.mjs';
+import {checkLoanTerms} from './reserve-test-loan.mjs';
+import {validateSeries} from './backed-series.mjs';
+import {validatePortfolio} from './reserve-portfolio.mjs';
+import {validateSettlementAsset,settlementAddress,reserveSymbol} from './settlement-asset.mjs';
 import {ETHEREUM_GENESIS,ETHEREUM_USDC} from './exchange-evm-networks.mjs';
+import {sepoliaPins} from './purchase-contract.mjs';
 export const EXCHANGE='DUEBYTE_CONDITIONAL_EXCHANGE_LAB_V1';
 export const atomic=v=>{assert(typeof v==='string'&&/^(0|[1-9][0-9]{0,23})$/.test(v),'atomic integer string');return BigInt(v);};
 export function exchangePolicy(p){
- exact(p,['domain','isolated','chain','provider','routes','minGap','maxDuration','observers']);
+ exact(p,['domain','isolated','chain','provider','routes','minGap','maxDuration','observers',...(p.reserve?['reserve']:[])]);
  assert([EXCHANGE,EXCHANGE_V2].includes(p.domain));assert.equal(p.isolated,true);assert(/^duebyte-exchange-lab-[a-z0-9-]+$/.test(p.chain),'isolated chain only');publicKey(p.provider);
  integer(p.minGap,60);integer(p.maxDuration,p.minGap*3);assert(p.maxDuration<=604800);
  assert(Array.isArray(p.observers)&&p.observers.length===3&&new Set(p.observers).size===3);for(const key of p.observers){publicKey(key);assert.notEqual(key,p.provider);}
+ if(p.reserve){
+  if(Object.hasOwn(p.reserve,'portfolio')){
+   validatePortfolio(p);
+   const {portfolio,...reserve}=p.reserve;
+   exchangePolicy({...p,reserve});return;
+  }
+  assert.equal(p.chain,RESERVE_TRIAL.replace('duebyte-trial-','duebyte-'));
+  if(p.reserve.nativeOnly===true){
+   exact(p.reserve,['nativeOnly','series']);exact(p.routes,[]);assert.equal(p.domain,EXCHANGE_V2);
+   validateSeries(p.reserve.series);assert(p.reserve.series.settlement,'Settlement asset required.');
+   assert(!p.observers.includes(p.reserve.series.contributor)&&!p.observers.includes(p.reserve.series.holder));
+   return;
+  }
+  const asset=p.reserve.settlement;
+  exact(p.reserve,['signer','externalWallet','escrow','feeWallet','feeBps',...(asset?['settlement']:[]),...(p.domain===EXCHANGE_V2?['codeHash']:[]),...(p.reserve.armAtLock===true?['armAtLock']:[]),...(p.reserve.series?['series']:[]),...(p.reserve.credit?['credit']:[])]);assert.equal(p.reserve.feeBps,50);
+  if(asset){
+   validateSettlementAsset(asset);assert(asset.symbol!=='BTC'&&p.reserve.armAtLock&&p.domain===EXCHANGE_V2);
+   exact(p.routes,[asset.symbol]);assert.deepEqual(p.routes[asset.symbol],{network:asset.network,genesis:asset.genesis,contract:asset.assetId,decimals:asset.decimals});
+   if(p.reserve.series)assert.deepEqual(p.reserve.series.settlement,asset);
+   if(p.reserve.credit)assert.notEqual(p.reserve.credit.externalOwner,p.reserve.credit.vault);
+  }else if(p.reserve.series)assert(!Object.hasOwn(p.reserve.series,'settlement'),'Choose a matching settlement profile for the reserve.');
+  if(p.reserve.credit){assert(p.reserve.armAtLock);checkLoanTerms(p.reserve.credit,asset);assert(![p.reserve.escrow,p.reserve.externalWallet,p.reserve.feeWallet,p.reserve.series?.vault].includes(p.reserve.credit.vault));assert(![p.reserve.signer,p.provider,...p.observers].includes(p.reserve.credit.borrower));}
+  if(p.reserve.series){assert(p.reserve.armAtLock);validateSeries(p.reserve.series);assert(![p.reserve.escrow,p.reserve.externalWallet,p.reserve.feeWallet].includes(p.reserve.series.vault));assert(![p.provider,p.reserve.signer,...p.observers].includes(p.reserve.series.contributor));}
+  if(p.reserve.armAtLock)assert.equal(p.domain,EXCHANGE_V2);
+  if(p.domain===EXCHANGE_V2)hex(p.reserve.codeHash);
+  for(const addr of [p.reserve.escrow,p.reserve.feeWallet])settlementAddress(addr,asset?.addressFormat??'hex20');
+  assert.equal(new Set([p.reserve.escrow,p.reserve.feeWallet,p.reserve.externalWallet]).size,3);publicKey(p.reserve.signer);
+  assert(p.reserve.signer!==p.provider&&!p.observers.includes(p.reserve.signer));
+  settlementAddress(p.reserve.externalWallet,asset?.addressFormat??'hex20');
+  if(asset)return;
+ }
  exact(p.routes,['BTC','USDC']);
  for(const [asset,r]of Object.entries(p.routes)){
   exact(r,['network','genesis','contract','decimals']);hex(r.genesis);
   if(asset==='USDC'&&r.network==='ethereum-mainnet'){
    // External evidence rehearsal only: the DueByte chain remains isolated.
    // Old V1 preimage settlement must never admit this route.
-   assert.equal(p.domain,EXCHANGE_V2);assert.equal(r.genesis,ETHEREUM_GENESIS);assert.equal(r.contract,ETHEREUM_USDC);
+   assert(!p.reserve,'Reserve rehearsal requires test assets.');assert.equal(p.domain,EXCHANGE_V2);assert.equal(r.genesis,ETHEREUM_GENESIS);assert.equal(r.contract,ETHEREUM_USDC);
    assert(p.minGap>=3600,'Ethereum evidence rehearsal requires a finality/recovery margin');
+  }else if(asset==='USDC'&&r.network==='ethereum-sepolia'){
+   assert(p.reserve?.armAtLock&&!p.reserve.credit&&p.domain===EXCHANGE_V2,'Sepolia reserve settlement requires a qualified spot profile.');
+   assert.equal(r.genesis,sepoliaPins.genesis.slice(2));assert.equal(r.contract,sepoliaPins.contract);assert(p.minGap>=3600);
   }else assert.equal(r.network,asset==='BTC'?'bitcoin-regtest':'ethereum-local');
   assert.equal(r.decimals,asset==='BTC'?8:6);assert(asset==='BTC'?r.contract==='native':/^0x[a-f0-9]{40}$/.test(r.contract));
  }
 }
 export function checkExchangeQuote(p,q,now){
  exchangePolicy(p);exact(q,['domain','policyHash','chain','nonce','user','provider','direction','asset','dubytAtomic','externalAtomic','hashlock','createdAt','quoteUntil','dubytUntil','externalUntil','externalRecipient','externalRefund']);
- assert.equal(q.domain,p.domain+'/QUOTE');assert.equal(q.policyHash,hash(p));assert.equal(q.chain,p.chain);assert.equal(q.provider,p.provider);publicKey(q.user);assert.notEqual(q.user,q.provider);hex(q.nonce);hex(q.hashlock);
+ assert.equal(q.domain,p.domain+'/QUOTE');assert.equal(q.policyHash,hash(p));assert.equal(q.chain,p.chain);if(p.reserve&&q.provider===p.reserve.signer){assert.equal(q.asset,reserveSymbol(p));assert.equal(q.direction==='BUY_DUBYT'?q.externalRecipient:q.externalRefund,p.reserve.externalWallet,'fund external custody');}else assert.equal(q.provider,p.provider);publicKey(q.user);assert.notEqual(q.user,q.provider);hex(q.nonce);hex(q.hashlock);
  assert(!p.observers.includes(q.user),'recipient cannot observe its own settlement');
  assert(['BUY_DUBYT','SELL_DUBYT'].includes(q.direction));assert(Object.hasOwn(p.routes,q.asset));assert(atomic(q.dubytAtomic)>0n&&atomic(q.externalAtomic)>0n);
  for(const x of ['createdAt','quoteUntil','dubytUntil','externalUntil'])integer(q[x],1);
  assert(q.createdAt<=now&&now<=q.quoteUntil,'quote expired');assert(q.quoteUntil>q.createdAt&&q.quoteUntil-q.createdAt<=300);
  const first=q.direction==='BUY_DUBYT'?q.externalUntil:q.dubytUntil,second=q.direction==='BUY_DUBYT'?q.dubytUntil:q.externalUntil;
  assert(second>=q.quoteUntil+p.minGap&&first>=second+p.minGap,'unsafe claim/refund deadlines');assert(first<=q.createdAt+p.maxDuration);
- for(const a of [q.externalRecipient,q.externalRefund])assert(typeof a==='string'&&(q.asset==='BTC'?/^bcrt1[ac-hj-np-z02-9]{8,87}$/.test(a):/^0x[a-f0-9]{40}$/.test(a)&&!/^0x0{40}$/.test(a)),'test address required');
+ for(const a of [q.externalRecipient,q.externalRefund]){
+  if(q.asset==='BTC')assert(typeof a==='string'&&/^bcrt1[ac-hj-np-z02-9]{8,87}$/.test(a),'test address required');
+  else settlementAddress(a,p.reserve?.settlement?.addressFormat??'hex20');
+ }
  assert.notEqual(q.externalRecipient,q.externalRefund);
  return q;
 }
@@ -42,6 +85,7 @@ export function verifyExchangeFunding(p,q,receipt,now){
  assert.equal(q.direction,'BUY_DUBYT');assert.equal(b.domain,EXCHANGE+'/FUNDING');assert.equal(b.policyHash,hash(p));assert.equal(b.order,hash(q));assert.equal(b.asset,q.asset);
  const route=p.routes[q.asset];for(const field of ['network','genesis','contract'])assert.equal(b[field],route[field]);hex(b.transaction);hex(b.block);
  assert(typeof b.escrow==='string'&&(q.asset==='BTC'?new RegExp('^'+b.transaction+':(0|[1-9][0-9]{0,5})$').test(b.escrow):new RegExp('^0x[a-f0-9]{40}:'+hash(q)+'$').test(b.escrow)),'exact funded escrow reference');
+ if(p.reserve&&q.asset==='USDC')assert.equal(b.escrow,p.reserve.escrow+':'+hash(q),'reviewed external escrow');
  assert.equal(b.amountAtomic,q.externalAtomic);assert.equal(b.recipient,q.externalRecipient);assert.equal(b.refundAddress,q.externalRefund);assert.equal(b.hashlock,q.hashlock);assert.equal(b.refundAt,q.externalUntil);assert.equal(b.status,'FUNDED');
  integer(b.observedAt,q.createdAt);integer(b.expiresAt,b.observedAt);assert(b.observedAt<=now&&now<=b.expiresAt&&b.expiresAt-b.observedAt<=300,'stale external funding');assert(now<q.dubytUntil&&now+p.minGap<=b.refundAt,'insufficient funding recovery window');
  assert(Array.isArray(receipt.signatures)&&receipt.signatures.length>=2&&receipt.signatures.length<=3);const seen=new Set();for(const s of receipt.signatures){exact(s,['observer','signature']);assert(p.observers.includes(s.observer)&&!seen.has(s.observer));assert(verify(b,s.signature,s.observer),'invalid funding signature');seen.add(s.observer);}
@@ -62,7 +106,7 @@ export function auditExchange(s){
  assert(Object.keys(s.orders).length<=32);
  for(const [id,o]of Object.entries(s.orders)){assert.equal(id,hash(o.quote));assert(['LOCKED','CLAIMED','REFUNDED'].includes(o.status));assert.equal(s.hashes[o.quote.hashlock],id);total+=o.status==='LOCKED'?atomic(o.quote.dubytAtomic):0n;}
  assert.equal(String(total),s.total,'DUBYT conservation');
- if(s.policy.domain===EXCHANGE_V2)for(const o of Object.values(s.orders)){assert(Object.hasOwn(o,'plan'));if(o.plan)checkExchangePlan(o.quote,o.plan);if(o.status==='CLAIMED'||o.status==='REFUNDED'&&o.plan)hex(o.resolution);}
+ if(s.policy.domain===EXCHANGE_V2)for(const o of Object.values(s.orders)){assert(Object.hasOwn(o,'plan'));if(o.plan)checkExchangePlan(o.quote,o.plan,s.policy);if(o.status==='CLAIMED'||o.status==='REFUNDED'&&o.plan)hex(o.resolution);}
 }
 export function applyExchange(previous,command,now){
  if(previous.policy.domain===EXCHANGE_V2)return applyExchangeResolution(previous,command,now,{checkQuote:checkExchangeQuote,audit:auditExchange});
@@ -70,7 +114,7 @@ export function applyExchange(previous,command,now){
  if(command.type==='LOCK'){
   exact(command,['type','quote','providerSignature','userSignature']);const q=command.quote,id=hash(q);
   // Exact retries survive expiry and do not relock an already settled order.
-  assert(verify(q,command.providerSignature,s.policy.provider),'provider signature');assert(verify(exchangeAcceptance(q),command.userSignature,q.user),'user acceptance');
+  assert(verify(q,command.providerSignature,q.provider),'provider signature');assert(verify(exchangeAcceptance(q),command.userSignature,q.user),'user acceptance');
   if(s.orders[id])return previous;
   checkExchangeQuote(s.policy,q,now);assert(!s.hashes[q.hashlock],'one secret per order');assert(Object.keys(s.orders).length<32,'bounded lab capacity');
   const payer=q.direction==='BUY_DUBYT'?q.provider:q.user,n=atomic(q.dubytAtomic),balance=atomic(s.balances[payer]??'0');assert(balance>=n,'insufficient available DUBYT');

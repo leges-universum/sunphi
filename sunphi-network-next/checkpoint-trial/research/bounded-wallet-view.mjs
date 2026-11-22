@@ -7,6 +7,7 @@ import {parseToken} from '../token-units.mjs';
 import {bindPaidAdmissionView} from '../paid-admission-view.mjs';
 import {BOUNDED_DOMAIN} from './bounded-schema.mjs';
 const verifiedViews=new WeakMap();
+export const verifiedOperatorPayroll=(state,id)=>structuredClone(verifiedViews.get(state)?.payroll?.[id]??null);
 export function assertBoundedWalletView(state,certificate,config,owner){
  const pin=verifiedViews.get(state);assert(pin&&pin.owner!==null,'unverified owner view');
  assert.equal(pin.owner,owner);assert.equal(pin.configHash,hash(config));assert.equal(pin.root,certificate.appHash);assert.equal(state.height,certificate.appHeight);assert.equal(hash(state),pin.digest,'modified owner view');
@@ -124,7 +125,11 @@ export async function loadBoundedWalletView(query,{root,height,configHash,owner,
  // Read only the keys assigned to its active requests, using the same root.
  const assigned=new Set(Object.values(state.money.requests).filter(r=>r.status==='RESERVED'&&r.intent.sender===owner).flatMap(r=>r.intent.parts.flatMap(p=>p.nodes)));
  for(const id of assigned)if(!Object.hasOwn(state.money.nodes,id)){hex(id);assert(++records<=maxRecords,'owner view record budget');const n=await read({type:'node',id});assert(n,'assigned worker missing');state.money.nodes[id]=n;}
- verifiedViews.set(state,{root,configHash,domain:meta.anchor.domain,owner,rewardIds:[...covered],payment:capacity,digest:hash(state)});
+ const payroll={};
+ if(state.rewards?.calendarService?.reserve)for(const id of covered){
+  assert(++records<=maxRecords,'owner view record budget');payroll[id]=await read({type:'reserve-payroll',id});
+ }
+ verifiedViews.set(state,{root,configHash,domain:meta.anchor.domain,owner,rewardIds:[...covered],payment:capacity,payroll,digest:hash(state)});
  return {state,anchor:meta.anchor,history};
 }
 async function readQuery(url,{method='GET',timeout=10000,budget=32*1048576}={}){

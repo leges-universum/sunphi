@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {exact,hash,hex,integer,publicKey,verify} from '../crypto.mjs';
 export const PURCHASE='DUEBYTE_PROTECTED_PURCHASE_LAB_V1';
+export const sepoliaPins=Object.freeze({chainId:'0xaa36a7',genesis:'0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9',contract:'0x1c7d4b196cb0c7b01d743fbc6116a902379c7238'});
 const units=v=>{assert(typeof v==='string'&&/^(0|[1-9][0-9]{0,23})$/.test(v),'canonical atomic amount');return BigInt(v);};
 const label=v=>assert(typeof v==='string'&&v.length>0&&v.length<=160&&!/[\u0000-\u001f\u007f]/.test(v),'bounded text');
 export const orderId=offer=>hash(offer);
@@ -23,7 +24,9 @@ export function purchasePolicy(p){
  for(const [id,r] of Object.entries(p.routes)){
   exact(r,['network','asset','decimals','confirmations']);label(r.network);label(r.asset);integer(r.confirmations,1);
   assert.equal(r.decimals,id==='BTC'?8:6);assert(r.confirmations<=100);
-  assert.equal(r.network,id==='BTC'?'bitcoin-regtest':'ethereum-local');
+  if(id==='USDC' && r.network==='ethereum-sepolia'){
+   assert.deepEqual(p.rpcPins?.USDC,sepoliaPins);
+  }else assert.equal(r.network,id==='BTC'?'bitcoin-regtest':'ethereum-local');
   assert.equal(r.asset,id==='BTC'?'native':'test-usdc','test assets only');
  }
 }

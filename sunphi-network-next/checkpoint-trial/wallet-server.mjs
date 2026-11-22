@@ -141,7 +141,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=(req.url==='/nodes/rule-review'?131072:16384));chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
  assert.equal(admittedEpoch,sessionEpoch,'Wallet session changed. Retry the action in the current session.');
  assert(!sessionDrain.pending,'Wallet switching is in progress. Please wait.');
- const proposalRead=['/nodes/rule-review','/nodes/vote-notices','/voting/list','/nodes/server-versions'].includes(req.url);
+ const proposalRead=['/nodes/rule-review','/nodes/vote-notices','/voting/list','/nodes/server-versions','/activity'].includes(req.url);
  const voteSubmission=['/nodes/rule-confirm','/voting/submit'].includes(req.url==='/authorize-action'?q?.path:req.url);
  assert(!paymentLane.pending||proposalRead||voteSubmission||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
  assert(Date.now()>=updateDrainUntil,'The node is installing an update. Please reopen the wallet after it restarts.');
@@ -168,6 +168,12 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   assert(wallet&&activeId&&q.walletId===activeId,'Open the wallet whose password you want to change.');
   store.changePassword(activeId,q.currentPassword,q.newPassword);
   res.setHeader('Content-Type','application/json');res.end(JSON.stringify({changed:true}));return;
+ }
+ if(req.url==='/activity'){
+  assert.deepEqual(q,{});
+  assert(wallet&&view&&checkedAt&&owner===wallet.key.publicKey&&config.exchangeLab,'Waiting for a verified wallet snapshot.');
+  if(exchange?.wallet!==wallet){exchange?.close();exchange=new WalletExchange(wallet);}
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify(exchange.activity(view.state)));return;
  }
  if(req.url==='/history'){
   assert(bounded&&wallet&&!working&&!walletBusy,'Wait for wallet verification to finish.');

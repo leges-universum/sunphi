@@ -464,6 +464,12 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 #vote-items>article{border-inline-start:3px solid #cf3946;padding:12px 18px;margin:12px 0;background:var(--section)}
 #vote-items h3{margin:0 0 .5rem}
 #vote-inbox .panel-body{padding:0}
+#activity-feed li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
+#activity-feed p{margin:3px 0}
+@media(max-width:600px){#activity-feed li{align-items:flex-start;flex-direction:column}}
+#activity-receipt{width:min(38rem,90vw);max-height:85vh;overflow:auto}
+#activity-receipt dd{margin:0 0 12px;overflow-wrap:anywhere}
+#activity-receipt dt{color:var(--muted)}
 </style></head><body>
 <header><span class="duebyte-logo" role="img" aria-label="DueByte DUBYT"><span class="duebyte-mark"></span></span><span class="tag">DueByte network</span><button id="theme" type="button" aria-label="Switch to light theme" title="Switch to light theme"><svg class="theme-sun" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="theme-moon" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.2A8.5 8.5 0 0 1 10.8 3.5 8.5 8.5 0 1 0 20.5 13.2Z"/></svg></button></header>
 <main><div id="entry-layout"><div id="entry-intro"><p class="eyebrow">YOUR KEYS. YOUR INSTRUCTIONS.</p><h1>Welcome to DueByte Wallet</h1><p class="lead">Open your wallet, create a new one or restore an encrypted backup.</p><p class="hint">Each wallet has its own address and password. Keep an encrypted backup and its password safe; both are needed for recovery.</p><section class="connection-status"><div id="sync" class="sync" data-health="connecting"><span class="duebyte-coin duebyte-coin-solid" aria-hidden="true"><span class="duebyte-coin-body"><i class="duebyte-coin-rim" style="--facet:0"></i><i class="duebyte-coin-rim" style="--facet:1"></i><i class="duebyte-coin-rim" style="--facet:2"></i><i class="duebyte-coin-rim" style="--facet:3"></i><i class="duebyte-coin-rim" style="--facet:4"></i><i class="duebyte-coin-rim" style="--facet:5"></i><i class="duebyte-coin-rim" style="--facet:6"></i><i class="duebyte-coin-rim" style="--facet:7"></i><i class="duebyte-coin-rim" style="--facet:8"></i><i class="duebyte-coin-rim" style="--facet:9"></i><i class="duebyte-coin-rim" style="--facet:10"></i><i class="duebyte-coin-rim" style="--facet:11"></i><i class="duebyte-coin-rim" style="--facet:12"></i><i class="duebyte-coin-rim" style="--facet:13"></i><i class="duebyte-coin-rim" style="--facet:14"></i><i class="duebyte-coin-rim" style="--facet:15"></i><i class="duebyte-coin-rim" style="--facet:16"></i><i class="duebyte-coin-rim" style="--facet:17"></i><i class="duebyte-coin-rim" style="--facet:18"></i><i class="duebyte-coin-rim" style="--facet:19"></i><i class="duebyte-coin-rim" style="--facet:20"></i><i class="duebyte-coin-rim" style="--facet:21"></i><i class="duebyte-coin-rim" style="--facet:22"></i><i class="duebyte-coin-rim" style="--facet:23"></i><i class="duebyte-coin-rim" style="--facet:24"></i><i class="duebyte-coin-rim" style="--facet:25"></i><i class="duebyte-coin-rim" style="--facet:26"></i><i class="duebyte-coin-rim" style="--facet:27"></i><i class="duebyte-coin-rim" style="--facet:28"></i><i class="duebyte-coin-rim" style="--facet:29"></i><i class="duebyte-coin-rim" style="--facet:30"></i><i class="duebyte-coin-rim" style="--facet:31"></i></span></span><div><strong role="status"><span class="connection-dot" aria-hidden="true"></span><span id="phase">Verifying data</span></strong><small id="connection-help">Please wait for the first verification to finish.</small><small id="explain" hidden>Last successful check: <button id="check-time" type="button" class="check-value" aria-describedby="check-time-local" aria-expanded="false"></button><span id="check-time-local" role="tooltip" hidden></span> · block <span id="check-height" class="check-value"></span></small></div></div><p id="message" role="status"></p></section>
@@ -490,6 +496,12 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="screen" data-screen="receive" hidden><section><h2>Receive DUBYT</h2><p class="hint">Share your public address with the sender.</p><p id="receive-address" class="address"></p><button id="copy-address">Copy address</button><p class="section-help">Check the network and address before sharing. Your password and encrypted backup are never needed to receive a payment.</p></section>
 <section><h2>Server rewards</h2><button id="open-server-rewards" type="button">Connect a server to this wallet</button></section></div>
 <div class="screen" data-screen="activity" hidden><section><h2 id="history-heading" tabindex="-1">Payment activity</h2><p class="hint">Up to 200 recent records available in the verified state and this wallet’s local outbox. A queued payment is not yet confirmed. Do not resend it while its outcome is pending.</p><button id="history-refresh" type="button" hidden></button><ul id="payments"></ul><nav id="history-pagination" class="history-pagination" aria-label="Payment history pages" hidden><div id="history-pages" class="history-page-actions"></div><p id="history-range" aria-live="polite" aria-atomic="true"></p></nav><p id="empty-payments">No payment records yet.</p></section></div>
+<section id="wallet-activity" hidden><h2>Wallet activity</h2>
+<label for="activity-search">Search activity</label><input id="activity-search" type="search" placeholder="Operation, amount, contract or transaction">
+<p id="activity-state" role="status"></p><ul id="activity-feed"></ul>
+<div class="actions"><button type="button" id="activity-prev" hidden>Previous</button><span id="activity-page"></span><button type="button" id="activity-next" hidden>Next</button><button type="button" id="activity-older" hidden>Load older network payments</button></div></section>
+<dialog id="activity-receipt" aria-labelledby="activity-receipt-title"><h2 id="activity-receipt-title">Operation receipt</h2><div id="activity-details"></div>
+<div class="actions"><button type="button" id="activity-save">Save receipt</button><button type="button" id="activity-close" autofocus>Close</button></div></dialog>
 <div class="screen" data-screen="network" hidden><table id="network-metrics" class="analytics-table" aria-label="Verified network metrics"></table><details class="verification-details"><summary>Verification details</summary><p id="analytics-scope" class="hint">Waiting for a verified network snapshot.</p><p id="verified-hash" class="address"></p><p class="section-help">The block hash and checkpoint identify the snapshot verified by this wallet.</p></details></div>
 <div class="screen" data-screen="external" hidden>
 <section><h2>Reference prices in USD</h2>
@@ -679,7 +691,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.132</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.133</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -868,7 +880,7 @@ function renderWaiting(){
  else if(s?.checkedAt&&!s.error){$('connection-help').hidden=!s.working;$('connection-help').textContent=s.working?'Checking current network data…':'';}
 }
 function operationLabel(path){return ({'/send':'Sending your payment…','/quote':'Preparing your payment…','/history':'Loading payment history…','/assets':'Loading balances…','/unlock':'Opening your wallet…','/create':'Creating your wallet…','/restore':'Restoring your wallet…','/lock':'Finishing the current operation…','/select-wallet':'Switching wallet…','/change-password':'Updating your wallet password…','/backup':'Preparing your encrypted backup…','/nodes':'Loading your nodes…'})[path]||'Processing your request…';}
-async function api(path,data){const pending=Symbol();if(!['/status','/authorize-action','/external/prices','/external/receipt','/nodes/vote-notices','/nodes/server-versions'].includes(path)){pendingOperations.set(pending,operationLabel(path));renderWaiting();}try{const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(path==='/status'&&!document.querySelector('[data-screen="network"]').hidden)headers['X-DueByte-Analytics']='1';if(['/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund','/seller/start'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok){const e=Error(v.error);if(v.paymentOutcome==='not_created')e.paymentOutcome=v.paymentOutcome;throw e;}if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}finally{pendingOperations.delete(pending);renderWaiting();}}
+async function api(path,data){const pending=Symbol();if(!['/status','/activity','/authorize-action','/external/prices','/external/receipt','/nodes/vote-notices','/nodes/server-versions'].includes(path)){pendingOperations.set(pending,operationLabel(path));renderWaiting();}try{const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(path==='/status'&&!document.querySelector('[data-screen="network"]').hidden)headers['X-DueByte-Analytics']='1';if(['/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund','/seller/start'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok){const e=Error(v.error);if(v.paymentOutcome==='not_created')e.paymentOutcome=v.paymentOutcome;throw e;}if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}finally{pendingOperations.delete(pending);renderWaiting();}}
 function renderPaymentTariff(s){const t=s.paymentTariff,p=t?.active,fmt=n=>(Number(n)/1000000).toFixed(6).replace(/0+$/,'').replace(/\.$/,'');let text=!t?'Waiting for the verified network tariff.':!p?'Current legacy network fee: 3%, rounded up to the smallest supported unit.':p.version==='DUEBYTE_PAYMENT_FEE_006_V2'?'Network fee: 0.06% of the payment, with a minimum of '+fmt(p.baseMicro)+' DUBYT. The larger amount applies; there is no upper fee cap or extra fee for coverage parts. Amounts round up to 0.000001 DUBYT. The initial minimum uses $1 per DUBYT as a planning reference, not a promised exchange rate. On expiry or cancellation, '+fmt(String(Math.ceil(Number(p.baseMicro)/10)))+' DUBYT of the quoted fee is retained; the remaining quoted fee is released.':'Legacy network fee: 0.001%, minimum '+fmt(p.baseMicro)+', base-fee cap '+fmt(p.capMicro)+' DUBYT, plus '+fmt(p.additionalPartMicro)+' DUBYT per additional coverage part.';if(t?.pending)text+=' A new tariff is scheduled for '+new Date(t.pending.activation*1000).toISOString()+'.';$('fee-help').textContent=text+' Review the exact total before signing. BTC and Ethereum fees are separate.';}
 function moneyText(record,key){return record?.display?.[key]??((record?.unitScale??'1')==='1'?record?.[key]:'—');}
 function connectionHealth(health){const verified=health==='verified',text=verified?'Data verified':health==='attention'?'Data not verified':'Verifying data',help=health==='attention'?'Check the node connection. Verification will retry automatically.':'Please wait for the first verification to finish.';$('sync').dataset.health=health;if($('phase').textContent!==text)$('phase').textContent=text;$('connection-help').hidden=verified;if($('connection-help').textContent!==help)$('connection-help').textContent=help;}
@@ -939,7 +951,7 @@ $('login').onsubmit=e=>{e.preventDefault();void credentials();};$('create').oncl
 for(const id of ['password','confirm-password','restore-password']){const input=$(id),wrap=document.createElement('div'),button=document.createElement('button');wrap.className='password-control';input.before(wrap);wrap.append(input,button);button.className='password-toggle';button.type='button';button.setAttribute('aria-controls',id);button.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';const hidden=()=>{input.type='password';button.setAttribute('aria-label','Show password');button.title='Show password';button.setAttribute('aria-pressed','false');};hidden();button.onclick=()=>{const visible=input.type==='password';input.type=visible?'text':'password';button.setAttribute('aria-label',visible?'Hide password':'Show password');button.title=visible?'Hide password':'Show password';button.setAttribute('aria-pressed',String(visible));};document.addEventListener('visibilitychange',()=>{if(document.hidden)hidden();});input.addEventListener('blur',()=>{if(!input.value)hidden();});}
 for(const id of ['password','confirm-password'])$(id).oninput=()=>{$(id).removeAttribute('aria-invalid');$('form-message').textContent='';};
 $('switch-wallet').title='Lock this wallet and choose another saved wallet';$('lock').onclick=()=>action('/lock',{});$('switch-wallet').onclick=async()=>{if(await action('/lock',{}))setEntryMode('open');};
-const screens={overview:['Wallet overview','Check your available balance, then send or receive a payment.'],send:['Send payment','Enter the recipient and amount, review the total, then confirm.'],receive:['Receive','Share your public address. Your password and private key stay private.'],activity:['Payment activity','Follow the original payment until it is confirmed or its reservation is released.'],exchange:['Exchange','Buy DUBYT with Bitcoin or USDC when an offer is available.'],network:['Network analytics','Inspect the latest verified snapshot. These figures are not live market prices or speed estimates.'],security:['Security','Protect access to your wallet and understand each payment option.']};
+const screens={overview:['Wallet overview','Check your available balance, then send or receive a payment.'],send:['Send payment','Enter the recipient and amount, review the total, then confirm.'],receive:['Receive','Share your public address. Your password and private key stay private.'],activity:['Wallet activity','Find an operation and open its receipt.'],exchange:['Exchange','Buy DUBYT with Bitcoin or USDC when an offer is available.'],network:['Network analytics','Inspect the latest verified snapshot. These figures are not live market prices or speed estimates.'],security:['Security','Protect access to your wallet and understand each payment option.']};
 screens.collateral=['My nodes','See your nodes, deposited collateral and rewards.'];
 const collateralTab=document.createElement('button');collateralTab.dataset.tab='collateral';collateralTab.textContent='My nodes';document.querySelector('[data-tab=security]').before(collateralTab);
 screens.voting=['Discussion & voting','Questions awaiting your vote or review.'];
@@ -1295,6 +1307,7 @@ function historySample(s){
  drawChart($('wallet-traffic'),points,['incoming','outgoing'],'KiB/s','This node’s measured traffic');
 }
 function renderRecords(rows){
+ syncActivity();
  if(historyOwner!==lastStatus?.owner||lastStatus?.locked){historyOwner=lastStatus?.owner;remoteHistory=null;historyPage=1;historyIds=[];}
  const remote=remoteHistory??lastStatus?.indexedHistory;
  if(remote&&!lastStatus.locked){
@@ -2279,5 +2292,93 @@ async function loadAssets(force=false){
  finally{clearTimeout(timeout);pendingOperations.delete(pending);renderWaiting();if(request===assetsRequest){assetsRequest=null;assetsBusy=false;}}
 }
 $('asset-refresh').onclick=()=>void loadAssets(true);
+const activitySection=$('wallet-activity'),activityDialog=$('activity-receipt');
+const nativeHistorySection=$('history-heading').closest('section');
+nativeHistorySection.before(activitySection);
+let activityContext=null,activityReport=null,activityHeight=null,activityRequest=null,activityPage=0,activityReceipt=null,activityError='',activityRenderKey='';
+let olderPayments=new Map(),olderCursor=null,olderRequest=null;
+function activityIdentity(r){return JSON.stringify([r.payment?'payment':'economic',r.fields.Series??r.fields.Loan??'',r.id]);}
+function drawActivity(){
+ const s=lastStatus;
+ if(!s||s.locked||activitySection.hidden)return;
+ const native=new Map(olderPayments);
+ for(const p of [...(s.indexedHistory?.rows??[]),...(s.payments??[])])native.set(p.pid,p);
+ const payments=[...native.values()].map(p=>({type:'Payment',id:p.pid,result:({SETTLED:'Confirmed',QUEUED:'Queued',RESERVED:'Reserved',SCHEDULED:'Scheduled',CANCELLED:'Cancelled',EXPIRED:'Reservation released'})[p.status]??p.status,summary:(p.direction||'Sent')+' · '+moneyText(p,'value')+' DUBYT',height:p.height,fields:{Sender:p.sender,Recipient:p.recipient},payment:p}));
+ const all=[...(activityReport?.rows??[]),...payments].sort((a,b)=>(b.height??0)-(a.height??0)||a.type.localeCompare(b.type)||a.id.localeCompare(b.id));
+ const query=$('activity-search').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+ const found=all.filter(r=>{const text=[r.type,r.id,r.result,r.summary,r.height,...Object.values(r.fields)].join(' ').toLowerCase();return query.every(term=>text.includes(term));});
+ const size=8,pages=Math.max(1,Math.ceil(found.length/size));activityPage=Math.min(activityPage,pages-1);
+ const slice=found.slice(activityPage*size,(activityPage+1)*size);
+ if(olderCursor&&s.indexedHistory&&s.indexedHistory.total!==olderCursor.total)olderCursor=null;
+ const cursor=olderCursor??(s.indexedHistory&&{offset:s.indexedHistory.rows.length,total:s.indexedHistory.total});
+ $('activity-older').hidden=!cursor||cursor.offset>=cursor.total;$('activity-older').disabled=!!olderRequest;
+ $('activity-prev').hidden=pages===1;$('activity-next').hidden=pages===1;
+ $('activity-prev').disabled=activityPage===0;$('activity-next').disabled=activityPage===pages-1;
+ $('activity-page').textContent=pages>1?'Page '+(activityPage+1)+' of '+pages:'';
+ $('activity-state').textContent=activityError||(s.error?'Showing the last verified activity.':!activityReport?'Loading verified activity…':!found.length?(query.length?'No matching operations in loaded history.':'No wallet activity yet.'):'');
+ if(activityReceipt){
+  const current=all.find(r=>activityIdentity(r)===activityIdentity(activityReceipt));
+  if(!current)activityDialog.close();
+  else if(JSON.stringify(current)!==JSON.stringify(activityReceipt))showActivityReceipt(current);
+ }
+ const key=JSON.stringify(slice);if(key===activityRenderKey)return;activityRenderKey=key;
+ $('activity-feed').replaceChildren(...slice.map(r=>{
+  const li=element('li',''),info=element('div',''),button=element('button','Open receipt');
+  info.append(element('strong',r.type),element('p',[r.summary,r.result].filter(Boolean).join(' · ')));
+  button.type='button';button.onclick=()=>showActivityReceipt(r);li.append(info,button);return li;
+ }));
+}
+function showActivityReceipt(r){
+ activityReceipt=r;$('activity-receipt-title').textContent=r.type+' receipt';
+ const details=element('dl','');
+ const fields={'Network':lastStatus.network,'Result':r.result,'Operation ID':r.id,...(r.height?{'DueByte block':r.height}:{}),...r.fields};
+ if(!r.payment&&activityReport)fields['Verified through block']=activityReport.verifiedThrough;
+ for(const [name,value] of Object.entries(fields))if(value!=null){details.append(element('dt',name),element('dd',String(value)));}
+ $('activity-details').replaceChildren(element('p',r.summary),details);
+ if(r.payment){const list=element('ul','');list.append(paymentRecordElement(r.payment));$('activity-details').append(list);}
+ if(!activityDialog.open)activityDialog.showModal();
+}
+activityDialog.addEventListener('close',()=>{activityReceipt=null;$('activity-details').replaceChildren();});
+$('activity-close').onclick=()=>activityDialog.close();
+$('activity-save').onclick=()=>{if(activityReceipt)downloadInstruction({network:lastStatus.network,owner:lastStatus.owner,...(!activityReceipt.payment?{verifiedThrough:activityReport.verifiedThrough}:{}),receipt:activityReceipt},'DueByte-activity-'+activityReceipt.id+'.json');};
+$('activity-search').oninput=()=>{activityPage=0;drawActivity();};
+$('activity-prev').onclick=()=>{activityPage--;drawActivity();};
+$('activity-next').onclick=()=>{activityPage++;drawActivity();};
+$('activity-older').onclick=async()=>{
+ const first=lastStatus.indexedHistory,cursor=olderCursor??{offset:first.rows.length,total:first.total};
+ const context=activityContext,request=Symbol();olderRequest=request;drawActivity();
+ try{const page=await api('/history',{offset:cursor.offset,limit:32,through:cursor.total});
+  if(olderRequest!==request||context!==activityContext)return;
+  for(const p of [...first.rows,...page.rows])olderPayments.set(p.pid,p);
+  olderCursor={offset:cursor.offset+page.rows.length,total:page.total};activityError='';
+ }catch(e){if(olderRequest===request)activityError=e.message;}
+ finally{if(olderRequest===request){olderRequest=null;drawActivity();}}
+};
+function syncActivity(){
+ const s=lastStatus,enabled=!!s&&!s.locked;
+ const context=enabled?purchaseContext():null;
+ if(context!==activityContext){
+  activityContext=context;activityReport=activityHeight=activityRequest=olderCursor=olderRequest=null;olderPayments.clear();
+  activityPage=0;activityError=activityRenderKey='';$('activity-search').value='';$('activity-feed').replaceChildren();
+  activityReceipt=null;if(activityDialog.open)activityDialog.close();
+ }
+ nativeHistorySection.hidden=enabled;activitySection.hidden=!enabled;
+ if(!enabled||activitySection.closest('[data-screen]').hidden)return;
+ if(!s.features?.twoWayExchange&&s.checkedAt){
+  activityReport={owner:s.owner,network:s.network,verifiedThrough:s.height,rows:[]};
+  activityHeight=s.height;
+ }
+ drawActivity();
+ if(!s.features?.twoWayExchange||activityRequest||!s.checkedAt||activityHeight===s.height)return;
+ const request=Symbol();activityRequest=request;
+ api('/activity',{}).then(report=>{
+  if(request!==activityRequest||activityContext!==context)return;
+  if(report.owner!==s.owner||report.network!==s.network||!Array.isArray(report.rows))throw Error('Wallet activity could not be verified.');
+  activityReport=report;activityHeight=s.height;activityError='';
+ }).catch(e=>{if(request===activityRequest)activityError=e.message;}).finally(()=>{
+  if(request===activityRequest){activityRequest=null;drawActivity();}
+ });
+}
+document.querySelector('nav [data-tab=activity]').addEventListener('click',syncActivity);
 let polling=false;async function poll(){if(polling)return;polling=true;const session=token;try{const result=await api('/status');if(token!==session)return;paint(result);void loadSeller();void loadAssets();}catch(e){if(token!==session)return;historySample({error:true});connectionHealth('attention');clearPurchase();$('purchase-prepare').disabled=true;$('send').disabled=true;$('message').textContent='Local wallet unavailable. Check that the node is running.';resetAssets();}finally{polling=false;}}setInterval(poll,1500);void poll();
 </script></body></html>

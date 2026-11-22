@@ -6,6 +6,7 @@ import {exact,hash,integer,hex} from '../crypto.mjs';
 import {amount} from '../payment-model.mjs';
 import {START,END,DAY,inspectAnnualPlan,cumulativeNodeAllowance,dailyNodePool} from './calendar-node-emission-policy.mjs';
 import {SMOOTH_EMISSION,compileOrdinaryCurve} from './smooth-emission.mjs';
+import {reserveStatement} from './network-reserve.mjs';
 export const CALENDAR_SERVICE='DUEBYTE_CALENDAR_SERVICE_SOURCE_V1';
 export function calendarSource(s){return s.rewards?.calendarService??null;}
 export function calendarSourceCeiling(s,at=s.money.time){
@@ -30,8 +31,9 @@ export function prepareCalendarSource(s,certificateHash,advanceMicro){
 }
 export function auditCalendarSource(s){
  const c=calendarSource(s);if(!c)return;
- exact(c,['version','start','end','planHash','annualHash','certificateHash','nextMintDay','mintedMicro','creditedMicro','heldMicro',...(c.advanceMicro!==undefined?['advanceMicro']:[])]);
+ exact(c,['version','start','end','planHash','annualHash','certificateHash','nextMintDay','mintedMicro','creditedMicro','heldMicro',...(c.reserve?['reserve']:[]),...(c.advanceMicro!==undefined?['advanceMicro']:[])]);
  if(c.advanceMicro!==undefined){amount(c.advanceMicro);assert.equal(c.advanceMicro,s.centuryFunds?.mainProgramme?.body.baseline.supportIssuedMicro,'joint advance accounting required');}
+ if(c.reserve){exact(c.reserve,['version','committedMicro','marketInMicro','marketOutMicro',...(c.reserve.credit?['credit']:[])]);reserveStatement(c);}
  assert.equal(c.version,CALENDAR_SERVICE);assert.equal(c.start,START);assert.equal(c.end,END);hex(c.certificateHash);
  assert(!s.centurySubsidy,'legacy subsidy cannot overlap calendar service');assert.equal(c.planHash,s.economicPreparation?.planHash);assert.equal(hash(s.economicPreparation.plan),c.planHash);
  assert.equal(s.rewards.coefficients.lifetimeMintLimit,'0','legacy mint overlap');assert(!s.rewards.scheduled,'calendar coefficients must not change through legacy scheduling');
@@ -39,7 +41,7 @@ export function auditCalendarSource(s){
  integer(c.nextMintDay,START);assert(c.nextMintDay<=END&&c.nextMintDay%DAY===0);
  assert(c.nextMintDay<=Math.max(START,Math.floor(s.money.time/DAY)*DAY),'calendar issuance before closed day');
  assert.equal(amount(c.mintedMicro),netAllowance(s,c.nextMintDay),'calendar issued cursor');
- assert.equal(amount(c.mintedMicro),amount(c.creditedMicro)+amount(c.heldMicro),'calendar custody conservation');
+ assert.equal(amount(c.mintedMicro)+amount(c.reserve?.marketInMicro??'0')+amount(c.reserve?.credit?.repaid??'0'),amount(c.creditedMicro)+amount(c.heldMicro)+amount(c.reserve?.marketOutMicro??'0')+amount(c.reserve?.credit?.drawn??'0'),'calendar custody conservation');
  assert.equal(s.rewards.minted,c.mintedMicro,'single ordinary node issuance counter');
  assert(amount(s.money.supply)<=amount(s.economicPreparation.plan.capMicro),'supply cap');
 }
