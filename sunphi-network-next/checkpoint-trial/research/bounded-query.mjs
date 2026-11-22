@@ -22,6 +22,8 @@ import {ECONOMIC_MAPS} from '../economic-record-view.mjs';
 import {admissionHead,admissionIds,admissionKey,auditAdmissionRecord,admissionAt} from './bounded-paid-admission.mjs';
 import {serviceWorkView,operatorPayroll} from './bounded-service-rewards.mjs';
 import {OPERATOR_HEAD,operatorKey,operatorLinkKey,operatorFactor} from './operator-reward-policy.mjs';
+import {hasOperatorTariff} from './operator-tariff.mjs';
+import {openValidatorsActive} from './open-validator-policy.mjs';
 import {CASE_HEAD,caseKey,caseRemaining} from './bounded-protection-cases.mjs';
 import {assurancePage} from './settlement-assurance.mjs';
 import {ballotHead,ballotKey,authorQuestions,warmupEnd,governancePhase,warmupSigner,reviewContext} from './operator-ballots.mjs';
@@ -56,7 +58,8 @@ function answer(request,get,candidates){
  }
  else if(request.type==='reserve-payroll'){
   hex(request.id);const network=decodeSection(get,'meta/network'),node=get(rewardAccountKey(request.id));
-  data=node&&network.rewards?.calendarService?.reserve?operatorPayroll(get,{rewards:{calendarService:network.rewards.calendarService,nodes:{[request.id]:node}}},request.id):null;
+  const calendar=network.rewards?.calendarService;
+  data=node&&(calendar?.reserve||hasOperatorTariff(calendar))?operatorPayroll(get,{rewards:{calendarService:calendar,nodes:{[request.id]:node}}},request.id):null;
  }
  else if(request.type==='operator-reward'){
   hex(request.id);const money=decodeSection(get,'meta/money'),n=get(rewardAccountKey(request.id)),policy=get(OPERATOR_HEAD)??null;
@@ -65,7 +68,8 @@ function answer(request,get,candidates){
  else if(request.type==='service-work'){
   hex(request.id);const network=decodeSection(get,'meta/network'),money=decodeSection(get,'meta/money'),n=get(rewardAccountKey(request.id));
   if(!n)data=null;
-  else{auditRewardAccount(request.id,n);const work=serviceWorkView(get,{configHash:anchor.configHash,node:request.id,kind:n.kind,time:money.time,reserve:!!network.rewards?.calendarService?.reserve});
+  else{auditRewardAccount(request.id,n);const calendar=network.rewards?.calendarService;
+   const work=serviceWorkView(get,{configHash:anchor.configHash,node:request.id,kind:n.kind,time:money.time,reserve:!!calendar?.reserve||hasOperatorTariff(calendar)||openValidatorsActive(calendar)});
    const at=work?.anchor?.openedAt??money.time,admitted=admissionAt(get,request.id,at)?.kind===n.kind&&admissionAt(get,request.id,money.time)?.kind===n.kind;
    const worker=n.kind==='worker'?get('nodes/'+request.id):null;
    data={node:request.id,publicKey:n.key,kind:n.kind,time:money.time,admitted:admitted&&(n.kind!=='worker'||!!worker&&amount(worker.stake)>0n),work};

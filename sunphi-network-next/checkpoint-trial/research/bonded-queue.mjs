@@ -3,6 +3,7 @@ import {exact,hash,hex,integer,publicKey} from '../crypto.mjs';
 import {membershipDelta} from '../validator-membership.mjs';
 import {consensusAddress} from '../consensus-context.mjs';
 import {assertConsensusAdmission,signingKey} from './bounded-pos-records.mjs';
+import {openValidatorsActive,OPEN_VALIDATOR_POLICY} from './open-validator-policy.mjs';
 
 export const JOIN_BONDED='JOIN_BONDED_VALIDATOR_V3',LEAVE_QUEUE='CANCEL_BONDED_APPLICATION_V3';
 const day=86400;
@@ -49,7 +50,8 @@ export function advanceBondQueue(tx,s,previousBlock){
  // Remove expired claims before assigning a slot. A fresh application can be
  // filed using the same bond. A stalled head cannot create extra admissions.
  q.entries=q.entries.filter(e=>e.readyUntil>=money.time);
- if(!q.entries.length||v.pending||v.posNext||v.validators.length<3||v.validators.length>=20||
+ const open=openValidatorsActive(s.rewards?.calendarService);
+ if(!q.entries.length||v.pending||v.posNext||v.validators.length<3||(!open&&v.validators.length>=20)||
     (q.lastScheduledAt!==null&&money.time<q.lastScheduledAt+day))return;
  const minimum=BigInt(s.authority.bondedAdmission?.minimumMicro??'100000000');
  while(q.entries.length){
@@ -58,9 +60,14 @@ export function advanceBondQueue(tx,s,previousBlock){
      r.signing.jailed||r.signing.tombstoned||BigInt(r.signing.bond)<minimum)continue;
   assertConsensusAdmission(tx.get,s,e.key);
   const group=s.authority.validators.find(m=>m.key===e.key)?.group??hash({domain:JOIN_BONDED,node:e.node});
-  const validators=[...v.validators,{key:e.key,group,power:1}];
-  const updates=membershipDelta(v.validators,validators);
   if(!v.usedKeys.includes(e.key)&&v.usedKeys.length>=2048)continue;
+  // New members are appended in committed admission order. Rotate one seat
+  // only when a funded, ready replacement exists. Historical order breaks ties.
+  const target=s.rewards?.calendarService?.closedFund?.expansion?.target??OPEN_VALIDATOR_POLICY.firstTarget;
+  const rotate=open&&v.validators.length>=target;
+  const retained=rotate?v.validators.slice(1):v.validators;
+  const validators=[...retained,{key:e.key,group,power:1}];
+  const updates=membershipDelta(v.validators,validators);
   v.usedKeys=[...new Set([...v.usedKeys,e.key])].sort();
   v.pending={activation:height+2,validators,updates,certificate:hash({domain:JOIN_BONDED,entry:e,height})};
   q.lastScheduledAt=money.time;break;

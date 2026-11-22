@@ -40,7 +40,8 @@ import {CASE_ACTIONS} from './bounded-protection-cases.mjs';
 import {POS_ACTIONS} from './pos-policy-actions.mjs';
 import {RECOVERY_ACTIONS} from '../reserve-recovery.mjs';
 import {SEAL_ORDINARY,sealOrdinaryCurve} from './ordinary-curve-seal.mjs';
-export const CENTURY_ACTIONS=[SEAL_ORDINARY,SCHEDULE_TARIFF,PREPARE_ZERO_STAGE,...SUPPORT_ACTIONS,...ECONOMIC_PREPARATION_ACTIONS,CENTURY_FEES_ACTION,CENTURY_FUNDS_ACTION,...CENTURY_ISSUANCE_ACTIONS,CENTURY_SUBSIDY_ACTION,...CENTURY_POLICY_ACTIONS,CENTURY_HOME_ACTION,INDEXED_HOME_ACTION,...CENTURY_WARMUP_ACTIONS,...MEMORIAL_ACTIONS,...NATIVE_ACTIONS];
+import {PREPARE_CLOSED_RESERVE,LEGACY_TARIFF_RESERVE,prepareClosedReserve} from './closed-network-reserve.mjs';
+export const CENTURY_ACTIONS=[PREPARE_CLOSED_RESERVE,LEGACY_TARIFF_RESERVE,SEAL_ORDINARY,SCHEDULE_TARIFF,PREPARE_ZERO_STAGE,...SUPPORT_ACTIONS,...ECONOMIC_PREPARATION_ACTIONS,CENTURY_FEES_ACTION,CENTURY_FUNDS_ACTION,...CENTURY_ISSUANCE_ACTIONS,CENTURY_SUBSIDY_ACTION,...CENTURY_POLICY_ACTIONS,CENTURY_HOME_ACTION,INDEXED_HOME_ACTION,...CENTURY_WARMUP_ACTIONS,...MEMORIAL_ACTIONS,...NATIVE_ACTIONS];
 export function parseBoundedTx(bytes,c){
  assert(bytes.length>0&&bytes.length<=65536);const t=JSON.parse(bytes.toString('utf8'));
  if(t?.body?.action?.type===PURCHASE_ACTION)assert(c.purchaseLab,'protected purchase admission disabled');
@@ -51,6 +52,7 @@ export function parseBoundedTx(bytes,c){
  exact(t,['body','signature']);exact(t.body,['domain','configHash','action','author']);assert(c.control);assert.equal(t.body.domain,PROFILE+'/TX');assert.equal(t.body.configHash,hash(c));assert(verify(t.body,t.signature,t.body.author),'tx signature');return t;
 }
 export function centuryAction(s,a,author,c){
+ if(a.type===PREPARE_CLOSED_RESERVE||a.type===LEGACY_TARIFF_RESERVE)return prepareClosedReserve(s,a,c);
  if(a.type===SEAL_ORDINARY)return sealOrdinaryCurve(s,a,c);
  if(a.type===SCHEDULE_TARIFF)return schedulePaymentTariff(s,a,c);
  if(a.type===PREPARE_ZERO_STAGE)return prepareZeroStage(s,a,c);

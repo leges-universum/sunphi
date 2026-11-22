@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import {amount} from '../payment-model.mjs';
 import {DAY, START, END} from './calendar-node-emission-policy.mjs';
+import {hasOperatorTariff,OPERATOR_TARIFF,tariffBudget} from './operator-tariff.mjs';
+import {openValidatorsActive} from './open-validator-policy.mjs';
 
 export const RESERVE_TRIAL = 'duebyte-trial-exchange-lab-network-reserve-v1';
 export const RESERVE_VERSION = 'DUEBYTE_NETWORK_RESERVE_TEST_V1';
 const dailyBudget = 100_000_000n;
 const continuity = 1_320_000_000n;
 const forwardBudget = 30n * dailyBudget;
-const tariffs = {worker: 4_000_000n, witness: 1_000_000n};
+const tariffs = {worker: BigInt(OPERATOR_TARIFF.workerDayMicro), witness: BigInt(OPERATOR_TARIFF.witnessDayMicro)};
 const slots = {worker: 10, witness: 4};
 
 export function prepareTrialReserve(calendar, config) {
@@ -20,6 +22,12 @@ export function prepareTrialReserve(calendar, config) {
 }
 
 export function reserveStatement(calendar) {
+ if (calendar?.closedFund) {
+  return {mode:'CLOSED', preparedHeight:calendar.closedFund.height, issuedMicro:calendar.mintedMicro,
+   operatorCreditsMicro:calendar.creditedMicro, balanceMicro:calendar.heldMicro, surplusMicro:'0',
+   ...(hasOperatorTariff(calendar)||openValidatorsActive(calendar)?{committedMicro:calendar.closedFund.committedMicro,
+    retainedMicro:String(amount(calendar.heldMicro)-amount(calendar.closedFund.committedMicro))}:{})};
+ }
  if (!calendar?.reserve) return null;
  assert.equal(calendar.reserve.version, RESERVE_VERSION);
  const held = amount(calendar.heldMicro), committed = amount(calendar.reserve.committedMicro);
@@ -34,10 +42,19 @@ export function reserveStatement(calendar) {
 }
 
 export function isReserveDay(s, day) {
- return Boolean(s.rewards?.calendarService?.reserve) && day >= START && day < END;
+ const calendar=s.rewards?.calendarService;
+ return Boolean(calendar?.reserve||hasOperatorTariff(calendar)||openValidatorsActive(calendar)) && day >= START && day < END;
 }
 
-export function openPayroll(calendar) {
+export function openPayroll(calendar,dayIssuance='0') {
+ if(openValidatorsActive(calendar))return null; // No funded assignments before a separate rate and budget decision.
+ if(hasOperatorTariff(calendar)){
+  const fund=calendar.closedFund,free=amount(calendar.heldMicro)-amount(fund.committedMicro);
+  const funded=free>=tariffBudget;
+  if(!funded&&amount(dayIssuance)<tariffBudget)return null;
+  if(funded)fund.committedMicro=String(amount(fund.committedMicro)+tariffBudget);
+  return {budgetMicro:String(tariffBudget),funding:funded?'RESERVE':'DAY_ISSUANCE',worker:0,witness:0,jobs:0};
+ }
  const uncommitted = amount(calendar.heldMicro) - amount(calendar.reserve.committedMicro)-amount(calendar.reserve.credit?.riskHeld??'0')-amount(calendar.reserve.credit?.capitalAvailable??'0');
  if (uncommitted < continuity + dailyBudget) return null;
  calendar.reserve.committedMicro = String(amount(calendar.reserve.committedMicro) + dailyBudget);
@@ -45,9 +62,10 @@ export function openPayroll(calendar) {
 }
 
 export function releasePayroll(calendar, value) {
- const held = amount(calendar.reserve.committedMicro);
+ const ledger=hasOperatorTariff(calendar)?calendar.closedFund:calendar.reserve;
+ const held = amount(ledger.committedMicro);
  assert(value >= 0n && value <= held, 'invalid payroll release');
- calendar.reserve.committedMicro = String(held - value);
+ ledger.committedMicro = String(held - value);
 }
 
 export function tariffMicro(kind, intervals, jobs, intervalSeconds) {
@@ -61,9 +79,10 @@ export function tariffMicro(kind, intervals, jobs, intervalSeconds) {
 // A settled customer job can pay each distinct participating worker once.
 export function reserveWork(payroll, previous, kind, job, intervalSeconds) {
  if (!payroll) return null;
- if (job && payroll.jobs >= 280) return null;
+ if (job && (payroll.funding || payroll.jobs >= 280)) return null;
  const intervals = previous?.intervals ?? 0, jobs = previous?.jobs ?? 0;
- if (!job && !intervals && payroll[kind] >= slots[kind]) return null;
+ const capacity=payroll.funding?(kind==='worker'?OPERATOR_TARIFF.workerSlots:OPERATOR_TARIFF.witnessSlots):slots[kind];
+ if (!job && !intervals && payroll[kind] >= capacity) return null;
  const next = {intervals: intervals + Number(!job), jobs: jobs + Number(job)};
  const value = tariffMicro(kind, next.intervals, next.jobs, intervalSeconds);
  if (job) payroll.jobs++;

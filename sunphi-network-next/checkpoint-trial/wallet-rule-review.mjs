@@ -9,10 +9,13 @@ import {PREPARE_DOMAIN,reviewPreparation,preparationPacket} from './bond-prepara
 import {PREPARE_TYPE} from './bond-preparation-ballot.mjs';
 import {envelope} from './core.mjs';
 import {issuancePacket,mandateId,reviewIssuance} from './ordinary-issuance-ballot.mjs';
+import {reviewClosedReserve} from './closed-reserve-ballot.mjs';
+import {PREPARE_CLOSED_RESERVE} from './research/closed-network-reserve.mjs';
 
 // This signature domain only endorses the text of a rule. Executable changes
 // keep their own certificates and explicit activation height.
 export function reviewRuleText(packet,state,network,owner){
+ if(packet?.body?.domain===PREPARE_CLOSED_RESERVE)return reviewClosedReserve(packet,state,network,owner);
  if(packet?.body?.domain==='SEAL_ORDINARY_EMISSION_CURVE_V1')return reviewIssuance(packet,state,network,owner);
  if(packet?.body?.domain===PREPARE_DOMAIN)return reviewPreparation(packet,state,network,owner);
  exact(packet,['body','document','approvals']);
@@ -40,6 +43,7 @@ export class WalletRuleReviews{
   wallet.db.exec('CREATE TABLE IF NOT EXISTS rule_endorsements(owner TEXT,proposal TEXT,packet TEXT NOT NULL,PRIMARY KEY(owner,proposal))');
   wallet.db.exec('CREATE TABLE IF NOT EXISTS rule_votes(proposal TEXT,signer TEXT,signature TEXT NOT NULL,PRIMARY KEY(proposal,signer))');
   wallet.db.exec('CREATE TABLE IF NOT EXISTS preparation_feedback(owner TEXT PRIMARY KEY,receipt TEXT NOT NULL)');
+  wallet.db.exec('CREATE TABLE IF NOT EXISTS closed_reserve_submission(owner TEXT PRIMARY KEY, proposal TEXT NOT NULL, atHeight INTEGER NOT NULL)');
  }
  preparationFeedback(state){
   if(this.feedback===undefined){
@@ -115,23 +119,24 @@ export class WalletRuleReviews{
   assert.deepEqual(rows[0],rows[1]);return rows[0].height;
  }
  builtin(){return JSON.parse(readFileSync(new URL('./public-bonded-rule-v3.json',import.meta.url),'utf8'));}
- async preparationGroup(nodes,issuance=false,noticeState=null){
+ async preparationGroup(nodes,issuance=false,noticeState=null,reservePacket=null){
   if(!noticeState)this.pending=null;
   assert(Array.isArray(nodes)&&nodes.length<=128&&new Set(nodes).size===nodes.length,'Invalid linked server list.');
   nodes.forEach(node=>hex(node));
   const w=this.wallet,owner=w.key.publicKey,network=w.client.config.chainId;
   const state=noticeState??(await w.view({rewardIds:nodes})).state;
   if(!nodes.length)nodes=Object.keys(state.rewards?.nodes??{}).filter(id=>state.rewards.nodes[id].payouts?.some(p=>p.wallet===owner)).sort().slice(0,128);
-  const receipt=issuance?null:this.preparationFeedback(state);
+  const receipt=issuance||reservePacket?null:this.preparationFeedback(state);
   if(noticeState&&['signing','submitted','open'].includes(receipt?.stage))return false;
   const start=receipt&&state.height<receipt.end?receipt.start:undefined;
-  const {merged,status}=this.collect(issuance?issuancePacket():preparationPacket(state,network,start),state);
+  const {merged,status}=this.collect(reservePacket??(issuance?issuancePacket():preparationPacket(state,network,start)),state);
+  if(reservePacket&&!status.available)return noticeState?false:{...status,id:null};
   if(!noticeState&&['signing','submitted','open'].includes(receipt?.stage))return {...status,id:null,canSign:false,canSubmit:false,feedback:receipt};
-  if(noticeState&&(status.expired||status.sealed||status.approved||issuance&&!status.available||!issuance&&state.authority.posSlashing))return status.canSubmit;
-  const scope=issuance?{issuanceMandate:mandateId}:{preparationStart:merged.body.notBefore},grants=[],used=new Set(merged.approvals.map(v=>v.key));
+  if(noticeState&&(status.expired||status.sealed||status.approved||issuance&&!status.available||!issuance&&!reservePacket&&state.authority.posSlashing))return status.canSubmit;
+  const scope=reservePacket?{reserveMandate:status.proposal}:issuance?{issuanceMandate:mandateId}:{preparationStart:merged.body.notBefore},grants=[],used=new Set(merged.approvals.map(v=>v.key));
   let weight=BigInt(status.weight),unreachable=false;
   for(const node of [...nodes].sort()){
-   if(weight>=BigInt(status.required))break;
+   if(weight>=BigInt(status.required)&&(!reservePacket||status.canSubmit))break;
    const payouts=state.rewards?.nodes?.[node]?.payouts;
    if(payouts?.length!==1||payouts[0].wallet!==owner)continue;
    let reply;
@@ -141,7 +146,7 @@ export class WalletRuleReviews{
    if(used.has(grant.controller)||!reviewRuleText(merged,state,network,grant.controller).canSign)continue;
    if(noticeState)return true;
    used.add(grant.controller);grants.push(grant);
-   weight+=BigInt(state.authority.validators.find(v=>v.key===grant.controller).power);
+   weight+=BigInt(state.authority.validators.find(v=>v.key===grant.controller).power??10);
   }
   if(noticeState){if(unreachable)throw Error('Server eligibility could not be verified.');return status.canSubmit;}
   if(!grants.length&&!status.canSubmit)return {...status,id:null,canSign:false,servers:[],saved:merged.approvals.length?merged:null};
@@ -196,11 +201,11 @@ export class WalletRuleReviews{
    const tracked=b.domain===PREPARE_DOMAIN;
    let txHash;
    const update=(stage,reason)=>{if(tracked)this.saveFeedback({proposal:hash(b),start:b.notBefore,end:b.expires,policy:hash(b.policy),count:packet.approvals.length,target:p.packet.approvals.length+p.grants.length,stage,reason,txHash});};
-   if(tracked){
+   if(tracked||b.domain===PREPARE_CLOSED_RESERVE){
     assert(valid(),'Approval expired before collection started.');
     // Only the reviewed grant list and body proceed. The server and the wallet
     // recheck eligibility and the signed block window before each endorsement.
-    valid=sessionValid;p.expires=Infinity;this.signingPreparation=true;
+    valid=sessionValid;p.expires=Infinity;if(tracked)this.signingPreparation=true;
    }
    try{
    update('signing');
@@ -210,7 +215,14 @@ export class WalletRuleReviews{
     assert(valid()&&Date.now()<p.expires,'Wallet session or review expired');
     const one=new WalletRuleReviews(w,this.request);
     one.pending={...p,packet,grant,action:'sign'};
-    const result=await one.confirm(q,valid);
+    let result;
+    try{result=await one.confirm(q,valid);}
+    catch(error){
+     if(b.domain!==PREPARE_CLOSED_RESERVE||!valid())throw error;
+     // Keep verified endorsements and try the next reviewed signer. No
+     // unverified response contributes to the final quorum check below.
+     continue;
+    }
     packet=result.packet;
     update('signing');
     if(result.status.canSubmit)break;
@@ -226,9 +238,9 @@ export class WalletRuleReviews{
   const {state}=await w.view(g?{rewardIds:[g.node]}:{});
   const {merged,status:before}=this.collect(p.packet,state);
   if(p.action==='submit'){
-   assert(before.canSubmit&&b.domain===PREPARE_DOMAIN,'Preparation is unavailable at this height');
+   assert(before.canSubmit&&[PREPARE_DOMAIN,PREPARE_CLOSED_RESERVE].includes(b.domain),'Preparation is unavailable at this height');
    assert(valid()&&Date.now()<p.expires,'Wallet session or review expired');
-   const wire=envelope(w.client.config,{type:PREPARE_TYPE,certificate:{body:b,approvals:merged.approvals}},w.key);
+   const wire=envelope(w.client.config,{...(b.domain===PREPARE_CLOSED_RESERVE?{type:PREPARE_CLOSED_RESERVE,managerConsent:merged.managerConsent}:{type:PREPARE_TYPE}),certificate:{body:b,approvals:merged.approvals}},w.key);
    await w.broadcast(wire);
    return {packet:merged,status:before,submitted:true,txHash:createHash('sha256').update(JSON.stringify(wire)).digest('hex')};
   }

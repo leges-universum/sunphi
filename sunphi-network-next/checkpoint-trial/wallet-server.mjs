@@ -34,6 +34,8 @@ import {WalletBond} from './wallet-bond.mjs';
 const bondSessions=new WeakMap();
 const ruleReviewSessions=new WeakMap();
 import {cutoverOpen,cutoverBody,submitCutover} from './bonded-cutover.mjs';
+import {publishedReserveBallot} from './closed-reserve-ballot.mjs';
+import {PREPARE_CLOSED_RESERVE} from './research/closed-network-reserve.mjs';
 const cutoverReviews=new WeakMap();
 import {WalletRuleReviews} from './wallet-rule-review.mjs';
 import {recentBlockSignatures} from './wallet-block-votes.mjs';
@@ -441,7 +443,25 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
          try{if(await reviewer.preparationGroup(q.nodes,id==='issuance-terms',state))items.push({id,title,kind:'financial'});}
          catch{incomplete=true;}
         }
-        assert(valid(),'Wallet session changed');return {items,incomplete,cutoverStatus};
+        const record=state.rewards?.calendarService?.closedFund;
+        const sent=active.db.prepare('SELECT proposal,atHeight FROM closed_reserve_submission WHERE owner=?').get(owner);
+        let reserveStatus=null;
+        if(record&&(sent?.proposal===record.mandate||active.db.prepare('SELECT 1 FROM rule_endorsements WHERE owner=? AND proposal=?').get(owner,record.mandate))){
+         reserveStatus=(record.version===PREPARE_CLOSED_RESERVE?'Open validator policy approved at block ':record.tariff?'Payout tariffs approved at block ':'Network reserve established at block ')+record.height+'. Purchases and loans are closed.';
+        }else if(!record){
+         try{
+          const packet=publishedReserveBallot();
+          if(packet&&packet.body.network===config.chainId){
+           const digest=hash(packet.body);
+           if(sent?.proposal===digest&&state.height<sent.atHeight+30&&state.money.time<packet.body.expires){
+            reserveStatus='Reserve certificate submitted. Waiting for network confirmation.';
+           }else if(await reviewer.preparationGroup(q.nodes,false,state,packet)){
+            items.push({id:digest,title:'Open validator admission and reward schedule',kind:'closed-reserve',tariff:packet.body.operatorPayments});
+           }
+          }
+         }catch{incomplete=true;}
+        }
+        assert(valid(),'Wallet session changed');return {items,incomplete,cutoverStatus,reserveStatus};
        }
        if(req.url==='/nodes/block-votes'){
         assert.deepEqual(q,{});return await recentBlockSignatures(active);
@@ -450,6 +470,16 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
         if(!ruleReviewSessions.has(active))ruleReviewSessions.set(active,new WalletRuleReviews(active));
         const reviewer=ruleReviewSessions.get(active);
         if(req.url==='/nodes/rule-confirm'){
+         if(q.builtin==='closed-reserve'){
+          exact(q,['builtin','proposal','nodes']);
+          const packet=publishedReserveBallot();
+          assert(packet&&hash(packet.body)===q.proposal,'The reserve proposal has changed.');
+          const review=await reviewer.preparationGroup(q.nodes,false,null,packet);
+          assert(review.id,'No eligible reserve approval is available.');
+          const result=await reviewer.confirm({id:review.id},valid,sessionValid);
+          if(result.submitted)active.db.prepare('INSERT OR REPLACE INTO closed_reserve_submission VALUES(?,?,?)').run(active.key.publicKey,q.proposal,review.height);
+          return {submitted:!!result.submitted,weight:result.status.weight,required:result.status.required};
+         }
          const body=cutoverReviews.get(active);
          if(body&&hash(body)===q.id){
           exact(q,['id']);assert(valid(),'Approval expired.');cutoverReviews.delete(active);

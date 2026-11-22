@@ -11,6 +11,7 @@ import {checkBondRequest} from './bond-request.mjs';
 import {FUND_WORKER} from './worker-collateral.mjs';
 import {enrollmentReply} from './validator-enrollment.mjs';
 import {JOIN_BONDED} from './research/bonded-queue.mjs';
+import {openValidatorsActive} from './research/open-validator-policy.mjs';
 import {signingKey} from './research/bounded-pos-records.mjs';
 import {rpc} from './client.mjs';
 
@@ -93,11 +94,22 @@ export class ServerEnrollment {
   this.job=job;this.tick();
  }
  tick(){
-  if(this.running||!['waiting','funding'].includes(this.job?.status))return;
+  if(this.running||!['waiting','funding','active'].includes(this.job?.status))return;
+  if(this.job.status==='active'){
+   if(Date.now()<(this.nextRosterCheck??0))return;
+   this.nextRosterCheck=Date.now()+60000;
+  }
   this.running=true;
   setImmediate(async()=>{
    try{
+    if(this.job.status==='active'){
+     const meta=this.handler.networkHeader();
+     if(!openValidatorsActive(meta.rewards?.calendarService)||
+        meta.authority?.posSlashing?.voting?.validators.some(m=>m.key===this.key.publicKey))return;
+    }
     const {state,record,link}=this.view();
+    if(this.job.status==='active'&&(!record||!link||record.signing.jailed||record.signing.tombstoned||
+       BigInt(record.signing.bond)<BigInt(state.authority.bondedAdmission?.minimumMicro??'100000000')))return;
     let packet=JSON.parse(this.job.packet);
     if(this.job.status==='funding'){
      const term=packet.packet,account=state.workerFunding?.accounts[term.template.node];
@@ -112,6 +124,7 @@ export class ServerEnrollment {
     }
     const a=nextValidatorAction(packet,state,record,link);
     if(a==='active'){
+     if(this.job.status==='active')return;
      this.db.prepare("UPDATE enrollment SET status='active' WHERE slot=1 AND request=?").run(this.job.request);
      this.job.status='active';return;
     }

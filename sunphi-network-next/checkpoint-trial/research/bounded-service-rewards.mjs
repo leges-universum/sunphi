@@ -17,6 +17,8 @@ import {operatorPolicyActive,operatorFactor} from './operator-reward-policy.mjs'
 import {newAdjustment,advanceAdjustment,finalServiceCredit,removeAdjustment,isAdjustmentRecord,auditAdjustment} from './operator-reward-allocation.mjs';
 
 import {isReserveDay,prepareTrialReserve,openPayroll,releasePayroll,reserveWork,tariffMicro} from './network-reserve.mjs';
+import {hasOperatorTariff,OPERATOR_TARIFF,tariffBudget} from './operator-tariff.mjs';
+import {openValidatorsActive,validatorFactorBps} from './open-validator-policy.mjs';
 export const ENABLE_SERVICE='ENABLE_PREISSUED_SERVICE_V1',COMPLETE_SERVICE='COMPLETE_BASELINE_SERVICE_V1';
 export const PREPARE_MAIN_SERVICE='PREPARE_MAIN_SERVICE_CALENDAR_V1';
 export const SERVICE_HEAD='service-rewards/head',SERVICE_LIVE='service-rewards/live';
@@ -122,7 +124,10 @@ function eligible(get,s,node,openedAt){
  if(n.kind==='worker')assert(s.money.nodes[node]&&amount(s.money.nodes[node].stake)>0n,'active collateralized server required');
  return n;
 }
-function emptyDay(day){return {day,phase:'COLLECTING',totalUnits:'0',count:0,after:null,baseMicro:'0',bonusLeft:0,rankAfter:null,memberAfter:null,creditedMicro:'0'};}
+function emptyDay(day,calendar){
+ const terms=openValidatorsActive(calendar)&&day>=START?{validatorFactorBps:validatorFactorBps(day,calendar.closedFund.annualChanges)}:{};
+ return {day,...terms,phase:'COLLECTING',totalUnits:'0',count:0,after:null,baseMicro:'0',bonusLeft:0,rankAfter:null,memberAfter:null,creditedMicro:'0'};
+}
 function addUnits(tx,day,node,units,kind,s,h,job=false){
  if(isReserveDay(s,day)){
   const d=tx.get(dayKey(day)),key=workKey(day,node),old=tx.get(key);
@@ -189,10 +194,17 @@ function cleanupServiceDay(s,tx,h,parentRoot,parentHeight){
 // credits are committed together; the cursor cannot outrun its monetary effects.
 export function advanceServiceRewards(s,tx,parentRoot,parentHeight){
  const h=checkedHead(tx.get);if(!h)return s;const now=s.money.time;
- const calendar=calendarSource(s);if(calendar&&calendar.nextMintDay<END&&now>=calendar.nextMintDay+DAY)issueClosedServiceDay(s,calendar.nextMintDay);
+ const calendar=calendarSource(s);
+ if(calendar&&calendar.nextMintDay<END&&now>=calendar.nextMintDay+DAY){
+  const day=calendar.nextMintDay,issued=issueClosedServiceDay(s,day);
+  if(hasOperatorTariff(calendar)&&tx.get(dayKey(day))?.payroll?.funding==='DAY_ISSUANCE'){
+   assert(issued>=tariffBudget,'Daily issuance did not cover authorized work.');
+   calendar.closedFund.committedMicro=String(amount(calendar.closedFund.committedMicro)+tariffBudget);
+  }
+ }
  const today=Math.floor(now/DAY)*DAY;
  if(isReserveDay(s,today)&&calendar.nextMintDay===today&&!tx.get(dayKey(today))){
-  const d=emptyDay(today),payroll=openPayroll(calendar);if(payroll)d.payroll=payroll;tx.set(dayKey(today),d);
+  const d=emptyDay(today,calendar),payroll=openPayroll(calendar,hasOperatorTariff(calendar)?calendarDayPool(s,today):'0');if(payroll)d.payroll=payroll;tx.set(dayKey(today),d);
  }
  if(isFundedDay(h,today)){
   const minute=Math.floor(now/60)*60,key=anchorKey(minute),interval=Math.floor(now/h.profile.intervalSeconds)*h.profile.intervalSeconds;
@@ -206,7 +218,7 @@ export function advanceServiceRewards(s,tx,parentRoot,parentHeight){
  cleanupServiceDay(s,tx,h,parentRoot,parentHeight);
  if(h.nextDay>=programmeEnd(h)||now<h.nextDay+DAY)return s;
  const day=h.nextDay;if(day>=START&&day>=calendar.nextMintDay)return s;
- const d=tx.get(dayKey(day))??emptyDay(day),pool=BigInt(dayPool(h,s,day,d));
+ const d=tx.get(dayKey(day))??emptyDay(day,calendar),pool=BigInt(dayPool(h,s,day,d));
  if(d.phase==='COLLECTING'){
   if(d.count===0){if(d.payroll)releasePayroll(calendar,BigInt(d.payroll.budgetMicro));d.phase=isReserveDay(s,day)?'COMPLETE':'RECONCILIATION_REQUIRED';tx.set(dayKey(day),d);h.nextDay=nextDay(h,day);tx.set(SERVICE_HEAD,h);return s;}
   assert.equal(d.count,radixCount(tx.get,index(day)));d.phase='BASE';
@@ -267,15 +279,24 @@ export function auditServiceRewards(records,s){
  for(const [k,v]of sorted(units)){assert(v>0n&&v<=MAX);const [, ,day,node]=k.split('/'),w=get(k),active=!isReserveDay(s,Number(day))&&operatorPolicyActive(get,Number(day))&&s.rewards.nodes[node].kind==='worker';if(active)assert([2,3,4].includes(w.factor));else assert.equal(w.factor,undefined);expected.set(k,{...evidence.get(k),units:String(v),...(active?{factor:w.factor}:{})});changeRadix(tx,index(Number(day)),node,true);}
  let spent=0n,calendarSpent=0n,committed=0n;
  for(const [k,d]of rows)if(k.startsWith(prefix+'days/')){
-  exact(d,[...Object.keys(emptyDay(d.day)),...(d.payroll?['payroll']:[]),...(d.cleanup?['cleanup']:[]),...(d.adjustment?['adjustment']:[])]);assert.equal(k,dayKey(d.day));assert(isFundedDay(h,d.day)&&d.day%DAY===0);
+  const template=emptyDay(d.day,calendarSource(s));
+  exact(d,[...Object.keys(template),...(d.payroll?['payroll']:[]),...(d.cleanup?['cleanup']:[]),...(d.adjustment?['adjustment']:[])]);assert.equal(k,dayKey(d.day));assert(isFundedDay(h,d.day)&&d.day%DAY===0);
+  assert.equal(d.validatorFactorBps,template.validatorFactorBps);
   const ids=[...radixIds(tx.get,index(d.day))],total=ids.reduce((n,id)=>n+BigInt(tx.get(workKey(d.day,id)).units),0n);
   if(isReserveDay(s,d.day)){
    assert(!d.adjustment);
    if(d.payroll){
-    const p=d.payroll;exact(p,['budgetMicro','worker','witness','jobs']);assert.equal(p.budgetMicro,'100000000');integer(p.worker);integer(p.witness);integer(p.jobs);
-    assert(p.worker<=10&&p.witness<=4&&p.jobs<=280&&BigInt(d.totalUnits)<=BigInt(p.budgetMicro));
+    assert(!openValidatorsActive(calendarSource(s)),'Unapproved validator payroll');
+    const p=d.payroll,tariff=hasOperatorTariff(calendarSource(s));
+    exact(p,['budgetMicro','worker','witness','jobs',...(tariff?['funding']:[])]);
+    if(tariff){
+     assert(['RESERVE','DAY_ISSUANCE'].includes(p.funding));
+     if(p.funding==='DAY_ISSUANCE')assert(BigInt(calendarDayPool(s,d.day))>=tariffBudget);
+    }
+    assert.equal(p.budgetMicro,tariff?String(tariffBudget):'100000000');integer(p.worker);integer(p.witness);integer(p.jobs);
+    assert(p.worker<=(tariff?OPERATOR_TARIFF.workerSlots:10)&&p.witness<=OPERATOR_TARIFF.witnessSlots&&p.jobs<=(tariff?0:280)&&BigInt(d.totalUnits)<=BigInt(p.budgetMicro));
     if(!d.cleanup){const counts={worker:0,witness:0,jobs:0};for(const id of ids){const e=evidence.get(workKey(d.day,id));if(e.intervals)counts[s.rewards.nodes[id].kind]++;counts.jobs+=e.jobs;}for(const field of Object.keys(counts))assert.equal(counts[field],p[field]);}
-    if(d.phase!=='COMPLETE')committed+=BigInt(p.budgetMicro)-BigInt(d.creditedMicro);
+    if(d.phase!=='COMPLETE'&&(p.funding!=='DAY_ISSUANCE'||d.day<calendarSource(s).nextMintDay))committed+=BigInt(p.budgetMicro)-BigInt(d.creditedMicro);
    }else assert.equal(d.count,0);
   }else assert(!d.payroll);
   if(d.adjustment){assert(operatorPolicyActive(get,d.day));assert(['ADJUST','PAY','COMPLETE'].includes(d.phase));auditAdjustment(get,tx,d.day,d.adjustment,ids,n=>get(workKey(d.day,n)),n=>get(creditKey(d.day,n)),!!d.cleanup);if(d.phase!=='ADJUST')assert.equal(d.adjustment.phase,'DONE');}
@@ -294,7 +315,7 @@ export function auditServiceRewards(records,s){
   }
   assert(d.day>=h.cleanupDay,'missing cleanup summary');assert.equal(d.count,ids.length);assert.equal(d.totalUnits,String(total));
   assert(['COLLECTING','BASE','BONUS','ADJUST','PAY','COMPLETE','RECONCILIATION_REQUIRED'].includes(d.phase));
-  if(d.phase==='COLLECTING'||d.phase==='RECONCILIATION_REQUIRED'){assert.deepEqual(d,{...emptyDay(d.day),...(d.payroll?{payroll:d.payroll}:{}),phase:d.phase,count:ids.length,totalUnits:String(total)});if(d.phase==='RECONCILIATION_REQUIRED')assert.equal(ids.length,0);}
+  if(d.phase==='COLLECTING'||d.phase==='RECONCILIATION_REQUIRED'){assert.deepEqual(d,{...template,...(d.payroll?{payroll:d.payroll}:{}),phase:d.phase,count:ids.length,totalUnits:String(total)});if(d.phase==='RECONCILIATION_REQUIRED')assert.equal(ids.length,0);}
   else{
    const selected=d.phase==='BASE'?ids.filter(n=>d.after!==null&&n<=d.after):ids;let bases=0n,bonuses=0,paid=0n;const pool=BigInt(dayPool(h,s,d.day,d)),ordered=[];
    for(const node of selected){const u=BigInt(tx.get(workKey(d.day,node)).units),base=pool*u/total,remainder=pool*u%total,r=rank(remainder),c=get(creditKey(d.day,node));assert(c);exact(c,['baseMicro','remainder','bonus']);assert.equal(c.baseMicro,String(base));assert.equal(c.remainder,String(remainder));assert.equal(typeof c.bonus,'boolean');if(d.phase==='BASE')assert(!c.bonus);bases+=base;bonuses+=Number(c.bonus);ordered.push({node,remainder,bonus:c.bonus});
@@ -309,5 +330,6 @@ export function auditServiceRewards(records,s){
  }
  for(let day=h.plan.from;day<h.nextDay;day=nextDay(h,day))assert(expected.has(dayKey(day)),'missing closed service day');
  for(const k of units.keys()){const day=Number(k.split('/')[2]);assert(expected.has(dayKey(day)),'missing work day');}
- assert.equal(String(committed),calendarSource(s)?.reserve?.committedMicro??'0');assert.equal(h.creditedMicro,String(spent));assert.equal(calendarSource(s)?.creditedMicro??'0',String(calendarSpent));assert.deepEqual(sorted(expected),sorted(rows),'service census or indices differ');
+ const cal=calendarSource(s);
+ assert.equal(String(committed),cal?.closedFund?.committedMicro??cal?.reserve?.committedMicro??'0');assert.equal(h.creditedMicro,String(spent));assert.equal(cal?.creditedMicro??'0',String(calendarSpent));assert.deepEqual(sorted(expected),sorted(rows),'service census or indices differ');
 }

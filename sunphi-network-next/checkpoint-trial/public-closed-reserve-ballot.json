@@ -1,0 +1,43 @@
+{
+  "body": {
+    "domain": "PREPARE_OPEN_VALIDATOR_RESERVE_V3",
+    "network": "duebyte-trial-fresh-20261109-v45",
+    "configHash": "5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c",
+    "generation": 1,
+    "managementEpoch": 1,
+    "curve": "DUEBYTE_ORDINARY_DECADE_CURVE_V1",
+    "planHash": "99d9e82a254b8b2d26b79b913928559e9666a61d8d5809760cd6d0d968ac4f16",
+    "annualHash": "ba716c27174c1f14478ce5f8aeb0ca778232e5affd50e0a18c1add11f47b76f4",
+    "manifestHash": "33c111ac25d0222f24f719b0312b4c2e7e103553f060c0c0c16bb63b0a990da0",
+    "programmeHash": "36cf4915d69242b075951b1db746cc66627bad4d81cf7f8685aac2986ce06eea",
+    "registryHash": "107ec8dca448dcbd79200ef898aa5c7626e3acb0e89e480602841f7d308d76d2",
+    "programmeStart": 1798761600,
+    "source": "ACTUAL_NET_ORDINARY_SERVICE_ISSUANCE",
+    "operatorPayments": {
+      "version": "DUEBYTE_OPEN_VALIDATORS_V1",
+      "firstTarget": 31,
+      "maximumActive": 256,
+      "rotation": "OLDEST_ACTIVE_FIRST",
+      "programmeYear": 2027,
+      "multiplierHalves": [
+        12,
+        10,
+        8,
+        6,
+        4
+      ],
+      "continuingHalves": 3,
+      "baseRateMicro": null,
+      "validatorBudgetMicro": null
+    },
+    "purchases": "CLOSED",
+    "securedLoans": "CLOSED",
+    "settlementAssets": [],
+    "saleLimitMicro": "0",
+    "loanLimitMicro": "0",
+    "notBefore": 1795388174,
+    "expires": 1795992974
+  },
+  "managerConsent": "zyv6v8MCRBoKzNq4ey4Vl7nOcsxJhKKPSnC3PyXAt9rU27SAWpKtf6gY8NAjK-b0g-QId5L_QAhPwd5q3sCvBg",
+  "approvals": []
+}

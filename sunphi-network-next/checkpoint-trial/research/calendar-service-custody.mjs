@@ -7,6 +7,7 @@ import {amount} from '../payment-model.mjs';
 import {START,END,DAY,inspectAnnualPlan,cumulativeNodeAllowance,dailyNodePool} from './calendar-node-emission-policy.mjs';
 import {SMOOTH_EMISSION,compileOrdinaryCurve} from './smooth-emission.mjs';
 import {reserveStatement} from './network-reserve.mjs';
+import {auditClosedReserve} from './closed-network-reserve.mjs';
 export const CALENDAR_SERVICE='DUEBYTE_CALENDAR_SERVICE_SOURCE_V1';
 export function calendarSource(s){return s.rewards?.calendarService??null;}
 export function calendarSourceCeiling(s,at=s.money.time){
@@ -31,7 +32,8 @@ export function prepareCalendarSource(s,certificateHash,advanceMicro){
 }
 export function auditCalendarSource(s){
  const c=calendarSource(s);if(!c)return;
- exact(c,['version','start','end','planHash','annualHash','certificateHash','nextMintDay','mintedMicro','creditedMicro','heldMicro',...(c.reserve?['reserve']:[]),...(c.advanceMicro!==undefined?['advanceMicro']:[])]);
+ exact(c,['version','start','end','planHash','annualHash','certificateHash','nextMintDay','mintedMicro','creditedMicro','heldMicro',...(c.reserve?['reserve']:[]),...(c.closedFund?['closedFund']:[]),...(c.advanceMicro!==undefined?['advanceMicro']:[])]);
+ if(c.closedFund){auditClosedReserve(c);assert(c.closedFund.height<=s.height);}
  if(c.advanceMicro!==undefined){amount(c.advanceMicro);assert.equal(c.advanceMicro,s.centuryFunds?.mainProgramme?.body.baseline.supportIssuedMicro,'joint advance accounting required');}
  if(c.reserve){exact(c.reserve,['version','committedMicro','marketInMicro','marketOutMicro',...(c.reserve.credit?['credit']:[])]);reserveStatement(c);}
  assert.equal(c.version,CALENDAR_SERVICE);assert.equal(c.start,START);assert.equal(c.end,END);hex(c.certificateHash);

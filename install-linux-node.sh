@@ -3,8 +3,8 @@
 set -euo pipefail
 umask 022
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
-version=0.3.132
-archive_sha256=99bec02fb1219e50f1fb778490bdb4fc7d14064800b783f573f16409ac0a5c2c
+version=0.3.135
+archive_sha256=5f269f8636dd524fa0920ccf5e16f2c1c5492911a0f722b8157e884ff2a6dbb4
 package="DueByte-Server-$version-Linux-x64"
 prefix=/opt/duebyte-server
 current="$prefix/current"
@@ -50,6 +50,8 @@ if [[ ! -e $current ]]; then
     tail -n 8 "$temp/package-install.log" >&2
     fail 'Server installation stopped.'
   fi
+  rm -rf -- "$temp"
+  trap - EXIT
 fi
 root=$(readlink -f "$current")
 [[ $root =~ ^/opt/duebyte-server/releases/[0-9]+\.[0-9]+\.[0-9]+$ && -x $root/duebyte-server ]] ||
@@ -68,28 +70,49 @@ if ! systemctl is-active --quiet "$service"; then
   echo 'Starting your node…'
   "$root/duebyte-server" initialize >/dev/null
 fi
-systemctl is-active --quiet "$service" || fail 'The node service did not start.'
 echo 'Verifying the connection. You can close this terminal while the node synchronizes.'
 "$root/runtime/node" -e '
   const fs=require("node:fs");
   const {execFileSync}=require("node:child_process");
-  let previous="",staleSince=Date.now();
+  const service="duebyte-archive.service";
+  const diagnose=reason=>{
+    console.error(reason+" Check sudo journalctl -u "+service+" -n 30.");
+    process.exit(1);
+  };
+  let previous="",invocation="",seenAt=Date.now(),lastReport=Date.now();
+  const restarts=[];
   function check(){
+    const now=Date.now();
+    let unit;
+    try{
+      const properties=execFileSync("systemctl",["show",service,"-p","ActiveState","-p","InvocationID","-p","SubState"],{encoding:"utf8",timeout:5000});
+      unit=Object.fromEntries(properties.trim().split("\n").map(line=>line.split("=")));
+    }catch{diagnose("Could not read the node service state.");}
+    if(unit.ActiveState==="failed" || unit.ActiveState==="inactive")diagnose("The node service stopped.");
+    if(unit.InvocationID && unit.InvocationID!==invocation){
+      if(invocation)restarts.push(now);
+      while(restarts.length && now-restarts[0]>180000)restarts.shift();
+      if(restarts.length>=5)diagnose("The node service repeatedly stopped during startup.");
+      invocation=unit.InvocationID;
+      seenAt=now;
+    }
     let s;
     try { s=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); } catch {}
-    const fresh=s && Date.now()-s.updatedAt>=0 && Date.now()-s.updatedAt<15000;
-    if(fresh && s.phase==="failed"){console.error(s.message||"Node setup stopped.");process.exit(1);}
+    const running=unit.ActiveState==="active" && unit.SubState==="running";
+    const fresh=running && s && s.updatedAt>=seenAt && now>=s.updatedAt && now-s.updatedAt<15000;
     if(fresh && s.phase==="ready" && Number.isSafeInteger(s.height)&&s.height>0){
       console.log("Connected. Latest verified block "+s.height+".");return;
     }
-    if(fresh)staleSince=Date.now();
-    if(Date.now()-staleSince>60000){
-      console.error("No recent node status. Check sudo journalctl -u duebyte-archive.service -n 20.");process.exit(1);
+    if(fresh && s.phase!=="failed")lastReport=now;
+    if(now-lastReport>120000)diagnose("No recent progress from the node service.");
+    let message="Starting the node service…";
+    if(unit.SubState==="auto-restart" || (fresh && s.phase==="failed"))message="The node service is recovering. Waiting for it to reconnect…";
+    else if(fresh){
+      message=s.message;
+      const height=s.bootstrap?.verifiedThrough;
+      if(Number.isSafeInteger(height) && height>0)message="Verifying network history. Block "+height+".";
     }
-    const message=fresh?s.message:"Starting the node service…";
     if(message && message!==previous){console.log(message);previous=message;}
-    try{execFileSync("systemctl",["is-active","--quiet","duebyte-archive.service"]);}
-    catch{console.error("Node service stopped. Check sudo journalctl -u duebyte-archive.service -n 20.");process.exit(1);}
     setTimeout(check,5000);
   }
   check();

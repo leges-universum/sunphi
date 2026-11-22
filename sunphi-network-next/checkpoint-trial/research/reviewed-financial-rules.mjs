@@ -5,6 +5,7 @@ import {OPERATOR_ISSUERS,OPERATOR_POLICY,checkRewardIssuers,applyRewardIssuerTer
 import {SCHEDULE_TARIFF,applyTariffTerms} from '../payment-tariff-governance.mjs';
 import {checkTariff} from '../payment-tariff.mjs';
 import {checkedEconomicReduction} from '../payment-tariff-economics.mjs';
+import {CHANGE_VALIDATOR_FACTOR,checkValidatorFactor,scheduleValidatorFactor,EXPAND_VALIDATOR_SET,checkExpansion,expandValidatorSet} from './open-validator-policy.mjs';
 
 // Positive list of transactions performing an already authorized service.
 // Newly introduced protocol actions need an explicit classification at cutover.
@@ -50,6 +51,10 @@ export function validateFinancialChange(change){
   const t=change.terms;exact(t,['previous','profile','activation','economics']);hex(t.previous);integer(t.activation,1);checkTariff(t.profile);
   if(t.economics!==null)checkedEconomicReduction(t.profile,t.economics,t.economics.periodEnd);
  }
+ else if(change.type===CHANGE_VALIDATOR_FACTOR){
+  const t=change.terms;exact(t,['previous','year','factorBps']);hex(t.previous);checkValidatorFactor(t.year,t.factorBps);
+ }
+ else if(change.type===EXPAND_VALIDATOR_SET)checkExpansion(change.terms);
  else if(change.type==='SET_REWARD_COEFFICIENTS_V1'){
   const t=change.terms;exact(t,['previous','activation','coefficients']);hex(t.previous);assert.equal(t.activation,'after-one-full-period');
   assert(t.coefficients&&typeof t.coefficients==='object');validateCoefficients(t.coefficients);
@@ -63,6 +68,8 @@ export function validateFinancialChange(change){
 }
 export function enactFinancialChange(s,config,change,decision,tx){
  validateFinancialChange(change);
+ if(change.type===CHANGE_VALIDATOR_FACTOR)return scheduleValidatorFactor(s,change.terms,decision);
+ if(change.type===EXPAND_VALIDATOR_SET)return expandValidatorSet(s,change.terms,decision);
  if(change.type===SCHEDULE_TARIFF)return applyTariffTerms(s,change.terms,config,decision);
  if(change.type==='SET_REWARD_COEFFICIENTS_V1')return scheduleReviewedCoefficients(s,config,change.terms,decision);
  if(change.type===OPERATOR_ISSUERS||change.type===OPERATOR_POLICY)return applyRewardIssuerTerms(s,change.type,change.terms,decision,tx);
