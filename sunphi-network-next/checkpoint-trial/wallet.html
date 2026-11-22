@@ -111,7 +111,7 @@ nav button[aria-current=page] .nav-icon{color:var(--accent)}
 #two-way-form .actions button[aria-pressed=true]{background:var(--section);color:var(--ink);box-shadow:inset 0 -1px var(--accent)}
 #two-way-preview,#two-way-orders>div{margin-block:24px;padding:20px;background:var(--section);border-top:1px solid var(--border)}
 #purchase-form .actions,#two-way-form .actions{margin-bottom:16px}
-#purchase-chain{overflow-wrap:anywhere}
+#purchase-chain,#credit-balance{overflow-wrap:anywhere}
 [data-screen=exchange]>section{align-self:start}
 #purchase-result{margin-top:20px;border-top:1px solid var(--border);padding-top:16px}
 #wallet-rewards{grid-column:1/-1;margin:0}
@@ -516,9 +516,15 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <button type="submit" id="external-check">Check transfer</button></form>
 <p id="external-result" role="status" aria-live="polite"></p></section></div>
 <div class="screen" data-screen="exchange" hidden>
+<section aria-labelledby="reserve-access-title">
+<h2 id="reserve-access-title">Network reserve</h2>
+<p id="reserve-access-status" role="status">Checking fund availability…</p>
+<div class="actions"><button type="button" id="reserve-buy" hidden>Buy DUBYT from the fund</button><button type="button" id="reserve-loan" hidden>View secured loan</button></div>
+</section>
 <section id="exchange-chooser" aria-labelledby="exchange-choice-title">
 <h2 id="exchange-choice-title">Choose your exchange</h2>
-<div class="exchange-choice"><div><label for="exchange-direction">I want to</label><select id="exchange-direction"><option value="BUY_DUBYT">Buy DUBYT</option><option value="SELL_DUBYT">Sell DUBYT</option></select></div><div><label for="exchange-currency">Other currency</label><select id="exchange-currency"><option value="BTC">Bitcoin · BTC</option><option value="USDC">USDC · Ethereum</option><option value="USDT">USDT · Ethereum</option><option value="XMR">Monero · XMR</option></select></div></div>
+<div id="native-exchange-choice" class="exchange-choice"><div><label for="exchange-direction">I want to</label><select id="exchange-direction"><option value="BUY_DUBYT">Buy DUBYT</option><option value="SELL_DUBYT">Sell DUBYT</option></select></div><div><label for="exchange-currency">Other currency</label><select id="exchange-currency"><option value="BTC">Bitcoin · BTC</option><option value="USDC">USDC · Ethereum</option><option value="USDT">USDT · Ethereum</option><option value="XMR">Monero · XMR</option></select></div></div>
+<div id="external-exchange-choice" hidden><label for="exchange-external-pair">Exchange pair</label><select id="exchange-external-pair"></select></div>
 <p id="exchange-summary">BTC → DUBYT</p><p id="exchange-network" class="hint"></p>
 <ol class="exchange-steps" aria-label="Exchange steps"><li>Choose amount</li><li>Review exact offer</li><li>Confirm &amp; follow progress</li><li>Receive funds</li></ol>
 <p class="hint">The offer shows exactly what you pay, what you receive, all fees and the expected wait. Payment details appear only when an exchange is available.</p>
@@ -540,7 +546,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <nav class="history-pagination" aria-label="Exchange history pages"><button id="broker-prev" type="button">Previous</button><span id="broker-page"></span><button id="broker-next" type="button">Next</button></nav>
 <button id="broker-refresh" type="button">Refresh saved exchanges</button>
 </div></section><section id="two-way-panel" class="panel" hidden>
-<div class="panel-head"><small class="eyebrow">Isolated exchange</small><h2>Exchange DUBYT</h2><p class="hint">Test assets only. The intended production stablecoin is native USDC on Ethereum. This laboratory uses a local test token, not real USDC.</p></div>
+<div class="panel-head"><small class="eyebrow">Isolated exchange</small><h2>Exchange DUBYT</h2><p class="hint">Test assets only.</p></div>
 <div class="panel-body"><p id="two-way-message" role="status" aria-live="polite">Checking availability...</p>
 <form id="two-way-form" hidden><label>Direction</label><div id="two-way-directions" class="actions" role="group" aria-label="Exchange direction"><button type="button" data-direction="BUY_DUBYT" aria-pressed="true">Buy DUBYT</button><button type="button" data-direction="SELL_DUBYT" aria-pressed="false">Sell DUBYT</button></div>
 <label>External asset</label><div id="two-way-assets" class="actions" role="group" aria-label="External asset"><button type="button" data-asset="BTC" aria-pressed="true">Bitcoin</button><button type="button" data-asset="USDC" aria-pressed="false">USDC</button></div>
@@ -548,6 +554,32 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <label id="two-way-address-label" for="two-way-address">Your external refund address</label><input id="two-way-address" maxlength="100" required autocomplete="off" spellcheck="false">
 <p class="hint">Use an address in your external wallet on the indicated test network. Never enter a private key or recovery phrase.</p><button id="two-way-review" class="primary">Review exchange</button></form>
 <div id="two-way-preview" class="panel-band" hidden><h3>Review exchange</h3><p id="two-way-summary"></p><p id="two-way-route" class="address"></p><p id="two-way-fee" class="hint"></p><p id="two-way-deadline" class="hint"></p><button id="two-way-confirm" type="button" class="primary">Confirm exact terms</button></div>
+<label id="credit-choice" hidden>Loan<select id="credit-programme"></select></label>
+<section id="secured-credit" hidden><h3>Secured loan</h3><p id="credit-balance"></p><div class="actions"><button type="button" id="credit-borrow">Review loan offer</button><button type="button" id="credit-cancel" hidden>Cancel unused loan</button></div><form id="credit-repay-form" hidden><label for="credit-amount">Repayment in DUBYT</label><input id="credit-amount" required inputmode="decimal"><div class="actions"><button>Review repayment</button></div></form><p id="credit-message" role="status" aria-live="polite"></p><div class="actions"><button id="credit-confirm" type="button" hidden>Confirm</button><button id="credit-retry" type="button" hidden>Retry saved action</button></div></section>
+<label id="series-choice" hidden>Backed series<select id="series-programme"></select></label>
+<section id="backed-payments" hidden><h3>Backed payments</h3>
+<div id="series-opening" hidden><p id="series-opening-status"></p><div class="actions"><button type="button" id="series-open" hidden>Review backing</button><button type="button" id="series-open-retry" hidden>Retry saved activation</button></div><div id="series-opening-feedback"></div></div>
+<div id="series-active"><p id="series-balance"></p><p id="series-holds" hidden></p><p id="series-route" class="hint"></p><div id="series-orders"></div>
+<form id="series-link-form"><label for="series-link">DueByte payment link</label><input id="series-link" maxlength="4096" required autocomplete="off"><div class="actions"><button>Review order</button></div></form>
+<form id="series-form"><label for="series-action">Action</label><select id="series-action"><option>Transfer</option><option>Redeem</option></select><label for="series-recipient" id="series-address-label">DueByte recipient</label><input id="series-recipient" required autocomplete="off"><label for="series-value">Backed DUBYT</label><input id="series-value" inputmode="decimal" required><label for="series-purpose">Payment purpose (optional)</label><input id="series-purpose" maxlength="160"><label for="series-contract">Contract number (optional)</label><input id="series-contract" maxlength="160"><div class="actions"><button>Review payment</button></div></form><div id="series-form-feedback"></div>
+<details id="series-market" hidden><summary>Trade free DUBYT</summary>
+<p id="series-market-pair" class="hint"></p><div id="series-offers"></div>
+<details><summary>Place an offer</summary><form id="series-offer-form">
+<label for="series-offer-side">I want to</label><select id="series-offer-side"><option value="SELL">Sell free DUBYT</option><option value="BUY">Buy free DUBYT</option></select>
+<label for="series-offer-free">Free DUBYT per lot</label><input id="series-offer-free" inputmode="decimal" required>
+<label for="series-offer-backed">Backed DUBYT per lot</label><input id="series-offer-backed" inputmode="decimal" required>
+<label for="series-offer-lots">Number of lots</label><input id="series-offer-lots" type="number" min="1" max="1000000" value="1" required>
+<label for="series-offer-hours">Offer duration (hours)</label><input id="series-offer-hours" type="number" min="1" max="168" value="24" required>
+<div class="actions"><button>Review offer</button></div></form></details><div id="series-market-feedback"></div></details>
+<div id="series-feedback"><p role="status" aria-live="polite" id="series-message"></p><div class="actions"><button id="series-confirm" type="button" hidden>Confirm</button></div></div><details><summary>Payment receipts</summary>
+<label for="series-search">Find a receipt</label><input id="series-search" type="search" placeholder="Contract, purpose, account or receipt ID">
+<div id="series-payments"></div><div class="actions"><button type="button" id="series-previous" hidden>Previous</button><button type="button" id="series-next" hidden>Next</button></div></details></div></section>
+<section id="limit-asks" hidden><h3>Limit sell orders</h3>
+<form id="ask-form"><label for="ask-quantity">DUBYT to reserve</label><input id="ask-quantity" inputmode="decimal" required>
+<label for="ask-price">Minimum test USDC per DUBYT</label><input id="ask-price" inputmode="decimal" required>
+<label for="ask-hours">Expiry in hours</label><input id="ask-hours" type="number" min="1" max="168" value="24" required>
+<div class="actions"><button>Review sell order</button></div></form>
+<p id="ask-message" role="status" aria-live="polite"></p><div class="actions"><button type="button" id="ask-confirm" hidden>Confirm sell order</button></div><div id="ask-list"></div></section>
 <div id="two-way-orders"></div><button id="two-way-refresh" type="button">Refresh status</button></div>
 <div class="panel-band"><p class="hint">Only a verified DueByte state confirms the DUBYT reservation or release. External settlement and refunds require their own verified network evidence. Do not send funds to an address merely because it appears in a quote.</p></div>
 </section><section id="legacy-purchase-panel">
@@ -691,7 +723,7 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.133</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.134</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -880,7 +912,7 @@ function renderWaiting(){
  else if(s?.checkedAt&&!s.error){$('connection-help').hidden=!s.working;$('connection-help').textContent=s.working?'Checking current network data…':'';}
 }
 function operationLabel(path){return ({'/send':'Sending your payment…','/quote':'Preparing your payment…','/history':'Loading payment history…','/assets':'Loading balances…','/unlock':'Opening your wallet…','/create':'Creating your wallet…','/restore':'Restoring your wallet…','/lock':'Finishing the current operation…','/select-wallet':'Switching wallet…','/change-password':'Updating your wallet password…','/backup':'Preparing your encrypted backup…','/nodes':'Loading your nodes…'})[path]||'Processing your request…';}
-async function api(path,data){const pending=Symbol();if(!['/status','/activity','/authorize-action','/external/prices','/external/receipt','/nodes/vote-notices','/nodes/server-versions'].includes(path)){pendingOperations.set(pending,operationLabel(path));renderWaiting();}try{const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(path==='/status'&&!document.querySelector('[data-screen="network"]').hidden)headers['X-DueByte-Analytics']='1';if(['/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund','/broker/confirm','/broker/fund','/seller/start'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok){const e=Error(v.error);if(v.paymentOutcome==='not_created')e.paymentOutcome=v.paymentOutcome;throw e;}if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}finally{pendingOperations.delete(pending);renderWaiting();}}
+async function api(path,data){const pending=Symbol();if(!['/status','/activity','/authorize-action','/external/prices','/external/receipt','/nodes/vote-notices','/nodes/server-versions'].includes(path)){pendingOperations.set(pending,operationLabel(path));renderWaiting();}try{const headers={'X-Duebyte-Token':token,'Content-Type':'application/json'};if(path==='/status'&&!document.querySelector('[data-screen="network"]').hidden)headers['X-DueByte-Analytics']='1';if(['/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/exchange/confirm','/exchange/resume','/exchange/refund','/exchange/confirmAsk','/exchange/retryAsk','/exchange/confirmSeries','/exchange/retrySeries','/exchange/confirmLoan','/exchange/retryLoan','/broker/confirm','/broker/fund','/seller/start'].includes(path))headers['X-Duebyte-Action']=(await api('/authorize-action',{path,data})).permit;const r=await fetch(path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined});const v=await r.json();if(!r.ok){const e=Error(v.error);if(v.paymentOutcome==='not_created')e.paymentOutcome=v.paymentOutcome;throw e;}if(path==='/lock'||path==='/select-wallet'){token=newSession();sessionStorage.setItem('duebyte-session',token);}return v;}finally{pendingOperations.delete(pending);renderWaiting();}}
 function renderPaymentTariff(s){const t=s.paymentTariff,p=t?.active,fmt=n=>(Number(n)/1000000).toFixed(6).replace(/0+$/,'').replace(/\.$/,'');let text=!t?'Waiting for the verified network tariff.':!p?'Current legacy network fee: 3%, rounded up to the smallest supported unit.':p.version==='DUEBYTE_PAYMENT_FEE_006_V2'?'Network fee: 0.06% of the payment, with a minimum of '+fmt(p.baseMicro)+' DUBYT. The larger amount applies; there is no upper fee cap or extra fee for coverage parts. Amounts round up to 0.000001 DUBYT. The initial minimum uses $1 per DUBYT as a planning reference, not a promised exchange rate. On expiry or cancellation, '+fmt(String(Math.ceil(Number(p.baseMicro)/10)))+' DUBYT of the quoted fee is retained; the remaining quoted fee is released.':'Legacy network fee: 0.001%, minimum '+fmt(p.baseMicro)+', base-fee cap '+fmt(p.capMicro)+' DUBYT, plus '+fmt(p.additionalPartMicro)+' DUBYT per additional coverage part.';if(t?.pending)text+=' A new tariff is scheduled for '+new Date(t.pending.activation*1000).toISOString()+'.';$('fee-help').textContent=text+' Review the exact total before signing. BTC and Ethereum fees are separate.';}
 function moneyText(record,key){return record?.display?.[key]??((record?.unitScale??'1')==='1'?record?.[key]:'—');}
 function connectionHealth(health){const verified=health==='verified',text=verified?'Data verified':health==='attention'?'Data not verified':'Verifying data',help=health==='attention'?'Check the node connection. Verification will retry automatically.':'Please wait for the first verification to finish.';$('sync').dataset.health=health;if($('phase').textContent!==text)$('phase').textContent=text;$('connection-help').hidden=verified;if($('connection-help').textContent!==help)$('connection-help').textContent=help;}
@@ -1962,13 +1994,204 @@ function twoWayControls(){
  if(twoWayDraft?.outcomeRequired)$('two-way-deadline').textContent='Quote expires: '+utc(twoWayDraft.expiresAt)+'. Once external payment is authorized, DUBYT remain reserved until payment or refund is verified.';
  const disabled=twoWayBusy||submitting||lastStatus?.locked||lastStatus?.working||!!lastStatus?.error||!twoWayEnabled;for(const e of $('two-way-form').querySelectorAll('button,input'))e.disabled=disabled;$('two-way-confirm').disabled=disabled||!twoWayDraft||twoWayDraft.expiresAt<=Date.now()/1000;$('two-way-refresh').disabled=twoWayBusy;renderExchangeChoice();}
 function showTwoWayOrders(orders){twoWayHasOrders=orders.length>0;$('two-way-orders').replaceChildren(...orders.map(o=>{const box=element('div');box.className='panel-band';box.append(element('h3',(o.direction==='BUY_DUBYT'?'Buy ':'Sell ')+o.dubyt+' DUBYT'),element('p',o.asset+' / '+o.network+' / '+({LOCKED:'DUBYT reserved',CLAIMED:'DUBYT transfer confirmed',REFUNDED:'DUBYT returned',EXPIRED_UNFUNDED:'Expired without a reservation',NOT_CONFIRMED:'Awaiting DUBYT confirmation'}[o.status]??o.status.replaceAll('_',' '))),element('p',o.verified?'Verified against DueByte consensus.':'No committed DUBYT reservation has been verified.'));
+ if(o.settlement){
+  const t=o.settlement,buy=o.direction==='BUY_DUBYT';
+  box.append(element('p',t.counterparty+' · '+(buy?'Purchase total ':'Net sale proceeds ')+t.externalTotal+' '+t.asset+' · Exchange fee '+t.exchangeFee+' '+t.asset+'.'));
+ }
  if(o.awaitingOutcome)box.append(element('p','Awaiting verified payment or refund. Your DUBYT remain reserved until the external result is confirmed. Do not pay again.'));
  if(o.canRefund){const b=element('button','Release expired DUBYT reservation');b.type='button';b.onclick=()=>twoWayAction('/exchange/refund',o.id);box.append(b);}else if(o.status==='NOT_CONFIRMED'){const b=element('button','Retry saved request');b.type='button';b.onclick=()=>twoWayAction('/exchange/resume',o.id);box.append(b);}return box;}));}
-async function loadTwoWay(){if(twoWayBusy||lastStatus?.locked||!lastStatus?.features?.twoWayExchange)return;twoWayBusy=true;const context=purchaseContext();twoWayControls();try{if(twoWayContext!==context){clearTwoWay();$('two-way-orders').replaceChildren();twoWayContext=context;}const a=await api('/exchange/availability',{});if(context!==purchaseContext()||lastStatus.locked)return;twoWayEnabled=a.available;$('two-way-form').hidden=!a.available;$('two-way-message').textContent=a.reason;if(a.available){const s=await api('/exchange/status',{});if(context===purchaseContext()&&!lastStatus.locked){showTwoWayOrders(s.orders);$('two-way-form').hidden=s.orders.some(o=>['LOCKED','NOT_CONFIRMED'].includes(o.status));}}}catch(e){if(context===purchaseContext())$('two-way-message').textContent=e.message;}finally{twoWayBusy=false;twoWayControls();}}
+let creditDraft=null,creditBusy=false,creditRetry=null;
+let reserveContext=null,reservePurchase=false;
+function renderReserveAccess(){
+ const context=purchaseContext();
+ if(reserveContext!==context){reserveContext=context;reservePurchase=false;}
+ const features=lastStatus?.features;
+ const ready=lastStatus?.checkedAt&&!lastStatus?.locked&&!lastStatus?.error;
+ const active=ready&&!!features?.settlementAsset&&!features.nativeSeriesOnly;
+ const routed=active&&twoWayContext===context&&twoWayEnabled&&!$('two-way-form').hidden;
+ $('reserve-buy').hidden=!routed;
+ $('reserve-buy').disabled=twoWayBusy||submitting;
+ $('reserve-loan').hidden=!active||askContext!==context||$('secured-credit').hidden;
+ $('reserve-access-status').textContent=!ready?'Waiting for verified wallet data.':!active?'Fund purchases and secured loans are unavailable on this network.':routed?'Review a fund quote before buying test DUBYT.':twoWayHasOrders?'Your exchange status is shown below.':'No purchase quote is available on this connection.';
+}
+$('reserve-buy').onclick=()=>{
+ if($('reserve-buy').hidden||twoWayBusy||submitting)return;
+ clearTwoWay();reservePurchase=true;
+ $('exchange-direction').value='BUY_DUBYT';renderExchangeChoice();
+ $('two-way-address-label').textContent='Your settlement refund account';
+ $('two-way-amount').focus();
+};
+$('reserve-loan').onclick=()=>{
+ const control=$('secured-credit').querySelector('button:not([hidden]), input');
+ $('secured-credit').scrollIntoView({block:'center'});
+ if(control&&control.getClientRects().length)control.focus();
+};
+function programmeRequest(kind,payload={}){
+ const el=$(kind+'-programme');return el.dataset.context===purchaseContext()&&el.value?{...payload,programme:el.value}:payload;
+}
+function showProgrammes(kind,context,status){
+ const select=$(kind+'-programme'),choices=status.programmes??[],key=JSON.stringify([context,choices]);
+ if(select.dataset.key!==key){
+  select.replaceChildren(...choices.map(p=>{const option=element('option',p.label);option.value=p.id;return option;}));
+  select.dataset.key=key;select.dataset.context=context;select.value=status.programme??'';
+ }
+ $(kind+'-choice').hidden=choices.length<2;
+}
+$('credit-programme').onchange=()=>{$('secured-credit').hidden=true;$('credit-amount').value='';creditDraft=null;creditRetry=null;$('credit-confirm').hidden=true;$('credit-message').textContent='';void refreshLoan(purchaseContext());};
+$('series-programme').onchange=()=>{$('backed-payments').hidden=true;$('series-form').reset();$('series-offer-form').reset();$('series-link-form').reset();seriesPage=0;resetSeries();seriesOrdersKey=null;$('series-message').textContent='';void refreshSeries(purchaseContext());};
+async function refreshLoan(context){
+ const selected=programmeRequest('credit'),l=await api('/exchange/loanStatus',selected);if(context!==purchaseContext()||selected.programme!==programmeRequest('credit').programme)return;showProgrammes('credit',context,l);
+ $('secured-credit').hidden=!l.visible;if(!l.visible)return;
+ $('credit-balance').textContent=l.recovery?(l.returned?'Overdue loan settled · '+l.recovery.paid+' '+l.asset+' paid · '+l.recovery.surplus+' '+l.asset+' returned · '+l.receiptPrefix+l.returned:'Repurchase funded. Waiting for the confirmed collateral payment.') : l.cancelled?(l.returned?'Unused collateral returned · '+l.collateral+' '+l.asset+' · '+l.receiptPrefix+l.returned:'Loan request cancelled. Waiting for the external collateral return.') : l.due===null?'Fixed interest test loan · '+l.principal+' DUBYT available to review':l.returned?'Loan closed · '+l.collateral+' '+l.asset+' returned · '+l.receiptPrefix+l.returned:l.due==='0'?'Loan repaid. Awaiting return of '+l.collateral+' '+l.asset+'.':'Outstanding: '+l.due+' DUBYT · Pledged: '+l.collateral+' '+l.asset+' · Due '+utc(l.dueAt);
+ if(l.loss)$('credit-balance').textContent='Loan closed at DueByte block '+l.loss.height+' · Fund capital used: '+l.loss.principal+' DUBYT · Interest waived: '+l.loss.interest+' DUBYT';
+ creditRetry=l.pending[0];$('credit-retry').hidden=!creditRetry;
+ if(!l.canReview&&l.due===null&&!l.cancelled)$('credit-balance').textContent=l.reason??'Waiting for a current funded loan offer.';
+ $('credit-cancel').hidden=!l.pledged||l.due!==null||l.cancelled||!!creditRetry;
+ $('credit-borrow').hidden=!l.canReview||l.cancelled||l.due!==null||!!creditRetry;$('credit-repay-form').hidden=!!l.recovery||l.due===null||l.due==='0'||!!creditRetry;
+}
+async function creditAction(method,request){
+ if(creditBusy)return;creditBusy=true;const context=purchaseContext();creditDraft=null;$('credit-confirm').hidden=true;
+ $('credit-message').textContent=method==='reviewLoan'?'Verifying the loan and market depth…':'Submitting your saved instruction…';
+ const payload=programmeRequest('credit',request);
+ try{const result=await api('/exchange/'+method,payload);if(context!==purchaseContext()||payload.programme!==programmeRequest('credit').programme)return;
+  if(method==='reviewLoan'){creditDraft={id:result.id,context};$('credit-confirm').hidden=false;$('credit-message').textContent=result.summary;}
+  else{await refreshLoan(context);$('credit-message').textContent=creditRetry?result.status:$('credit-balance').textContent;}
+ }catch(error){if(context===purchaseContext())$('credit-message').textContent=error.message;}finally{creditBusy=false;}
+}
+$('credit-cancel').onclick=()=>void creditAction('reviewLoan',{action:'Cancel unused loan'});
+$('credit-borrow').onclick=()=>void creditAction('reviewLoan',{action:'Borrow'});
+$('credit-repay-form').oninput=()=>{creditDraft=null;$('credit-confirm').hidden=true;$('credit-message').textContent='';};
+$('credit-repay-form').onsubmit=e=>{e.preventDefault();void creditAction('reviewLoan',{action:'Repay',amount:$('credit-amount').value.trim()});};
+$('credit-confirm').onclick=()=>{if(creditDraft?.context===purchaseContext())void creditAction('confirmLoan',{id:creditDraft.id});};
+$('credit-retry').onclick=()=>{if(creditRetry)void creditAction('retryLoan',{id:creditRetry});};
+let seriesReview=null,seriesBusy=false,seriesKey=null,seriesOrdersKey=null;
+function resetSeries(){seriesReview=null;seriesKey=null;$('series-confirm').hidden=true;}
+async function seriesAction(method,payload){
+ if(seriesBusy)return;seriesBusy=true;const context=purchaseContext();resetSeries();
+ if(method==='reviewSeries')$(payload.action==='Activate backed balance'?'series-opening-feedback':['Place offer','Fill offer','Close offer'].includes(payload.action)?'series-market-feedback':'series-form-feedback').append($('series-feedback'));
+ $('series-message').textContent=method==='reviewSeries'?'Checking the amount and terms…':'Submitting the saved action…';
+ const request=programmeRequest('series',payload);
+ try{const result=await api('/exchange/'+method,request);if(context!==purchaseContext()||request.programme!==programmeRequest('series').programme)return;
+  if(method==='reviewSeries'){seriesReview={context,id:result.id};$('series-message').textContent=result.summary;$('series-confirm').hidden=false;}
+  else{$('series-message').textContent=result.status;await refreshSeries(context,result.id);}
+ }catch(error){if(context===purchaseContext())$('series-message').textContent=error.message;}finally{seriesBusy=false;}
+}
+$('series-form').oninput=()=>{resetSeries();$('series-message').textContent='';$('series-address-label').textContent=$('series-action').value==='Redeem'?$('series-form').dataset.destination:'DueByte recipient';};
+$('series-offer-form').oninput=()=>{resetSeries();$('series-message').textContent='';};
+$('series-offer-form').onsubmit=e=>{e.preventDefault();void seriesAction('reviewSeries',{action:'Place offer',side:$('series-offer-side').value,free:$('series-offer-free').value,backed:$('series-offer-backed').value,lots:Number($('series-offer-lots').value),hours:Number($('series-offer-hours').value)});};
+$('series-link-form').oninput=()=>{resetSeries();$('series-message').textContent='';};
+$('series-link-form').onsubmit=e=>{e.preventDefault();void seriesAction('reviewSeries',{action:'Fund order',link:$('series-link').value.trim()});};
+$('series-form').onsubmit=e=>{e.preventDefault();void seriesAction('reviewSeries',{action:$('series-action').value,recipient:$('series-recipient').value.trim(),amount:$('series-value').value.trim(),contract:$('series-contract').value.trim(),purpose:$('series-purpose').value.trim()});};
+$('series-confirm').onclick=()=>{if(seriesReview?.context===purchaseContext())void seriesAction('confirmSeries',{id:seriesReview.id});};
+$('series-open').onclick=()=>void seriesAction('reviewSeries',{action:'Activate backed balance'});
+async function refreshSeries(context,receiptId){
+ const selected=programmeRequest('series'),s=await api('/exchange/seriesStatus',selected);if(context!==purchaseContext()||selected.programme!==programmeRequest('series').programme)return;showProgrammes('series',context,s);
+ $('backed-payments').hidden=!s.available;if(!s.available)return;
+ const activationReceipt=$('series-opening-feedback').contains($('series-feedback'))&&s.receipts?.some(r=>r.id===(receiptId??seriesKey)&&r.status==='Backed balance activated');
+ $('series-opening').hidden=!s.opening&&!activationReceipt;$('series-active').hidden=!!s.opening;
+ if(s.opening){
+  $('series-opening-status').textContent=s.openingStatus;$('series-open').hidden=!s.canOpen;
+  const retry=$('series-open-retry');retry.hidden=!s.retryOpening;retry.onclick=()=>{if(s.retryOpening)void seriesAction('retrySeries',{id:s.retryOpening});};return;
+ }
+ if(activationReceipt){
+  $('series-opening-status').textContent='';$('series-open').hidden=true;$('series-open-retry').hidden=true;
+ }
+ $('series-balance').textContent=s.balance+' backed DUBYT available · Redeemable for '+s.cash+' '+s.asset;
+ const holdNames={orders:'Reserved for orders',offers:'Reserved for bids',redemptions:'Awaiting redemption'};
+ const holds=Object.entries(s.holds??{}).filter(([,n])=>n!=='0').map(([kind,n])=>holdNames[kind]+': '+n+' backed DUBYT');
+ $('series-holds').hidden=!holds.length;$('series-holds').textContent=holds.join(' · ');
+ $('series-route').textContent=(s.frozen?'Transfers suspended · ':'')+s.network+' · Reserve '+s.vault;
+ $('series-form').dataset.destination=s.asset+' receiving '+(s.accountFormat==='account'?'account':'address');
+ $('series-market').hidden=!s.nativeMarket;
+ if(s.nativeMarket){
+  $('series-market-pair').textContent='Free DUBYT / backed DUBYT · Backing asset: '+s.asset;
+  $('series-offer-form').parentElement.hidden=s.frozen;
+  const list=$('series-offers'),key=JSON.stringify([context,s.frozen,s.offers]);
+  if(list.dataset.offers!==key){
+   list.dataset.offers=key;
+   const rows=s.offers.filter(o=>o.own||!o.expired&&!s.frozen);
+   list.replaceChildren(...rows.map(o=>{
+    const box=element('div');box.className='panel-band';
+    box.append(element('h4',(o.own?'Your ':'')+(o.side==='BUY'?'Buy offer':'Sell offer')),element('p',o.free+' free DUBYT for '+o.backed+' backed DUBYT per lot · '+o.remaining+' lots available'));
+    const form=element('form'),button=element('button',o.own?'Review release':o.side==='BUY'?'Review sale':'Review purchase');
+    const n=element('input');n.type='number';n.min=1;n.max=o.remaining;n.value=1;n.required=true;
+    if(!o.own){const label=element('label','Lots to exchange');label.append(n);form.append(label);}
+    form.oninput=()=>{resetSeries();$('series-message').textContent='';};
+    const actions=element('div');actions.className='actions';actions.append(button);form.append(actions);box.append(form);
+    form.onsubmit=e=>{e.preventDefault();void seriesAction('reviewSeries',o.own?{action:'Close offer',offer:o.id}:{action:'Fill offer',offer:o.id,lots:Number(n.value)});};
+    return box;
+   }));
+   if(!rows.length)list.append(element('p','No funded offers.'));
+  }
+ }
+ $('series-link-form').hidden=s.frozen||s.balance==='0';$('series-form').hidden=s.balance==='0';const transfer=$('series-action').options[0];transfer.disabled=s.frozen;
+ if(s.frozen)$('series-action').value='Redeem';
+ $('series-address-label').textContent=$('series-action').value==='Redeem'?$('series-form').dataset.destination:'DueByte recipient';
+ const ordersKey=JSON.stringify(s.orders)+s.frozen;
+ if(ordersKey!==seriesOrdersKey){seriesOrdersKey=ordersKey;$('series-orders').replaceChildren(...s.orders.map(o=>{
+  const box=element('div');box.className='panel-band';box.append(element('h4',o.role+' · Order '+o.id.slice(0,12)),element('p',o.accepted+' of '+o.quantity+' '+o.unitLabel+' accepted · '+o.remaining+' '+s.asset+' reserved'));
+  const controls=element('div');controls.className='actions';
+  const action=(name,get)=>{const b=element('button',name);b.type='button';b.onclick=()=>void seriesAction('reviewSeries',{order:o.id,...get()});controls.append(b);};
+  if(!o.closed&&o.role==='Buyer'&&!o.cancelRequested){
+   if(!s.frozen){const label=element('label','Total '+o.unitLabel+' accepted'),n=element('input');n.type='number';n.min=o.accepted+1;n.max=o.quantity;n.value=n.min;label.append(n);box.append(label);action('Review delivery',()=>({action:'Accept',accepted:Number(n.value)}));}
+   action('Request cancellation',()=>({action:'Request cancellation'}));
+  }else if(!o.closed&&o.role==='Supplier'&&o.cancelRequested)action('Review cancellation',()=>({action:'Confirm cancellation'}));
+  box.append(controls);return box;
+ }));}
+ if(seriesHistory?.context!==context){seriesPage=0;$('series-search').value='';}
+ seriesHistory={context,data:s};drawSeriesHistory();
+ if(receiptId)seriesKey=receiptId;
+ const receipt=s.receipts.find(r=>r.id===seriesKey);
+ if(receipt&&!seriesReview)$('series-message').textContent=receipt.status+(receipt.height?' · DueByte block '+receipt.height:'');
+}
+let seriesHistory=null,seriesPage=0;
+function drawSeriesHistory(){
+ if(seriesHistory?.context!==purchaseContext())return;
+ const s=seriesHistory.data,query=$('series-search').value.trim().toLowerCase(),rows=s.receipts.filter(r=>[r.id,r.recipient,r.status,r.purpose,r.contract,r.order,r.offer,r.external?.transaction,r.height,s.asset].some(v=>String(v??'').toLowerCase().includes(query)));
+ const size=10;seriesPage=Math.min(seriesPage,Math.max(0,Math.ceil(rows.length/size)-1));
+ $('series-previous').hidden=seriesPage===0;$('series-next').hidden=(seriesPage+1)*size>=rows.length;
+ $('series-payments').replaceChildren(...rows.slice(seriesPage*size,(seriesPage+1)*size).map(r=>{
+  const box=element('div');box.className='panel-band';box.append(element('h4',r.status),element('p',r.offer?r.free+' free DUBYT · '+r.backed+' backed DUBYT':r.units?r.units+' backed DUBYT · '+r.cash+' '+s.asset:r.order?'Order '+r.order.slice(0,12):'Checking saved action'));
+  if(r.purpose||r.contract)box.append(element('p',[r.purpose,r.contract].filter(Boolean).join(' · ')));
+  if(r.height)box.append(element('p','DueByte block '+r.height));if(r.external)box.append(element('p',(s.accountFormat==='hex20'?'External transaction 0x':'Settlement receipt ')+r.external.transaction,'address'));
+  if(r.pending){const b=element('button','Retry saved action');b.type='button';b.onclick=()=>void seriesAction('retrySeries',{id:r.id});box.append(b);}
+  if(r.height){const b=element('button','Save receipt');b.type='button';b.onclick=()=>downloadInstruction({network:lastStatus.network,series:s.series,settlementNetwork:s.network,asset:s.asset,receipt:r},'DueByte-receipt-'+r.id+'.json');box.append(b);}return box;
+ }));
+ if(!rows.length)$('series-payments').append(element('p',query?'No matching receipts.':'No payment receipts yet.'));
+}
+$('series-search').oninput=()=>{seriesPage=0;drawSeriesHistory();};
+$('series-previous').onclick=()=>{if(seriesPage>0)seriesPage--;drawSeriesHistory();};
+$('series-next').onclick=()=>{seriesPage++;drawSeriesHistory();};
+let askReview=null,askBusy=false,askContext=null;
+function clearAskReview(){askReview=null;$('ask-confirm').hidden=true;}
+$('ask-form').oninput=()=>{clearAskReview();$('ask-message').textContent='';};
+async function renderAsks(context){
+ const rows=await api('/exchange/asks',{});if(context!==purchaseContext())return;
+ $('ask-list').replaceChildren(...rows.map(o=>{
+  const box=element('div');box.className='panel-band';box.append(element('h4','Sell '+o.quantity+' DUBYT at '+o.price+' test '+o.asset),element('p',o.status+' · Reserved: '+o.remaining+' DUBYT · Allocated to exchanges: '+o.allocated+' DUBYT · Released: '+o.released+' DUBYT.'));
+  if(o.canCancel||o.pending){const actions=element('div');actions.className='actions';const button=element('button',o.pending?'Retry saved order':'Review cancellation');button.type='button';button.onclick=()=>void askAction(o.pending?'retryAsk':'reviewAsk',o.pending?{id:o.id}:{cancel:o.id});actions.append(button);box.append(actions);}return box;
+ }));
+}
+async function askAction(method,payload){
+ if(askBusy)return;askBusy=true;const context=purchaseContext();clearAskReview();
+ $('ask-message').textContent=method==='reviewAsk'?'Checking order terms…':'Submitting your saved instruction…';
+ try{const result=await api('/exchange/'+method,payload);if(context!==purchaseContext())return;
+  if(method==='reviewAsk'){askReview={id:result.id,context};$('ask-message').textContent=result.summary;$('ask-confirm').textContent=payload.cancel?'Confirm cancellation':'Confirm sell order';$('ask-confirm').hidden=false;}
+  else{$('ask-message').textContent=result.status;await renderAsks(context);}
+ }catch(error){if(context===purchaseContext())$('ask-message').textContent=error.message;}
+ finally{askBusy=false;}
+}
+$('ask-form').onsubmit=e=>{e.preventDefault();void askAction('reviewAsk',{amount:$('ask-quantity').value.trim(),price:$('ask-price').value.trim(),hours:Number($('ask-hours').value)});};
+$('ask-confirm').onclick=()=>{if(askReview?.context===purchaseContext())void askAction('confirmAsk',{id:askReview.id});};
+async function loadTwoWay(){if(twoWayBusy||lastStatus?.locked||!lastStatus?.features?.twoWayExchange)return;twoWayBusy=true;const context=purchaseContext();twoWayControls();try{if(twoWayContext!==context){clearTwoWay();$('two-way-orders').replaceChildren();twoWayContext=context;}const a=await api('/exchange/availability',{});if(context!==purchaseContext()||lastStatus.locked)return;if(askContext!==context){askContext=context;creditDraft=null;creditRetry=null;$('credit-confirm').hidden=true;$('credit-message').textContent='';$('credit-amount').value='';$('secured-credit').hidden=true;clearAskReview();resetSeries();seriesKey=null;seriesOrdersKey=null;$('series-form').reset();$('series-link-form').reset();$('series-message').textContent='';$('backed-payments').hidden=true;$('ask-list').replaceChildren();$('ask-message').textContent='';$('ask-form').reset();}if(a.securedLoan&&!creditBusy)await refreshLoan(context);else if(!a.securedLoan)$('secured-credit').hidden=true;if(a.backedSeries&&!seriesBusy)await refreshSeries(context);else if(!a.backedSeries)$('backed-payments').hidden=true;$('limit-asks').hidden=!a.canPlaceAsk;if(a.canPlaceAsk&&!askBusy)await renderAsks(context);twoWayEnabled=a.available;$('two-way-form').hidden=!a.available;$('two-way-message').textContent=a.reason;if(a.available){const s=await api('/exchange/status',{});if(context===purchaseContext()&&!lastStatus.locked){showTwoWayOrders(s.orders);$('two-way-form').hidden=s.orders.some(o=>['LOCKED','NOT_CONFIRMED'].includes(o.status));}}}catch(e){if(context===purchaseContext())$('two-way-message').textContent=e.message;}finally{twoWayBusy=false;twoWayControls();}}
 for(const b of $('two-way-directions').querySelectorAll('button'))b.onclick=()=>{twoWayDirection=b.dataset.direction;clearTwoWay();for(const x of b.parentElement.children)x.setAttribute('aria-pressed',String(x===b));$('two-way-address-label').textContent=twoWayDirection==='BUY_DUBYT'?'Your external refund address':'Your external receiving address';};
 for(const b of $('two-way-assets').querySelectorAll('button'))b.onclick=()=>{twoWayAsset=b.dataset.asset;clearTwoWay();$('two-way-address').value='';for(const x of b.parentElement.children)x.setAttribute('aria-pressed',String(x===b));};
 $('two-way-form').addEventListener('input',clearTwoWay);
-$('two-way-form').onsubmit=async e=>{e.preventDefault();if(twoWayBusy||!twoWayEnabled)return;twoWayBusy=true;clearTwoWay();const context=purchaseContext();twoWayControls();try{const r=await api('/exchange/quote',{direction:twoWayDirection,asset:twoWayAsset,amount:$('two-way-amount').value.trim(),address:$('two-way-address').value.trim()});if(context!==purchaseContext()||lastStatus.locked)return;twoWayDraft=r;$('two-way-summary').textContent=r.direction==='BUY_DUBYT'?'You pay '+r.external+' '+r.asset+' and receive '+r.dubyt+' DUBYT.':'You pay '+r.dubyt+' DUBYT and receive '+r.external+' '+r.asset+'.';$('two-way-route').textContent=r.network+' / Receive: '+r.recipient+' / Refund: '+r.refundAddress;$('two-way-fee').textContent='DueByte fee: '+r.fee+' DUBYT. Paid by: '+r.feePayer+'. External network fees are separate.';$('two-way-deadline').textContent='Quote expires: '+utc(r.expiresAt)+'. DUBYT refund eligibility: '+utc(r.refundAt);$('two-way-preview').hidden=false;}catch(e){if(context===purchaseContext())$('two-way-message').textContent=e.message;}finally{twoWayBusy=false;twoWayControls();}};
+$('two-way-form').onsubmit=async e=>{e.preventDefault();if(twoWayBusy||!twoWayEnabled)return;twoWayBusy=true;clearTwoWay();const context=purchaseContext();twoWayControls();try{const r=await api('/exchange/quote',{direction:twoWayDirection,asset:twoWayAsset,...(reservePurchase?{reserveOnly:true}:{}),amount:$('two-way-amount').value.trim(),address:$('two-way-address').value.trim()});if(context!==purchaseContext()||lastStatus.locked)return;twoWayDraft=r;$('two-way-summary').textContent=r.direction==='BUY_DUBYT'?'You pay '+r.external+' '+r.asset+' and receive '+r.dubyt+' DUBYT.':'You pay '+r.dubyt+' DUBYT and receive '+r.external+' '+r.asset+'.';$('two-way-route').textContent=r.network+' / Receive: '+r.recipient+' / Refund: '+r.refundAddress;$('two-way-fee').textContent='DueByte fee: '+r.fee+' DUBYT. Paid by: '+r.feePayer+'. External network fees are separate.';
+ if(r.settlement){const t=r.settlement;
+ $('two-way-summary').textContent=r.direction==='BUY_DUBYT'?'You pay '+t.externalTotal+' '+t.asset+' and receive '+r.dubyt+' DUBYT.':'You sell '+r.dubyt+' DUBYT and receive '+t.externalTotal+' '+t.asset+'.';
+ $('two-way-fee').textContent=t.counterparty+' · Exchange fee included: '+t.exchangeFee+' '+t.asset+'. DueByte execution fee: '+r.fee+' DUBYT ('+r.feePayer+'). '+(t.additionalCustomerFee===undefined?'External gas is separate.':'Additional settlement fee to you: '+t.additionalCustomerFee+' '+t.asset+'.');
+ }$('two-way-deadline').textContent='Quote expires: '+utc(r.expiresAt)+'. DUBYT refund eligibility: '+utc(r.refundAt);$('two-way-preview').hidden=false;}catch(e){if(context===purchaseContext())$('two-way-message').textContent=e.message;}finally{twoWayBusy=false;twoWayControls();}};
 async function twoWayAction(route,id){if(twoWayBusy||lastStatus.locked)return;twoWayBusy=true;const context=purchaseContext();twoWayControls();try{const r=await api(route,{id});if(context===purchaseContext()&&!lastStatus.locked){clearTwoWay();$('two-way-message').textContent=r.verified?'Verified exchange state: '+r.status:'Request submitted. Awaiting consensus confirmation.';}}catch(e){if(context===purchaseContext())$('two-way-message').textContent=e.message+' Refresh the saved order before trying again.';}finally{twoWayBusy=false;twoWayControls();}}
 $('two-way-confirm').onclick=()=>{if(twoWayDraft&&!$('two-way-confirm').disabled)void twoWayAction('/exchange/confirm',twoWayDraft.review);};
 $('two-way-refresh').onclick=loadTwoWay;
@@ -1976,7 +2199,24 @@ setInterval(()=>{if(!document.querySelector('[data-screen=exchange]').hidden)voi
 let purchaseRoute=null,purchaseDraft=null,purchaseSession=null,purchaseRevision=0,purchaseAvailable=false,purchaseOrder=null,purchaseOwner=null,purchaseBusy=false;
 // One visible selection for every asset. Selection cannot grant route authority.
 function renderExchangeChoice(){
+ const features=lastStatus?.features,route=features?.settlementAsset;
+ renderReserveAccess();
+ $('exchange-chooser').hidden=!!features?.nativeSeriesOnly;
+ if(features?.nativeSeriesOnly){$('legacy-purchase-panel').hidden=true;$('two-way-panel').hidden=false;$('two-way-refresh').hidden=true;return;}
+ if(route){
+  $('external-exchange-choice').hidden=true;$('native-exchange-choice').hidden=false;
+  $('exchange-currency').parentElement.hidden=true;
+  twoWayAsset=route.symbol;twoWayDirection=$('exchange-direction').value;
+  $('exchange-summary').textContent=twoWayDirection==='BUY_DUBYT'?route.symbol+' → DUBYT':'DUBYT → '+route.symbol;
+  $('exchange-network').textContent=route.network;
+  $('exchange-direction').disabled=twoWayBusy||submitting;
+  $('exchange-unavailable').hidden=true;$('legacy-purchase-panel').hidden=true;$('two-way-panel').hidden=false;
+  document.querySelector('label[for="ask-price"]').textContent='Minimum test '+route.symbol+' per DUBYT';
+  return;
+ }
+ $('exchange-currency').parentElement.hidden=false;$('two-way-refresh').hidden=false;
  if(brokerConfigured){renderBrokerChoice();return;}
+ $('external-exchange-choice').hidden=true;$('native-exchange-choice').hidden=false;
  const asset=$('exchange-currency').value,direction=$('exchange-direction').value;
  const busy=twoWayBusy||purchaseBusy||submitting||!!purchaseOrder&&!['COMPLETED','CANCELLED','REFUNDED'].includes(purchaseOrder.status);
  for(const id of ['exchange-currency','exchange-direction'])$(id).disabled=busy;
@@ -1996,6 +2236,7 @@ function renderExchangeChoice(){
 }
 for(const id of ['exchange-currency','exchange-direction'])$(id).onchange=()=>{
  if(purchaseBusy||twoWayBusy||submitting)return;
+ reservePurchase=false;
  if(purchaseOrder&&!['COMPLETED','CANCELLED','REFUNDED'].includes(purchaseOrder.status))return;
  if(!purchaseOrder)clearPurchase();else{purchaseRevision++;purchaseDraft=null;}clearTwoWay();twoWayAsset=$('exchange-currency').value;twoWayDirection=$('exchange-direction').value;purchaseRoute=twoWayAsset;
  $('two-way-address').value='';$('purchase-refund').value='';
