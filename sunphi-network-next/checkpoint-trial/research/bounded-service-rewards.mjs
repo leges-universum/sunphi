@@ -19,6 +19,7 @@ import {newAdjustment,advanceAdjustment,finalServiceCredit,removeAdjustment,isAd
 import {isReserveDay,prepareTrialReserve,openPayroll,releasePayroll,reserveWork,tariffMicro} from './network-reserve.mjs';
 import {hasOperatorTariff,OPERATOR_TARIFF,tariffBudget} from './operator-tariff.mjs';
 import {openValidatorsActive,validatorFactorBps} from './open-validator-policy.mjs';
+import {VALIDATOR_RATE,validatorEarned,validatorPayroll} from './validator-payroll.mjs';
 export const ENABLE_SERVICE='ENABLE_PREISSUED_SERVICE_V1',COMPLETE_SERVICE='COMPLETE_BASELINE_SERVICE_V1';
 export const PREPARE_MAIN_SERVICE='PREPARE_MAIN_SERVICE_CALENDAR_V1';
 export const SERVICE_HEAD='service-rewards/head',SERVICE_LIVE='service-rewards/live';
@@ -42,6 +43,12 @@ export function operatorPayroll(get,s,node){
  if(period?.phase!=='COMPLETE'||period.cleanup)return null;
  const account=get(workKey(day,node)),kind=s.rewards.nodes[node]?.kind;
  if(!account||!kind)return null;
+ if(period.payroll?.nodes){
+  const p=period.payroll;
+  return {day,intervals:account.intervals,jobs:0,readinessMicro:account.units,jobMicro:'0',totalMicro:account.units,
+   base30DaysMicro:VALIDATOR_RATE.base30DaysMicro,factorBps:p.factorBps,dailyLimitMicro:p.dailyMicro,
+   seconds:account.intervals*head.profile.intervalSeconds,decision:p.decision,node};
+ }
  const readiness=tariffMicro(kind,account.intervals,0,head.profile.intervalSeconds);
  return {day,intervals:account.intervals,jobs:account.jobs,readinessMicro:String(readiness),jobMicro:String(BigInt(account.units)-readiness),totalMicro:account.units};
 }
@@ -112,7 +119,7 @@ export function serviceWorkView(get,{configHash,node,kind,time,reserve=false}){
  const day=Math.floor(time/DAY)*DAY;
  if(reserve&&day>=START&&!receipt){
   const payroll=get(dayKey(day))?.payroll,earned=get(workKey(day,node));
-  if(!payroll||!reserveWork(structuredClone(payroll),earned,kind,false,h.profile.intervalSeconds))return {status:'OUTSIDE_FUNDED_SCHEDULE',intervalStart:a.intervalStart,plan:h.plan};
+  if(!payroll||!reserveWork(structuredClone(payroll),earned,kind,false,h.profile.intervalSeconds,node))return {status:'OUTSIDE_FUNDED_SCHEDULE',intervalStart:a.intervalStart,plan:h.plan};
  }
  return {...a,...(receipt?{status:'ACCEPTED',receipt}:{}),profile:h.profile,plan:h.plan};
 }
@@ -132,7 +139,7 @@ function addUnits(tx,day,node,units,kind,s,h,job=false){
  if(isReserveDay(s,day)){
   const d=tx.get(dayKey(day)),key=workKey(day,node),old=tx.get(key);
   if(!d || d.phase!=='COLLECTING')return false;
-  const next=reserveWork(d.payroll,old,kind,job,h.profile.intervalSeconds);
+  const next=reserveWork(d.payroll,old,kind,job,h.profile.intervalSeconds,node);
   if(!next)return false;
   if(!old){changeRadix(tx,index(day),node,true);d.count++;}
   d.totalUnits=String(BigInt(d.totalUnits)+BigInt(next.units)-BigInt(old?.units??'0'));
@@ -149,7 +156,7 @@ export function completeBaselineService(s,a,author,tx){
  if(old){assert.equal(old.responseHash,hash(a.response),'conflicting service retry');assert.equal(old.publicKey,author,'work author');return s;}
  assert.equal(a.intervalStart,Math.floor(s.money.time/h.profile.intervalSeconds)*h.profile.intervalSeconds,'current service interval required');
  const n=s.rewards?.nodes[a.node];assert(n&&n.key===author,'work author');
- const v=assignment(tx.get,h,s.configHash,a.node,n.kind,s.money.time);assert(v?.status==='ASSIGNED','service not assigned or expired');eligible(tx.get,s,a.node,v.anchor.openedAt);
+ const v=assignment(tx.get,h,s.configHash,a.node,n.kind,s.money.time);assert(v?.status==='ASSIGNED','service not assigned or expired');if(!tx.get(dayKey(Math.floor(a.intervalStart/DAY)*DAY))?.payroll?.nodes)eligible(tx.get,s,a.node,v.anchor.openedAt);
  const challenge=serviceChallenge({configHash:s.configHash,profile:h.profile,node:a.node,kind:n.kind,intervalStart:a.intervalStart,openedAt:v.anchor.openedAt,anchorHeight:v.anchor.height,anchorRoot:v.anchor.root,key:v.key,valueHash:hash(a.response.proof?.value)});
  const r=verifyServiceResponse({challenge,profile:h.profile,publicKey:n.key,eligible:true,response:a.response,acceptedAt:s.money.time});
  assert(addUnits(tx,r.day,a.node,BigInt(r.weightedUnits),n.kind,s,h)!==false,'no funded service slot');tx.set(receiptKey(a.intervalStart,a.node),{...r,publicKey:n.key});return s;
@@ -197,14 +204,16 @@ export function advanceServiceRewards(s,tx,parentRoot,parentHeight){
  const calendar=calendarSource(s);
  if(calendar&&calendar.nextMintDay<END&&now>=calendar.nextMintDay+DAY){
   const day=calendar.nextMintDay,issued=issueClosedServiceDay(s,day);
-  if(hasOperatorTariff(calendar)&&tx.get(dayKey(day))?.payroll?.funding==='DAY_ISSUANCE'){
-   assert(issued>=tariffBudget,'Daily issuance did not cover authorized work.');
-   calendar.closedFund.committedMicro=String(amount(calendar.closedFund.committedMicro)+tariffBudget);
+  const payroll=tx.get(dayKey(day))?.payroll;
+  if(payroll?.funding==='DAY_ISSUANCE'){
+   const reserved=BigInt(payroll.budgetMicro);
+   assert(issued>=reserved,'Daily issuance did not cover authorized work.');
+   calendar.closedFund.committedMicro=String(amount(calendar.closedFund.committedMicro)+reserved);
   }
  }
  const today=Math.floor(now/DAY)*DAY;
  if(isReserveDay(s,today)&&calendar.nextMintDay===today&&!tx.get(dayKey(today))){
-  const d=emptyDay(today,calendar),payroll=openPayroll(calendar,hasOperatorTariff(calendar)?calendarDayPool(s,today):'0');if(payroll)d.payroll=payroll;tx.set(dayKey(today),d);
+  const d=emptyDay(today,calendar),payroll=calendar.closedFund?.workRate?validatorPayroll(s,tx.get,today,calendarDayPool(s,today)):openPayroll(calendar,hasOperatorTariff(calendar)?calendarDayPool(s,today):'0');if(payroll)d.payroll=payroll;tx.set(dayKey(today),d);
  }
  if(isFundedDay(h,today)){
   const minute=Math.floor(now/60)*60,key=anchorKey(minute),interval=Math.floor(now/h.profile.intervalSeconds)*h.profile.intervalSeconds;
@@ -259,7 +268,7 @@ export function auditServiceRewards(records,s){
  if(!h){assert.equal(rows.size,0,'orphan service records');return;}auditServiceBinding(get,s);
  const expected=new Map(),tx={get:k=>expected.get(k),set:(k,v)=>expected.set(k,v),delete:k=>expected.delete(k)},units=new Map();
  const evidence=new Map();
- const add=(day,node,value,job=false)=>{assert(isFundedDay(h,day)&&day%DAY===0);assert(s.rewards.nodes[node]);const c=get(dayKey(day))?.cleanup;if(c?.after&&node<=c.after)return;const k=workKey(day,node);if(isReserveDay(s,day)){const e=evidence.get(k)??{intervals:0,jobs:0};if(job)e.jobs++;else e.intervals++;evidence.set(k,e);units.set(k,tariffMicro(s.rewards.nodes[node].kind,e.intervals,e.jobs,h.profile.intervalSeconds));}else units.set(k,(units.get(k)??0n)+value);};
+ const add=(day,node,value,job=false)=>{assert(isFundedDay(h,day)&&day%DAY===0);assert(s.rewards.nodes[node]);const c=get(dayKey(day))?.cleanup;if(c?.after&&node<=c.after)return;const k=workKey(day,node);if(isReserveDay(s,day)){const e=evidence.get(k)??{intervals:0,jobs:0};if(job)e.jobs++;else e.intervals++;evidence.set(k,e);const payroll=get(dayKey(day))?.payroll;if(payroll?.nodes){assert(payroll.nodes.includes(node)&&!job);units.set(k,validatorEarned(payroll,e.intervals,h.profile.intervalSeconds));}else units.set(k,tariffMicro(s.rewards.nodes[node].kind,e.intervals,e.jobs,h.profile.intervalSeconds));}else units.set(k,(units.get(k)??0n)+value);};
  expected.set(SERVICE_HEAD,h);const live=get(SERVICE_LIVE);exact(live,['anchors']);assert(Array.isArray(live.anchors)&&live.anchors.length<=4);let last=0;
  for(const a of live.anchors){assert(a.slot>last);assert.deepEqual(get(anchorKey(a.slot)),a);last=a.slot;}expected.set(SERVICE_LIVE,live);
  for(const [k,v]of rows){
@@ -286,8 +295,18 @@ export function auditServiceRewards(records,s){
   if(isReserveDay(s,d.day)){
    assert(!d.adjustment);
    if(d.payroll){
-    assert(!openValidatorsActive(calendarSource(s)),'Unapproved validator payroll');
+    if(openValidatorsActive(calendarSource(s)))assert(calendarSource(s).closedFund.workRate&&d.payroll.nodes,'Unapproved validator payroll');
     const p=d.payroll,tariff=hasOperatorTariff(calendarSource(s));
+    if(p.nodes){
+     exact(p,['budgetMicro','worker','witness','jobs','funding','nodes','dailyMicro','factorBps','decision']);
+     assert.equal(p.decision,calendarSource(s).closedFund.workRate.decision);
+     assert.equal(p.funding,'DAY_ISSUANCE');assert.equal(p.factorBps,d.validatorFactorBps);
+     assert(p.nodes.length>0&&p.nodes.length<=256);assert.deepEqual(p.nodes,[...new Set(p.nodes)].sort());p.nodes.forEach(n=>hex(n));
+     const share=BigInt(calendarDayPool(s,d.day))/100n/BigInt(p.nodes.length),nominal=BigInt(VALIDATOR_RATE.base30DaysMicro)*BigInt(p.factorBps)/300000n;
+     assert.equal(BigInt(p.dailyMicro),share<nominal?share:nominal);
+     assert.equal(BigInt(p.budgetMicro),BigInt(p.nodes.length)*BigInt(p.dailyMicro));
+     assert.equal(p.jobs,0);assert.equal(p.witness,0);integer(p.worker);assert(p.worker<=p.nodes.length&&BigInt(d.totalUnits)<=BigInt(p.budgetMicro));
+    }else{
     exact(p,['budgetMicro','worker','witness','jobs',...(tariff?['funding']:[])]);
     if(tariff){
      assert(['RESERVE','DAY_ISSUANCE'].includes(p.funding));
@@ -295,6 +314,7 @@ export function auditServiceRewards(records,s){
     }
     assert.equal(p.budgetMicro,tariff?String(tariffBudget):'100000000');integer(p.worker);integer(p.witness);integer(p.jobs);
     assert(p.worker<=(tariff?OPERATOR_TARIFF.workerSlots:10)&&p.witness<=OPERATOR_TARIFF.witnessSlots&&p.jobs<=(tariff?0:280)&&BigInt(d.totalUnits)<=BigInt(p.budgetMicro));
+    }
     if(!d.cleanup){const counts={worker:0,witness:0,jobs:0};for(const id of ids){const e=evidence.get(workKey(d.day,id));if(e.intervals)counts[s.rewards.nodes[id].kind]++;counts.jobs+=e.jobs;}for(const field of Object.keys(counts))assert.equal(counts[field],p[field]);}
     if(d.phase!=='COMPLETE'&&(p.funding!=='DAY_ISSUANCE'||d.day<calendarSource(s).nextMintDay))committed+=BigInt(p.budgetMicro)-BigInt(d.creditedMicro);
    }else assert.equal(d.count,0);

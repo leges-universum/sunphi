@@ -6,6 +6,7 @@ import {openValidatorsActive} from './open-validator-policy.mjs';
 
 export const RESERVE_TRIAL = 'duebyte-trial-exchange-lab-network-reserve-v1';
 export const RESERVE_VERSION = 'DUEBYTE_NETWORK_RESERVE_TEST_V1';
+import {validatorEarned} from './validator-payroll.mjs';
 const dailyBudget = 100_000_000n;
 const continuity = 1_320_000_000n;
 const forwardBudget = 30n * dailyBudget;
@@ -62,7 +63,7 @@ export function openPayroll(calendar,dayIssuance='0') {
 }
 
 export function releasePayroll(calendar, value) {
- const ledger=hasOperatorTariff(calendar)?calendar.closedFund:calendar.reserve;
+ const ledger=calendar.closedFund??calendar.reserve;
  const held = amount(ledger.committedMicro);
  assert(value >= 0n && value <= held, 'invalid payroll release');
  ledger.committedMicro = String(held - value);
@@ -77,8 +78,15 @@ export function tariffMicro(kind, intervals, jobs, intervalSeconds) {
 
 // Each accepted service sample qualifies its scheduled interval at the test tariff.
 // A settled customer job can pay each distinct participating worker once.
-export function reserveWork(payroll, previous, kind, job, intervalSeconds) {
+export function reserveWork(payroll, previous, kind, job, intervalSeconds, node) {
  if (!payroll) return null;
+ if(payroll.nodes){
+  if(job||kind!=='worker'||!payroll.nodes.includes(node))return null;
+  const intervals=(previous?.intervals??0)+1;
+  const units=validatorEarned(payroll,intervals,intervalSeconds);
+  if(!previous)payroll.worker++;
+  return {intervals,jobs:0,units:String(units)};
+ }
  if (job && (payroll.funding || payroll.jobs >= 280)) return null;
  const intervals = previous?.intervals ?? 0, jobs = previous?.jobs ?? 0;
  const capacity=payroll.funding?(kind==='worker'?OPERATOR_TARIFF.workerSlots:OPERATOR_TARIFF.witnessSlots):slots[kind];

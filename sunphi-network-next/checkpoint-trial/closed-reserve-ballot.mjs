@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {exact,hash,integer,verify} from './crypto.mjs';
-import {closedReserveTerms} from './research/closed-network-reserve.mjs';
+import {closedReserveTerms,reserveMandateDomain} from './research/closed-network-reserve.mjs';
 import {developmentManager} from './reserve-recovery.mjs';
 import {verifyValidatorApprovals} from './validator-authority.mjs';
 
@@ -22,7 +22,7 @@ export async function financialBallots(network, fetcher=fetch){
  }
  const inbox=JSON.parse(Buffer.concat(chunks));
  assert(inbox.schema===1&&inbox.network===network&&Array.isArray(inbox.ballots)&&inbox.ballots.length<=32,'Invalid voting inbox.');
- const packets=inbox.ballots.filter(packet=>packet?.body?.network===network&&packet.body.domain==='PREPARE_OPEN_VALIDATOR_RESERVE_V3');
+ const packets=inbox.ballots.filter(packet=>packet?.body?.network===network&&reserveMandateDomain(packet.body.domain));
  inboxCache={network,packets,until:Date.now()+30000};
  return packets;
 }
@@ -30,7 +30,7 @@ export async function financialBallots(network, fetcher=fetch){
 export function reviewClosedReserve(packet,state,network,signer){
  exact(packet,['body','approvals','managerConsent']);
  const {body,approvals}=packet;
- const terms=closedReserveTerms(state,network);
+ const terms=closedReserveTerms(state,network,body.domain);
  assert.deepEqual(body,{...terms,notBefore:body.notBefore,expires:body.expires});
  integer(body.notBefore,1);integer(body.expires,body.notBefore+1);
  assert(body.expires<=terms.programmeStart&&body.expires-body.notBefore<=7*86400);

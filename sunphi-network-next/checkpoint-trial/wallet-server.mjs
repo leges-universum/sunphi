@@ -36,6 +36,7 @@ const ruleReviewSessions=new WeakMap();
 import {cutoverOpen,cutoverBody,submitCutover} from './bonded-cutover.mjs';
 import {financialBallots} from './closed-reserve-ballot.mjs';
 const shownFinancialBallots=new WeakMap();
+import {FUND_VALIDATOR_WORK} from './research/validator-payroll.mjs';
 import {PREPARE_CLOSED_RESERVE} from './research/closed-network-reserve.mjs';
 const cutoverReviews=new WeakMap();
 import {WalletRuleReviews,linkedFinancialServers} from './wallet-rule-review.mjs';
@@ -376,7 +377,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
      const draft=data.proposals.find(p=>p.id===q.id&&p.status==='draft');assert(draft,'This proposal is no longer awaiting admission.');
      const key=active.key.publicKey;
      if(data.phase==='expert-review')assert(servingExperts(data.policy,data.blockTime).some(x=>x.key===key),'A serving expert wallet is required.');
-     else assert(key===data.founderExpert&&(data.phase==='warmup'||draft.proposal.slate),'The founder can admit only questions within the current mandate.');
+     else assert(key===data.founderExpert&&(data.phase==='warmup'||draft.proposal.slate||draft.original),'The founder can admit only questions within the current mandate.');
     }
     if(q.type==='CAST_OPERATOR_BALLOT_V1'){
      const r=data.proposals.find(p=>p.id===q.id);assert(r?.status==='open'&&r.weights[active.key.publicKey]&&!r.votes[active.key.publicKey],'No available vote for this wallet');assert(['yes','no'].includes(q.choice));
@@ -418,15 +419,27 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
     working=true;walletBusy=true;
     try{
        if(req.url==='/nodes/vote-notices'){
-        exact(q,['nodes']);assert(Array.isArray(q.nodes)&&q.nodes.length<=128&&q.nodes.every(id=>/^[a-f0-9]{64}$/.test(id)));
+        exact(q,Object.hasOwn(q,'page')?['nodes','page']:['nodes']);const page=q.page??0;
+        assert(Number.isSafeInteger(page)&&page>=0&&page<10000000);
+        assert(Array.isArray(q.nodes)&&q.nodes.length<=128&&q.nodes.every(id=>/^[a-f0-9]{64}$/.test(id)));
         const {state,certificate}=await active.view({rewardIds:q.nodes}),owner=active.key.publicKey,items=[];
-        let incomplete=false;
+        let incomplete=false,community=null,archive=[],archived=0,eligible=false;
         try{
-         const data=await active.client.operatorBallots(certificate,owner);
+         const bondedNodes=Object.keys(state.workerFunding?.accounts??{}).filter(node=>state.workerFunding.accounts[node].owner===owner&&BigInt(state.money.nodes[node]?.consensusHeld??0)>0n);
+         const data=await active.client.operatorBallots(certificate,owner,page,bondedNodes);
+         eligible=data.eligible;
+         archive=data.archive??[];archived=data.archived??0;
+         const elected=servingExperts(data.policy,data.blockTime).some(e=>e.key===owner);
+         const editor=elected||(!data.policy?.reviewers?.length&&owner===data.founderExpert);
+         if(Array.isArray(data.policy?.community))community={history:data.policy.history,questions:[],editor};
          for(const r of data.proposals??[]){
+          if(r.original&&['community','draft','open'].includes(r.status)){
+           community.questions.push({id:r.id,title:r.proposal.title,text:r.proposal.text,original:r.original,status:r.status,revision:r.revision});
+           if(editor&&r.status==='community')items.push({id:r.id,title:r.proposal.title,kind:'edit-topic',revision:r.revision,text:r.proposal.text});
+          }
           const vote=r.status==='open'&&data.blockTime<r.ends&&BigInt(r.weights?.[owner]??0)>0n&&!r.votes?.[owner];
           const founder=data.phase==='warmup'||data.phase==='expert-election';
-          const expert=founder?owner===data.founderExpert&&(data.phase!=='expert-election'||!!r.proposal.slate):servingExperts(data.policy,data.blockTime).some(x=>x.key===owner);
+          const expert=founder?owner===data.founderExpert&&(data.phase!=='expert-election'||!!r.proposal.slate||!!r.original):elected;
           const reviewed=r.admissionContext===data.agendaContext&&r.admissionPhase===data.phase&&r.admissions?.some(x=>x.key===owner);
           const admission=r.status==='draft'&&data.blockTime<r.expires&&expert&&!reviewed;
           if(vote||admission)items.push({id:r.id,title:r.subject??r.proposal.title,kind:vote?'vote':'review',ends:vote?r.ends:r.expires});
@@ -456,18 +469,22 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
         const shown=new Map();
         if(record&&(sent?.proposal===record.mandate||active.db.prepare('SELECT 1 FROM rule_endorsements WHERE owner=? AND proposal=?').get(owner,record.mandate))){
          reserveStatus=(record.version===PREPARE_CLOSED_RESERVE?'Open validator policy approved at block ':record.tariff?'Payout tariffs approved at block ':'Network reserve established at block ')+record.height+'. Purchases and loans are closed.';
-        }else if(!record){
+        }
+        if(record?.workRate)reserveStatus='Validator work tariff approved at block '+record.workRate.height+'.';
+        else{
          try{
           const nodes=linkedFinancialServers(state,owner);
           for(const packet of await financialBallots(config.chainId)){
            try{
            const digest=hash(packet.body);
+           const funded=packet.body.domain===FUND_VALIDATOR_WORK;
+           if(funded ? record?.mandate!==packet.body.mandate : !!record)continue;
            if(shown.has(digest))continue;
            if(sent?.proposal===digest&&state.height<sent.atHeight+30&&state.money.time<packet.body.expires){
             reserveStatus='Reserve certificate submitted. Waiting for network confirmation.';
            }else if(await reviewer.preparationGroup(nodes,false,state,packet)){
             shown.set(digest,{packet,nodes});
-            items.push({id:digest,title:'Open validator admission and reward schedule',kind:'closed-reserve',tariff:packet.body.operatorPayments,nodes});
+            items.push({id:digest,title:funded?'Fund verified validator work':'Open validator admission and reward schedule',kind:'closed-reserve',tariff:packet.body.operatorPayments,nodes});
            }
            }catch{incomplete=true;}
           }
@@ -475,7 +492,16 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
         }
         assert(valid(),'Wallet session changed');
         if(!incomplete||shown.size)shownFinancialBallots.set(active,shown);
-        return {items,incomplete,cutoverStatus,reserveStatus};
+        const past=[],pos=state.authority?.posSlashing;
+        if(record?.workRate)past.push({title:'Fund verified validator work',result:'Approved',height:record.workRate.height});
+        if(record)past.push({title:record.version===PREPARE_CLOSED_RESERVE?'Open validator admission and reward schedule':'Network reserve policy',result:'Approved',height:record.height});
+        if(pos?.activation&&pos.activation<=state.height)past.push({title:'Activate bonded consensus',result:'Activated',height:pos.activation});
+        if(pos?.policyHash)past.push({title:'Opening validator bond deposits',result:'Approved',height:reviewer.preparationFeedback(state)?.confirmedHeight??null});
+        if(state.centuryFees?.ordinaryCurve==='DUEBYTE_ORDINARY_DECADE_CURVE_V1')past.push({title:'Smooth issuance schedule',result:'Approved'});
+        past.sort((a,b)=>(b.height??0)-(a.height??0));
+        const offset=Math.max(0,page*10-archived);
+        const history={total:archived+past.length,rows:[...archive,...past.slice(offset,offset+10-archive.length)]};
+        return {items,incomplete,cutoverStatus,reserveStatus,history,community,eligible};
        }
        if(req.url==='/nodes/block-votes'){
         assert.deepEqual(q,{});return await recentBlockSignatures(active);

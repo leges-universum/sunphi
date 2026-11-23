@@ -10,7 +10,7 @@ import {reviewRuleText} from './wallet-rule-review.mjs';
 import {checkRuleGrant,RULE_ROUTE,RULE_VOTE} from './home-rule-route.mjs';
 import {preparationPacket} from './bond-preparation-ballot.mjs';
 import {mandateId} from './ordinary-issuance-ballot.mjs';
-import {PREPARE_CLOSED_RESERVE} from './research/closed-network-reserve.mjs';
+import {reserveMandateDomain} from './research/closed-network-reserve.mjs';
 
 // The operator pairs a wallet on the server. The public RPC cannot create a
 // grant, choose a signing domain or install a proposal. Revocation is immediate.
@@ -52,7 +52,7 @@ export function localRuleVote(q,{home,state,network,worker,payouts}){
   const {reserveMandate,...rest}=q;q=rest;
   const digest=hex(reserveMandate);
   grant=read(join(directory,digest+'.grant.json'));
-  assert.equal(grant.domain,PREPARE_CLOSED_RESERVE);assert.equal(grant.proposal,digest);
+  assert(reserveMandateDomain(grant.domain));assert.equal(grant.proposal,digest);
  }else if(Object.hasOwn(q,'issuanceMandate')){
   const {issuanceMandate,...rest}=q;q=rest;assert.equal(issuanceMandate,mandateId);
   grant=read(join(directory,mandateId+'.grant.json'));

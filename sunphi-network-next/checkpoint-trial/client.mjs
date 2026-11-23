@@ -203,7 +203,8 @@ export class VerifiedClient{
   const request={type:'service-work',id:node},root=certificate.appHash;
   return boundedHttpQuery(this.bounded.url).withLease(root,async query=>{const r=verifyBoundedQuery(await query(request,root),request,root,hash(this.config));assert.equal(r.height,certificate.appHeight);assert(!r.isolatedIssuance);return r.data;});
  }
- async operatorBallots(certificate,owner){
+ async operatorBallots(certificate,owner,page=0,bondedNodes=[]){
+  assert(Number.isSafeInteger(page)&&page>=0);
   assert(this.bounded&&hash(certificate)===this.verifiedServiceCertificate,'Current verified network view required');
   const root=certificate.appHash;
   return boundedHttpQuery(this.bounded.url).withLease(root,async query=>{
@@ -211,10 +212,24 @@ export class VerifiedClient{
     const r=verifyBoundedQuery(await query(request,root),request,root,hash(this.config));assert.equal(r.height,certificate.appHeight);assert(!r.isolatedIssuance);return r.data;};
    const summary=await read('summary'),proposals=[];
    const mine=owner&&summary.policy?await read('author-'+owner):[];
-   const ids=new Set([...(summary.policy?.live??[]),...(summary.policy?.discussions??[]),...mine]);
+   const ids=new Set([...(summary.policy?.live??[]),...(summary.policy?.community??[]),...(summary.policy?.discussions??[]),...mine]);
    if(summary.policy?.lastDecision)ids.add(summary.policy.lastDecision);
    for(const id of ids)proposals.push(await read(id));
-   return {...summary,proposals};
+   const total=summary.policy?.archived??0,end=Math.max(0,total-page*10),start=Math.max(0,end-10),archive=[];
+   if(end>start){
+    for(let n=Math.floor(start/10);n<=Math.floor((end-1)/10);n++){
+     const entries=await read(hash(['DUEBYTE_VOTING_HISTORY_PAGE_V1',n]));
+     assert(Array.isArray(entries)&&entries.length<=10);
+     archive.push(...entries.slice(Math.max(0,start-n*10),end-n*10));
+    }
+   }
+   let eligible=false;
+   for(const node of bondedNodes){
+    if(await read('bond-'+node)===owner){
+     eligible=true;break;
+    }
+   }
+   return {...summary,proposals,archive:archive.reverse(),archived:total,eligible};
   });
  }
  async approvalEvidence(doc,url,owner,pid=null){

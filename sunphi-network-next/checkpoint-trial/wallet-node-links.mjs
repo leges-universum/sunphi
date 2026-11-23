@@ -8,8 +8,14 @@ import {WalletCollateral} from './wallet-collateral.mjs';
 import {prepareNodeLink,pairingCode,applyNodeLink} from './node-wallet-link.mjs';
 import {nodeWalletStatus} from './node-link-state.mjs';
 import {walletCollateralSummary,votingBondSchedule,votingBondNotice,validatorParticipation} from './wallet-collateral-status.mjs';
+import {verifiedOperatorPayroll} from './research/bounded-wallet-view.mjs';
+import {formatToken} from './token-units.mjs';
 export function walletNodeOverview(s,owner){
  const nodes=[...new Set([...Object.keys(s.rewards?.nodes??{}),...Object.keys(s.workerFunding?.accounts??{})])].filter(id=>s.rewards?.nodes[id]?.management===owner||s.rewards?.nodes[id]?.payouts.some(p=>p.wallet===owner)||s.workerFunding?.accounts[id]?.owner===owner).map(id=>nodeWalletStatus(s,id,owner)).sort((a,b)=>(a.kind==='home'?0:1)-(b.kind==='home'?0:1)||a.id.localeCompare(b.id));
+ if(s.rewards?.calendarService?.reserve||s.rewards?.calendarService?.closedFund?.workRate)for(const node of nodes){
+  const p=verifiedOperatorPayroll(s,node.id);
+  if(p)node.reservePayroll={...p,readiness:formatToken(p.readinessMicro,'1000000'),jobsTotal:formatToken(p.jobMicro,'1000000'),total:formatToken(p.totalMicro,'1000000')};
+ }
  const bondSchedule=votingBondSchedule(s);
  for(const n of nodes)if(n.kind==='server'){
   n.votingBondNotice=votingBondNotice(s,n.id,owner,bondSchedule);

@@ -27,7 +27,7 @@ export function walletAnalytics(v,totals={}){
  const reserve=reserveStatement(v.state.rewards?.calendarService);
  const calendar=v.state.rewards?.calendarService,changes=calendar?.closedFund?.annualChanges??[];
  const validatorPolicy=openValidatorsActive(calendar)
-  ?{...OPEN_VALIDATOR_POLICY,activeTarget:calendar.closedFund.expansion?.target??OPEN_VALIDATOR_POLICY.firstTarget,changes,currentFactorBps:validatorFactorBps(m.time,changes)}:null;
+  ?{...OPEN_VALIDATOR_POLICY,...(calendar.closedFund.workRate?{workRate:calendar.closedFund.workRate,baseRateMicro:calendar.closedFund.workRate.base30DaysMicro}:{}),activeTarget:calendar.closedFund.expansion?.target??OPEN_VALIDATOR_POLICY.firstTarget,changes,currentFactorBps:validatorFactorBps(m.time,changes)}:null;
  return {...(reserve?{networkReserve:{...displayAmounts(Object.fromEntries(Object.entries(reserve).filter(([key])=>key.endsWith('Micro'))),'1000000'),...(reserve.mode==='CLOSED'?{mode:reserve.mode,preparedHeight:reserve.preparedHeight}:{}),...(validatorPolicy?{validatorPolicy}:{}),...(reserve.credit?{credit:displayAmounts(reserve.credit,'1000000')}:{})}}:{}),scope:indexed?'owner':'retained-network',height:v.certificate.height,appHeight:v.state.height,blockHash:v.certificate.blockHash,checkpoint:v.checkpointId,
   ...(indexed?{unitScale:scale,supply:m.supply,volume:totals.volume??null,display:displayAmounts({supply:m.supply,volume:totals.volume??null},scale)}:monetaryAnalytics(v.state)),
   outputs:Object.keys(m.outputs).length,settled:indexed?(totals.settled??null):requests.filter(r=>r.status==='SETTLED').length,

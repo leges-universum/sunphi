@@ -10,12 +10,12 @@ import {PREPARE_TYPE} from './bond-preparation-ballot.mjs';
 import {envelope} from './core.mjs';
 import {issuancePacket,mandateId,reviewIssuance} from './ordinary-issuance-ballot.mjs';
 import {reviewClosedReserve} from './closed-reserve-ballot.mjs';
-import {PREPARE_CLOSED_RESERVE} from './research/closed-network-reserve.mjs';
+import {reserveMandateDomain} from './research/closed-network-reserve.mjs';
 
 // This signature domain only endorses the text of a rule. Executable changes
 // keep their own certificates and explicit activation height.
 export function reviewRuleText(packet,state,network,owner){
- if(packet?.body?.domain===PREPARE_CLOSED_RESERVE)return reviewClosedReserve(packet,state,network,owner);
+ if(reserveMandateDomain(packet?.body?.domain))return reviewClosedReserve(packet,state,network,owner);
  if(packet?.body?.domain==='SEAL_ORDINARY_EMISSION_CURVE_V1')return reviewIssuance(packet,state,network,owner);
  if(packet?.body?.domain===PREPARE_DOMAIN)return reviewPreparation(packet,state,network,owner);
  exact(packet,['body','document','approvals']);
@@ -208,7 +208,7 @@ export class WalletRuleReviews{
    const tracked=b.domain===PREPARE_DOMAIN;
    let txHash;
    const update=(stage,reason)=>{if(tracked)this.saveFeedback({proposal:hash(b),start:b.notBefore,end:b.expires,policy:hash(b.policy),count:packet.approvals.length,target:p.packet.approvals.length+p.grants.length,stage,reason,txHash});};
-   if(tracked||b.domain===PREPARE_CLOSED_RESERVE){
+   if(tracked||reserveMandateDomain(b.domain)){
     assert(valid(),'Approval expired before collection started.');
     // Only the reviewed grant list and body proceed. The server and the wallet
     // recheck eligibility and the signed block window before each endorsement.
@@ -225,7 +225,7 @@ export class WalletRuleReviews{
     let result;
     try{result=await one.confirm(q,valid);}
     catch(error){
-     if(b.domain!==PREPARE_CLOSED_RESERVE||!valid())throw error;
+     if(!reserveMandateDomain(b.domain)||!valid())throw error;
      // Keep verified endorsements and try the next reviewed signer. No
      // unverified response contributes to the final quorum check below.
      continue;
@@ -245,9 +245,9 @@ export class WalletRuleReviews{
   const {state}=await w.view(g?{rewardIds:[g.node]}:{});
   const {merged,status:before}=this.collect(p.packet,state);
   if(p.action==='submit'){
-   assert(before.canSubmit&&[PREPARE_DOMAIN,PREPARE_CLOSED_RESERVE].includes(b.domain),'Preparation is unavailable at this height');
+   assert(before.canSubmit&&(b.domain===PREPARE_DOMAIN||reserveMandateDomain(b.domain)),'Preparation is unavailable at this height');
    assert(valid()&&Date.now()<p.expires,'Wallet session or review expired');
-   const wire=envelope(w.client.config,{...(b.domain===PREPARE_CLOSED_RESERVE?{type:PREPARE_CLOSED_RESERVE,managerConsent:merged.managerConsent}:{type:PREPARE_TYPE}),certificate:{body:b,approvals:merged.approvals}},w.key);
+   const wire=envelope(w.client.config,{...(reserveMandateDomain(b.domain)?{type:b.domain,managerConsent:merged.managerConsent}:{type:PREPARE_TYPE}),certificate:{body:b,approvals:merged.approvals}},w.key);
    await w.broadcast(wire);
    return {packet:merged,status:before,submitted:true,txHash:createHash('sha256').update(JSON.stringify(wire)).digest('hex')};
   }

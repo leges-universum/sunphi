@@ -43,6 +43,15 @@ function answer(request,get,candidates){
    data={policy:h??null,blockTime:money.time,warmupEnd:warmupEnd(s),phase,agendaContext:h?reviewContext({...s,money},h):null,
     founderExpert:phase!=='expert-review'&&s.networkReserves&&!s.networkReserves.development.access?.pending?warmupSigner(s):null};
   }
+  else if(typeof request.id==='string'&&request.id.startsWith('bond-')){
+   const node=hex(request.id.slice(5)),link=get('pos/bonds/'+node);
+   const signer=link&&get('pos/signing/'+link.address);
+   const network=decodeSection(get,'meta/network'),account=network.workerFunding?.accounts[node],moneyNode=get('nodes/'+node);
+   const roster=network.authority?.posSlashing?.voting?.validators??network.authority?.validators??[];
+   const signing=signer?.signing;
+   data=account&&signer?.node===node&&signer.owner===account.owner&&signing&&!signing.jailed&&!signing.tombstoned&&signing.removedHeight===null&&
+    amount(signing.bond)>0n&&amount(moneyNode?.consensusHeld??'0')>=amount(signing.bond)&&roster.some(v=>v.key===signing.key&&v.power>0)?account.owner:null;
+  }
   else if(typeof request.id==='string'&&request.id.startsWith('author-')){
    const owner=request.id.slice(7);publicKey(owner);data=get(authorQuestions(owner))??[];
   }else data=get(ballotKey(hex(request.id)))??null;
@@ -59,7 +68,7 @@ function answer(request,get,candidates){
  else if(request.type==='reserve-payroll'){
   hex(request.id);const network=decodeSection(get,'meta/network'),node=get(rewardAccountKey(request.id));
   const calendar=network.rewards?.calendarService;
-  data=node&&(calendar?.reserve||hasOperatorTariff(calendar))?operatorPayroll(get,{rewards:{calendarService:calendar,nodes:{[request.id]:node}}},request.id):null;
+  data=node&&(calendar?.reserve||hasOperatorTariff(calendar)||calendar?.closedFund?.workRate)?operatorPayroll(get,{rewards:{calendarService:calendar,nodes:{[request.id]:node}}},request.id):null;
  }
  else if(request.type==='operator-reward'){
   hex(request.id);const money=decodeSection(get,'meta/money'),n=get(rewardAccountKey(request.id)),policy=get(OPERATOR_HEAD)??null;
@@ -70,7 +79,8 @@ function answer(request,get,candidates){
   if(!n)data=null;
   else{auditRewardAccount(request.id,n);const calendar=network.rewards?.calendarService;
    const work=serviceWorkView(get,{configHash:anchor.configHash,node:request.id,kind:n.kind,time:money.time,reserve:!!calendar?.reserve||hasOperatorTariff(calendar)||openValidatorsActive(calendar)});
-   const at=work?.anchor?.openedAt??money.time,admitted=admissionAt(get,request.id,at)?.kind===n.kind&&admissionAt(get,request.id,money.time)?.kind===n.kind;
+   const at=work?.anchor?.openedAt??money.time,assigned=calendar?.closedFund?.workRate&&get('service-rewards/days/'+(Math.floor(money.time/86400)*86400))?.payroll?.nodes?.includes(request.id);
+   const admitted=assigned||admissionAt(get,request.id,at)?.kind===n.kind&&admissionAt(get,request.id,money.time)?.kind===n.kind;
    const worker=n.kind==='worker'?get('nodes/'+request.id):null;
    data={node:request.id,publicKey:n.key,kind:n.kind,time:money.time,admitted:admitted&&(n.kind!=='worker'||!!worker&&amount(worker.stake)>0n),work};
   }

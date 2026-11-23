@@ -11,9 +11,19 @@ import {OPEN_VALIDATOR_POLICY,OPEN_VALIDATORS,checkValidatorFactor} from './open
 export const LEGACY_TARIFF_RESERVE = 'PREPARE_TARIFF_NETWORK_RESERVE_V2';
 export const PREPARE_CLOSED_RESERVE = 'PREPARE_OPEN_VALIDATOR_RESERVE_V3';
 
+import {FUND_VALIDATOR_WORK,VALIDATOR_RATE} from './validator-payroll.mjs';
+export const reserveMandateDomain=domain=>domain===PREPARE_CLOSED_RESERVE||domain===FUND_VALIDATOR_WORK;
+
 // A closed book accounts for the existing service custody. Its balance cannot
 // also be booked as spendable liquidity, even on days with no operator claims.
 export function closedReserveTerms(s, network, domain=PREPARE_CLOSED_RESERVE) {
+ if(domain===FUND_VALIDATOR_WORK){
+  const fund=s.rewards?.calendarService?.closedFund;
+  assert(fund?.version===PREPARE_CLOSED_RESERVE&&!fund.workRate,'A confirmed open-validator mandate with an unset tariff is required');
+  assert(s.money.time<START&&!s.authority.pending&&!s.networkReserves.development.access.pending,'Stable pre-launch authority required');
+  return {...ordinarySealTerms(s,network),domain,registryHash:validatorSet(s.authority.validators).hash,
+   mandate:fund.mandate,programmeStart:START,operatorPayments:{...VALIDATOR_RATE}};
+ }
  assert([PREPARE_CLOSED_RESERVE,LEGACY_TARIFF_RESERVE].includes(domain));
  const calendar = s.rewards?.calendarService;
  assert(calendar && !calendar.reserve && !calendar.closedFund, 'A fresh reserve mandate is required.');
@@ -32,7 +42,7 @@ export function closedReserveTerms(s, network, domain=PREPARE_CLOSED_RESERVE) {
 
 export function prepareClosedReserve(s, action, config) {
  exact(action, ['type', 'certificate', 'managerConsent']);
- assert([PREPARE_CLOSED_RESERVE,LEGACY_TARIFF_RESERVE].includes(action.type));
+ assert([PREPARE_CLOSED_RESERVE,LEGACY_TARIFF_RESERVE,FUND_VALIDATOR_WORK].includes(action.type));
  exact(action.certificate, ['body', 'approvals']);
  const {body, approvals} = action.certificate;
  assert.equal(hash(config), s.configHash);
@@ -44,6 +54,11 @@ export function prepareClosedReserve(s, action, config) {
  assert(body.notBefore <= s.money.time && s.money.time < body.expires, 'Reserve mandate outside its signing window.');
  assert(verify(body, action.managerConsent, developmentManager(s.networkReserves)), 'Management consent required.');
  validatorQuorum(body, approvals, s.authority.validators);
+ if(action.type===FUND_VALIDATOR_WORK){
+  const cal=s.rewards.calendarService;
+  const workRate={...VALIDATOR_RATE,decision:hash(body),height:s.height};
+  return {...s,rewards:{...s.rewards,calendarService:{...cal,closedFund:{...cal.closedFund,workRate}}}};
+ }
  const closedFund = {version: action.type, mandate: hash(body), height: s.height,
   tariff:body.operatorPayments.version,committedMicro:'0'};
  return {...s, rewards: {...s.rewards, calendarService: {...s.rewards.calendarService, closedFund}}};
@@ -55,11 +70,14 @@ export function auditClosedReserve(calendar) {
  else{
   const amended=record.version===PREPARE_CLOSED_RESERVE&&Object.hasOwn(record,'annualChanges');
   const expanded=record.version===PREPARE_CLOSED_RESERVE&&Object.hasOwn(record,'expansion');
-  exact(record,['version','mandate','height','tariff','committedMicro',...(amended?['annualChanges']:[]),...(expanded?['expansion']:[])]);
+  exact(record,['version','mandate','height','tariff','committedMicro',...(amended?['annualChanges']:[]),...(expanded?['expansion']:[]),...(record.workRate?['workRate']:[])]);
   if(record.version===PREPARE_CLOSED_RESERVE){
    assert.equal(record.tariff,OPEN_VALIDATORS);
-   assert.equal(record.committedMicro,'0');
-   assert.equal(calendar.creditedMicro,'0');
+   if(record.workRate){
+    const {decision,height,...terms}=record.workRate;
+    hex(decision);integer(height,record.height);assert.deepEqual(terms,VALIDATOR_RATE);
+   }else assert.equal(record.committedMicro,'0');
+   if(!record.workRate)assert.equal(calendar.creditedMicro,'0');
    if(expanded){
     exact(record.expansion,['target','decision']);hex(record.expansion.decision);
     integer(record.expansion.target,OPEN_VALIDATOR_POLICY.firstTarget+1);assert(record.expansion.target<=OPEN_VALIDATOR_POLICY.maximumActive);
