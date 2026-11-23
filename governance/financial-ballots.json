@@ -44,6 +44,37 @@
       },
       "managerConsent": "zyv6v8MCRBoKzNq4ey4Vl7nOcsxJhKKPSnC3PyXAt9rU27SAWpKtf6gY8NAjK-b0g-QId5L_QAhPwd5q3sCvBg",
       "approvals": []
+    },
+    {
+      "body": {
+        "domain": "FUND_VALIDATOR_WORK_V1",
+        "network": "duebyte-trial-fresh-20261109-v45",
+        "configHash": "5a6af5048049049bee003078f845ccea883140f291897f950007c5ba113a807c",
+        "generation": 1,
+        "managementEpoch": 1,
+        "curve": "DUEBYTE_ORDINARY_DECADE_CURVE_V1",
+        "planHash": "99d9e82a254b8b2d26b79b913928559e9666a61d8d5809760cd6d0d968ac4f16",
+        "annualHash": "ba716c27174c1f14478ce5f8aeb0ca778232e5affd50e0a18c1add11f47b76f4",
+        "manifestHash": "33c111ac25d0222f24f719b0312b4c2e7e103553f060c0c0c16bb63b0a990da0",
+        "programmeHash": "36cf4915d69242b075951b1db746cc66627bad4d81cf7f8685aac2986ce06eea",
+        "registryHash": "107ec8dca448dcbd79200ef898aa5c7626e3acb0e89e480602841f7d308d76d2",
+        "mandate": "d0453ca1cbc36325ff64fece3917c3c01681f8df0ca5f3242729b26c98654365",
+        "programmeStart": 1798761600,
+        "operatorPayments": {
+          "base30DaysMicro": "890000000",
+          "budgetBps": 100,
+          "effectiveFrom": 1798761600,
+          "eligible": "ACTIVE_BONDED_SERVERS_AT_UTC_DAY_OPEN",
+          "proof": "ACCEPTED_BASELINE_SERVICE_INTERVAL",
+          "funding": "NET_UTC_DAY_ISSUANCE",
+          "shortfall": "EQUAL_DAILY_LIMIT_PER_ASSIGNED_SERVER",
+          "rounding": "FLOOR_PER_NODE_PER_DAY"
+        },
+        "notBefore": 1795419518,
+        "expires": 1796024318
+      },
+      "managerConsent": "iQEQQtP-N4XFY-Ct2nF63iZFVM8hfsHdfx-lRXP3NBHzIa85a42gZeOF6F42rHHwGYdJLiJxtZWkjcXbQPk1Cg",
+      "approvals": []
     }
   ]
 }
