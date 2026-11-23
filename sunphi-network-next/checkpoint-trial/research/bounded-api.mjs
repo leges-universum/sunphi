@@ -17,7 +17,7 @@ export function createBoundedApi(handler,options={}){
     return send(400,{error:'read lease parameters'});
    }
    if(req.method!=='GET')return send(405,{error:'read only'});
-   if(parts[1]==='v1'&&parts.length===4&&['settlement-offers','settlement-order','operator-voting'].includes(parts[2])){
+   if(parts[1]==='v1'&&parts.length===4&&['settlement-offers','settlement-order','operator-voting','reserve-payroll'].includes(parts[2])){
     const root=u.searchParams.get('root'),token=u.searchParams.get('lease');
     if(!/^[a-f0-9]{64}$/.test(root)||token!==null&&!/^[a-f0-9]{48}$/.test(token)||[...u.searchParams.keys()].length!==(token===null?1:2))return send(400,{error:'query parameters'});
     const reader=token?leases.resolve(token,root):handler;if(reader.root!==root)return send(409,{error:'stale root'});
