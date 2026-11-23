@@ -37,6 +37,13 @@ export function reviewRuleText(packet,state,network,owner){
   canSign:member&&!voted&&!approved&&!expired};
 }
 
+export function linkedFinancialServers(state,owner){
+ return Object.keys(state.rewards?.nodes??{}).filter(id=>{
+  const payouts=state.rewards.nodes[id].payouts;
+  return state.money.nodes[id]&&payouts?.length===1&&payouts[0].wallet===owner;
+ }).sort().slice(0,128);
+}
+
 export class WalletRuleReviews{
  constructor(wallet,request=requestRuleVote,history=rpc){
   this.wallet=wallet;this.request=request;this.history=history;this.pending=null;

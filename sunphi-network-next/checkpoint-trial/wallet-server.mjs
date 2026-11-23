@@ -38,7 +38,7 @@ import {financialBallots} from './closed-reserve-ballot.mjs';
 const shownFinancialBallots=new WeakMap();
 import {PREPARE_CLOSED_RESERVE} from './research/closed-network-reserve.mjs';
 const cutoverReviews=new WeakMap();
-import {WalletRuleReviews} from './wallet-rule-review.mjs';
+import {WalletRuleReviews,linkedFinancialServers} from './wallet-rule-review.mjs';
 import {recentBlockSignatures} from './wallet-block-votes.mjs';
 let collateral=null;
 import {WalletNodeLinks,walletNodeOverview} from './wallet-node-links.mjs';
@@ -197,10 +197,9 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   else if(q.path==='/send')requestedRecipientDelay(q.data);
   else if(q.path==='/nodes/rule-confirm'&&q.data?.builtin==='closed-reserve'){
    exact(q.data,['builtin','proposal','nodes']);
-   assert(shownFinancialBallots.get(wallet)?.has(q.data.proposal),'This proposal is no longer awaiting your approval. Reopen Discussion & voting.');
-   const nodes=q.data.nodes;
-   assert(Array.isArray(nodes)&&nodes.length>0&&nodes.length<=128&&new Set(nodes).size===nodes.length&&
-    nodes.every(node=>typeof node==='string'&&/^[a-f0-9]{64}$/.test(node)),'Refresh your linked servers before approving this proposal.');
+   const shown=shownFinancialBallots.get(wallet)?.get(q.data.proposal);
+   assert(shown,'This proposal is no longer awaiting your approval.');
+   assert.deepEqual(q.data.nodes,shown.nodes,'The eligible server list changed. Home is updating this proposal.');
   }
   else if(config.exchangeLab?.policy.reserve?.portfolio&&['/exchange/confirmSeries','/exchange/retrySeries','/exchange/confirmLoan','/exchange/retryLoan'].includes(q.path)){
    exact(q.data,['id','programme']);assert(/^[a-f0-9]{64}$/.test(q.data.id)&&/^[a-f0-9]{64}$/.test(q.data.programme),'Programme review required.');
@@ -459,15 +458,16 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
          reserveStatus=(record.version===PREPARE_CLOSED_RESERVE?'Open validator policy approved at block ':record.tariff?'Payout tariffs approved at block ':'Network reserve established at block ')+record.height+'. Purchases and loans are closed.';
         }else if(!record){
          try{
+          const nodes=linkedFinancialServers(state,owner);
           for(const packet of await financialBallots(config.chainId)){
            try{
            const digest=hash(packet.body);
            if(shown.has(digest))continue;
            if(sent?.proposal===digest&&state.height<sent.atHeight+30&&state.money.time<packet.body.expires){
             reserveStatus='Reserve certificate submitted. Waiting for network confirmation.';
-           }else if(await reviewer.preparationGroup(q.nodes,false,state,packet)){
-            shown.set(digest,packet);
-            items.push({id:digest,title:'Open validator admission and reward schedule',kind:'closed-reserve',tariff:packet.body.operatorPayments});
+           }else if(await reviewer.preparationGroup(nodes,false,state,packet)){
+            shown.set(digest,{packet,nodes});
+            items.push({id:digest,title:'Open validator admission and reward schedule',kind:'closed-reserve',tariff:packet.body.operatorPayments,nodes});
            }
            }catch{incomplete=true;}
           }
@@ -486,8 +486,10 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
         if(req.url==='/nodes/rule-confirm'){
          if(q.builtin==='closed-reserve'){
           exact(q,['builtin','proposal','nodes']);
-          const packet=shownFinancialBallots.get(active)?.get(q.proposal);
+          const reviewed=shownFinancialBallots.get(active)?.get(q.proposal);
+          const packet=reviewed?.packet;
           assert(packet&&hash(packet.body)===q.proposal,'The reserve proposal has changed.');
+          assert.deepEqual(q.nodes,reviewed.nodes,'The eligible server list changed. Home is updating this proposal.');
           assert(valid(),'Approval expired before eligibility checks started.');
           const review=await reviewer.preparationGroup(q.nodes,false,null,packet);
           assert(review.id,'No eligible reserve approval is available.');
