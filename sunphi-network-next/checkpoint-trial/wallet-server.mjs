@@ -34,7 +34,8 @@ import {WalletBond} from './wallet-bond.mjs';
 const bondSessions=new WeakMap();
 const ruleReviewSessions=new WeakMap();
 import {cutoverOpen,cutoverBody,submitCutover} from './bonded-cutover.mjs';
-import {publishedReserveBallot} from './closed-reserve-ballot.mjs';
+import {financialBallots} from './closed-reserve-ballot.mjs';
+const shownFinancialBallots=new WeakMap();
 import {PREPARE_CLOSED_RESERVE} from './research/closed-network-reserve.mjs';
 const cutoverReviews=new WeakMap();
 import {WalletRuleReviews} from './wallet-rule-review.mjs';
@@ -194,6 +195,13 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
   else if(q.path==='/seller/start')assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9]{64}$/.test(q.data.profileHash),'seller review required');
   else if(['/broker/confirm','/broker/fund'].includes(q.path))assert(q.data&&Object.keys(q.data).length===1&&/^[a-f0-9-]{36}$/.test(q.data.id),'exchange review required');
   else if(q.path==='/send')requestedRecipientDelay(q.data);
+  else if(q.path==='/nodes/rule-confirm'&&q.data?.builtin==='closed-reserve'){
+   exact(q.data,['builtin','proposal','nodes']);
+   assert(shownFinancialBallots.get(wallet)?.has(q.data.proposal),'This proposal is no longer awaiting your approval. Reopen Discussion & voting.');
+   const nodes=q.data.nodes;
+   assert(Array.isArray(nodes)&&nodes.length>0&&nodes.length<=128&&new Set(nodes).size===nodes.length&&
+    nodes.every(node=>typeof node==='string'&&/^[a-f0-9]{64}$/.test(node)),'Refresh your linked servers before approving this proposal.');
+  }
   else if(config.exchangeLab?.policy.reserve?.portfolio&&['/exchange/confirmSeries','/exchange/retrySeries','/exchange/confirmLoan','/exchange/retryLoan'].includes(q.path)){
    exact(q.data,['id','programme']);assert(/^[a-f0-9]{64}$/.test(q.data.id)&&/^[a-f0-9]{64}$/.test(q.data.programme),'Programme review required.');
   }
@@ -446,22 +454,28 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
         const record=state.rewards?.calendarService?.closedFund;
         const sent=active.db.prepare('SELECT proposal,atHeight FROM closed_reserve_submission WHERE owner=?').get(owner);
         let reserveStatus=null;
+        const shown=new Map();
         if(record&&(sent?.proposal===record.mandate||active.db.prepare('SELECT 1 FROM rule_endorsements WHERE owner=? AND proposal=?').get(owner,record.mandate))){
          reserveStatus=(record.version===PREPARE_CLOSED_RESERVE?'Open validator policy approved at block ':record.tariff?'Payout tariffs approved at block ':'Network reserve established at block ')+record.height+'. Purchases and loans are closed.';
         }else if(!record){
          try{
-          const packet=publishedReserveBallot();
-          if(packet&&packet.body.network===config.chainId){
+          for(const packet of await financialBallots(config.chainId)){
+           try{
            const digest=hash(packet.body);
+           if(shown.has(digest))continue;
            if(sent?.proposal===digest&&state.height<sent.atHeight+30&&state.money.time<packet.body.expires){
             reserveStatus='Reserve certificate submitted. Waiting for network confirmation.';
            }else if(await reviewer.preparationGroup(q.nodes,false,state,packet)){
+            shown.set(digest,packet);
             items.push({id:digest,title:'Open validator admission and reward schedule',kind:'closed-reserve',tariff:packet.body.operatorPayments});
            }
+           }catch{incomplete=true;}
           }
          }catch{incomplete=true;}
         }
-        assert(valid(),'Wallet session changed');return {items,incomplete,cutoverStatus,reserveStatus};
+        assert(valid(),'Wallet session changed');
+        if(!incomplete||shown.size)shownFinancialBallots.set(active,shown);
+        return {items,incomplete,cutoverStatus,reserveStatus};
        }
        if(req.url==='/nodes/block-votes'){
         assert.deepEqual(q,{});return await recentBlockSignatures(active);
@@ -472,11 +486,12 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
         if(req.url==='/nodes/rule-confirm'){
          if(q.builtin==='closed-reserve'){
           exact(q,['builtin','proposal','nodes']);
-          const packet=publishedReserveBallot();
+          const packet=shownFinancialBallots.get(active)?.get(q.proposal);
           assert(packet&&hash(packet.body)===q.proposal,'The reserve proposal has changed.');
+          assert(valid(),'Approval expired before eligibility checks started.');
           const review=await reviewer.preparationGroup(q.nodes,false,null,packet);
           assert(review.id,'No eligible reserve approval is available.');
-          const result=await reviewer.confirm({id:review.id},valid,sessionValid);
+          const result=await reviewer.confirm({id:review.id},sessionValid,sessionValid);
           if(result.submitted)active.db.prepare('INSERT OR REPLACE INTO closed_reserve_submission VALUES(?,?,?)').run(active.key.publicKey,q.proposal,review.height);
           return {submitted:!!result.submitted,weight:result.status.weight,required:result.status.required};
          }
