@@ -1,3 +1,4 @@
+import {publicReviewRows} from './company-verifiers.mjs';
 import {createServer} from 'node:http';
 import {readFileSync,mkdirSync,existsSync} from 'node:fs';
 import {join,resolve} from 'node:path';
@@ -152,6 +153,17 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  assert(Date.now()>=updateDrainUntil,'The node is installing an update. Please reopen the wallet after it restarts.');
  if(wallet && token !== sessionToken) throw new Error('Wallet is open in another session. Lock it there first.');
  if(!wallet)assert(['/status','/unlock','/create','/restore','/select-wallet','/lock'].includes(req.url),'unlock your wallet first');
+ if(req.url==='/company/verifiers'){
+  exact(q,['subject']);assert(/^[A-Za-z0-9_-]{10,96}$/.test(q.subject),'Enter the company reference.');
+  const local=process.env.DUEBYTE_QUALIFICATION_DIRECTORY;
+  if(local)assert(/^http:\/\/127\.0\.0\.1:\d+\/$/.test(local),'Invalid qualification directory.');
+  const endpoint=local||'https://ai-agent-online.com/api/apps/696e4a5c63b67ccaefee6b6a/functions/institutionalIdentification';
+  const query={domain:'DUEBYTE_PUBLIC_COMPANY_LOOKUP_V1',wallet:wallet.key.publicKey,subject:q.subject,issued:Math.floor(Date.now()/1000)};
+  const response=await fetch(endpoint,{method:'POST',redirect:'error',signal:AbortSignal.timeout(6500),headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'directory',subject:q.subject,proof:{body:query,signature:sign(query,wallet.key.privateKey)}})});
+  assert(response.ok,'Company verification directory unavailable.');const record=await response.json();
+  const rows=publicReviewRows(record,q.subject,Math.floor(Date.now()/1000));assert.equal(sessionEpoch,admittedEpoch);
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify({rows,checkedAt:record.checkedAt}));return;
+ }
  if(req.url==='/nodes/server-versions'){
   assert(wallet&&view);
   const ids=walletNodeOverview(view.state,owner).nodes.filter(n=>n.kind==='server').map(n=>n.id);
