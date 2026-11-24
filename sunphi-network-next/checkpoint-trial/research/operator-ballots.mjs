@@ -12,6 +12,7 @@ import {lockedSupport} from '../support-accounting.mjs';
 import {escrowedNodePrincipal} from './settlement-assurance.mjs';
 import {developmentManager} from '../reserve-recovery.mjs';
 import {SMOOTH_EMISSION} from './smooth-emission.mjs';
+import {START as issuanceStart,DAY} from './calendar-node-emission-policy.mjs';
 
 const namespace='operator-ballots/';
 export const ballotHead=namespace+'head',ballotKey=id=>namespace+hex(id);
@@ -21,6 +22,15 @@ export const archivePageSize=10;
 export const EXPERT_SEATS=5,EXPERT_SIGNATURES=3;
 export const SUBMIT_TOPIC='SUBMIT_COMMUNITY_TOPIC_V1', EDIT_TOPIC='EDIT_COMMUNITY_TOPIC_V1';
 export const ENABLE_COMMUNITY='ENABLE_PUBLIC_COMMUNITY_V1';
+export const REVIEW_PROCEDURE='ADOPT_PRE_ISSUANCE_REVIEW_V1';
+export const procedureTerms=Object.freeze({cutoff:issuanceStart,organizationDays:3,pilotDays:7,protectedDays:14,quorumBps:6700,parallelPreparation:true});
+const advisoryDays=new Map([['organization',3],['closed-pilot',7],['protected',14]]);
+function votingPeriod(h,r,now){
+ if(r.proposal.change?.type===REVIEW_PROCEDURE)return 14*DAY;
+ if(!h.reviewProcedure)return r.original?14*DAY:h.durationSeconds;
+ const days=r.original&&r.timedTopic?advisoryDays.get(r.category)??14:14;
+ return (now+days*DAY<issuanceStart?days:14)*DAY;
+}
 export const governanceActions=['ENABLE_OPERATOR_BALLOTS_V4','FILE_OPERATOR_PROPOSAL_V1','ADMIT_OPERATOR_QUESTION_V2','CAST_OPERATOR_BALLOT_V1','FINISH_OPERATOR_BALLOT_V1',SUBMIT_TOPIC,EDIT_TOPIC,ENABLE_COMMUNITY];
 const [ENABLE,FILE,ADMIT,CAST,FINISH]=governanceActions;
 export const walletBallotActions=governanceActions.filter(x=>x!==ENABLE&&x!==ENABLE_COMMUNITY);
@@ -131,23 +141,33 @@ export function operatorBallotAction(s,a,author,tx,config){
   const pending=h.community??[];
   assert(pending.length<32,'the public review queue is full');
   assert(!pending.some(key=>tx.get(ballotKey(key)).author===author),'a proposal from this wallet is already under review');
-  tx.set(ballotKey(id),{id,author,original:{title:a.title,text:a.text},proposal:a,revision:id,status:'community',filed:s.height});
+  tx.set(ballotKey(id),{id,author,original:{title:a.title,text:a.text},proposal:a,revision:id,status:'community',filed:s.height,...(h.reviewProcedure&&now<issuanceStart?{timedTopic:true}:{})});
   h.community=[...pending,id];tx.set(ballotHead,h);return s;
  }
  if(a.type===EDIT_TOPIC){
-  exact(a,['type','id','revision','title','text']);hex(a.id);hex(a.revision);
+  const classified=Object.hasOwn(a,'category');
+  exact(a,['type','id','revision','title','text',...(classified?['category']:[])]);hex(a.id);hex(a.revision);
   const interim=!h.reviewers.length&&author===warmupSigner(s)&&!s.networkReserves.development.access.pending;
   assert(interim||servingExperts(h,now).some(e=>e.key===author),'the interim founder or a serving elected expert is required');
-  const r=tx.get(ballotKey(a.id));assert(r?.original&&['community','draft'].includes(r.status)&&r.revision===a.revision,'review the current editable version');
-  assert(!(h.live??[]).some(key=>tx.get(ballotKey(key)).status==='open'),'complete the current vote before changing the agenda');
+  const r=tx.get(ballotKey(a.id));assert(r?.original&&['community','prepared','draft'].includes(r.status)&&r.revision===a.revision,'review the current editable version');
+  if(classified)assert(h.reviewProcedure&&r.timedTopic&&advisoryDays.has(a.category),'invalid review category');
+  const busy=h.live.some(key=>tx.get(ballotKey(key)).status==='open');
+  assert(!busy||h.reviewProcedure,'complete the current vote before changing the agenda');
   boundedText(a.title,160);boundedText(a.text,6000);
-  if(r.status==='community'){
-   assert(h.live.length<32,'the voting agenda is full');
-   h.community=h.community.filter(key=>key!==a.id);h.live.push(a.id);r.expires=now+30*86400;
-  }else assert(a.title!==r.proposal.title||a.text!==r.proposal.text,'the text is unchanged');
-  r.status='draft';r.editor=author;r.revision=hash([r.revision,author,a]);r.admissions=[];
+  if(r.status==='community'||r.status==='prepared'){
+   assert(h.community.includes(a.id));
+   if(!busy){
+    assert(h.live.length<32,'the voting agenda is full');
+    h.community=h.community.filter(key=>key!==a.id);h.live.push(a.id);r.expires=now+30*86400;
+   }
+  }else assert(a.title!==r.proposal.title||a.text!==r.proposal.text||(classified&&a.category!==r.category),'the text is unchanged');
+  r.status=busy&&!h.live.includes(a.id)?'prepared':'draft';r.editor=author;r.revision=hash([r.revision,author,a]);r.admissions=[];
+  if(r.timedTopic)r.category=classified?a.category:'protected';
   r.proposal={title:a.title,text:a.text,implementationHash:hash([a.title,a.text])};
-  h.history=hash([h.history,a.id,r.revision]);tx.set(ballotKey(a.id),r);tx.set(ballotHead,h);return s;
+  // Side revisions are authenticated by their record. Moving the live history
+  // anchor here would invalidate the decision context of the ballot in flight.
+  if(!busy)h.history=hash([h.history,a.id,r.revision]);
+  tx.set(ballotKey(a.id),r);tx.set(ballotHead,h);return s;
  }
  const cutoff=warmupEnd(s),after=cutoff!==null&&now>=cutoff;
  const onAgenda=h.live.find(id=>tx.get(ballotKey(id)).status==='open');
@@ -161,7 +181,11 @@ export function operatorBallotAction(s,a,author,tx,config){
   const revision=Object.hasOwn(a,'supersedes');
   exact(a,['type','node','title','text','implementationHash','history',...(election?['slate']:[]),...(financial?['change']:[]),...(revision?['supersedes']:[])]);if(!election)hex(a.node);hex(a.implementationHash);assert.equal(a.history,h.history);
   if(financial){
-   validateFinancialChange(a.change);assert.equal(a.implementationHash,hash(a.change),'financial terms digest');
+   if(a.change.type===REVIEW_PROCEDURE){
+    assert.deepEqual(a.change,{type:REVIEW_PROCEDURE,terms:procedureTerms});
+    assert(Array.isArray(h.community)&&!h.reviewProcedure&&h.quorumBps===6700,'procedure change unavailable');
+   }else validateFinancialChange(a.change);
+   assert.equal(a.implementationHash,hash(a.change),'financial terms digest');
   }
   if(election){
    checkSlate(s,h,a.slate);
@@ -205,7 +229,10 @@ export function operatorBallotAction(s,a,author,tx,config){
   h.lastDecision=a.id;tx.set(ballotHead,h);
  }
  function adopt(){
-  if(r.proposal.change){
+  if(r.proposal.change?.type===REVIEW_PROCEDURE){
+   if(h.reviewProcedure){finish('inapplicable');return;}
+   h.reviewProcedure={decision:r.id,height:s.height,...procedureTerms};
+  }else if(r.proposal.change){
    try{s=enactFinancialChange(s,config,r.proposal.change,r.id,tx);}
    catch(error){
     if(!(error instanceof assert.AssertionError))throw error;
@@ -254,7 +281,7 @@ export function operatorBallotAction(s,a,author,tx,config){
   r.weights=weights(s,k=>tx.get(k));assert(Object.keys(r.weights).length,'bonded voters required');
   if(!r.original&&!r.proposal.slate)assert(r.weights[r.author],'initiator bond no longer active');
   r.total=String(Object.values(r.weights).reduce((n,v)=>n+amount(v),0n));r.yes='0';r.no='0';r.votes={};
-  r.status='open';r.after=after;r.context=decisionContext(s,h);r.openHeight=s.height;r.ends=now+(r.original?14*86400:h.durationSeconds);
+  r.status='open';r.after=after;r.context=decisionContext(s,h);r.openHeight=s.height;r.ends=now+votingPeriod(h,r,now);
  }else if(a.type===CAST){
   exact(a,['type','id','choice']);assert(r.status==='open'&&now<r.ends);
   assert(r.weights[author]&&!Object.hasOwn(r.votes,author),'eligible unspent snapshot vote required');assert(['yes','no'].includes(a.choice));

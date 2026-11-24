@@ -443,17 +443,21 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
          archive=data.archive??[];archived=data.archived??0;
          const elected=servingExperts(data.policy,data.blockTime).some(e=>e.key===owner);
          const editor=elected||(!data.policy?.reviewers?.length&&owner===data.founderExpert);
+         const busyAgenda=data.proposals.some(r=>r.status==='open');
+         const canPrepare=!busyAgenda||!!data.policy?.reviewProcedure;
          if(Array.isArray(data.policy?.community))community={history:data.policy.history,questions:[],editor};
          for(const r of data.proposals??[]){
-          if(r.original&&['community','draft','open'].includes(r.status)){
-           community.questions.push({id:r.id,title:r.proposal.title,text:r.proposal.text,original:r.original,status:r.status,revision:r.revision});
-           if(editor&&r.status==='community')items.push({id:r.id,title:r.proposal.title,kind:'edit-topic',revision:r.revision,text:r.proposal.text});
+          if(r.original&&['community','prepared','draft','open'].includes(r.status)){
+           const question={id:r.id,title:r.proposal.title,text:r.proposal.text,original:r.original,status:r.status,revision:r.revision,
+            canPrepare,queued:busyAgenda,timed:!!r.timedTopic&&data.blockTime<data.policy.reviewProcedure?.cutoff,category:r.category??'protected'};
+           community.questions.push(question);
+           if(editor&&canPrepare&&['community','prepared'].includes(r.status))items.push({...question,kind:'edit-topic'});
           }
           const vote=r.status==='open'&&data.blockTime<r.ends&&BigInt(r.weights?.[owner]??0)>0n&&!r.votes?.[owner];
           const founder=data.phase==='warmup'||data.phase==='expert-election';
           const expert=founder?owner===data.founderExpert&&(data.phase!=='expert-election'||!!r.proposal.slate||!!r.original):elected;
           const reviewed=r.admissionContext===data.agendaContext&&r.admissionPhase===data.phase&&r.admissions?.some(x=>x.key===owner);
-          const admission=r.status==='draft'&&data.blockTime<r.expires&&expert&&!reviewed;
+          const admission=!busyAgenda&&r.status==='draft'&&data.blockTime<r.expires&&expert&&!reviewed;
           if(vote||admission)items.push({id:r.id,title:r.subject??r.proposal.title,kind:vote?'vote':'review',ends:vote?r.ends:r.expires});
          }
         }catch{incomplete=true;}

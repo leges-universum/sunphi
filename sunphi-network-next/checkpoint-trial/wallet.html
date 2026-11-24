@@ -768,7 +768,7 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.143</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.144</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -1136,13 +1136,15 @@ async function loadBallots(openedId=null){
   for(const r of data.proposals){
    const card=element('details','','panel-band'),weight=r.weights?.[lastStatus.owner]??'0';card.dataset.proposal=r.id;
    card.append(element('summary',(r.subject??r.proposal.title)+' · '+r.status));
+   if(r.timedTopic)card.append(element('p',reviewScopes[r.category]??reviewScopes.protected));
+   if(r.openHeight&&r.ends)card.append(element('p','Voting closes '+utc(r.ends)+'.'));
    if(r.subject){
     const note=element('details','');note.append(element('summary','Author’s explanation'),element('p',r.proposal.title),element('p',r.proposal.text));card.append(note);
    }else card.append(element('p',r.proposal.text));
    card.append(element('p','Implementation SHA-256: '+r.proposal.implementationHash,'address'),element('p','Status: '+r.status));
    if(r.proposal.supersedes)card.append(element('p','Revision of '+r.proposal.supersedes,'address'));
    if(r.proposal.slate){for(const {profile:p,mandate} of r.proposal.slate){card.append(element('p','Seat '+mandate.seat+' · '+mandate.years+' years · '+p.name+' · '+p.key,'address'));if(p.disclosureUrl)card.append(element('p','Candidate profile: '+p.disclosureUrl));}}
-   if(r.proposal.change){const terms=element('details','');terms.append(element('summary','Exact financial terms'),element('pre',JSON.stringify(r.proposal.change,null,2)));card.append(terms);}
+   if(r.proposal.change){const terms=element('details','');terms.append(element('summary',r.proposal.change.type==='ADOPT_PRE_ISSUANCE_REVIEW_V1'?'Exact governance terms':'Exact financial terms'),element('pre',JSON.stringify(r.proposal.change,null,2)));card.append(terms);}
    const admissions=r.status==='draft'&&(r.admissionContext!==data.agendaContext||r.admissionPhase!==data.phase)?[]:(r.admissions??[]);
    const labels={admit:'Confirm admission',reject:'Reject',revise:'Request revision',abstain:'Abstain'};
    for(const e of admissions){const item=element('details','');item.append(element('summary',labels[e.decision]+' · '+e.height),element('p',e.key,'address'));if(e.review?.reason)item.append(element('p',e.review.reason));if(e.review?.combinedEffects)item.append(element('p',e.review.combinedEffects),element('p',e.review.alternative));card.append(item);}
@@ -1169,7 +1171,7 @@ async function loadBallots(openedId=null){
    if(r.votes?.[lastStatus.owner])result.textContent='Your recorded vote: '+(r.votes[lastStatus.owner]==='yes'?'For.':'Against.');
    else if(r.status==='open'&&data.blockTime<r.ends&&weight==='0')result.textContent='This wallet had no voting collateral at the opening block.';
    if(r.status==='open'&&data.blockTime<r.ends&&weight!=='0'&&!r.votes[lastStatus.owner])for(const [label,choice] of [['Vote for','yes'],['Vote against','no']])button(label,()=>({type:'CAST_OPERATOR_BALLOT_V1',id:r.id,choice}));
-   if(r.status==='draft'&&data.blockTime<r.expires){
+   if(r.status==='draft'&&data.blockTime<r.expires&&!data.proposals.some(other=>other.status==='open')){
     const founder=inWarmup||selecting,permitted=!selecting||!!r.proposal.slate||!!r.original;
     card.append(element('p',!permitted?'Waiting for the first expert election.':founder?'Awaiting the founder’s signature to open voting.':'Expert admission signatures: '+admissions.filter(e=>e.decision==='admit').length+' / '+data.policy.minimumReviews));
     const eligible=founder?data.founderExpert===lastStatus.owner:(data.serving??[]).some(x=>x.key===lastStatus.owner);
@@ -1229,10 +1231,36 @@ function topicEditor(parent,row){
  const form=element('form','','topic-editor');
  const field=(name,value,tag)=>{const label=element('label',name),input=element(tag,'');input.value=value;input.required=true;label.append(input);form.append(label);return input;};
  const title=field('Ballot subject',row.title,'input'),body=field('Exact wording',row.text,'textarea');
- const save=element('button','Submit wording for admission'),result=element('p','');result.setAttribute('role','status');form.append(save,result);
- form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await api('/voting/submit',{type:'EDIT_COMMUNITY_TOPIC_V1',id:row.id,revision:row.revision,title:title.value.trim(),text:body.value.trim()});result.textContent='Wording submitted. Waiting for network confirmation.';voteNext=0;}catch(err){result.textContent=err.message;save.disabled=false;}};
+ let category;
+ if(row.timed){
+  const label=element('label','Scope of decision');category=element('select','');
+  for(const [value,text] of Object.entries(reviewScopes)){const o=element('option',text);o.value=value;category.append(o);}
+  category.value=row.category??'protected';label.append(category);form.append(label);
+  form.append(element('p','Use the longest period that applies. Short periods cover advisory decisions only and must finish before ordinary issuance starts.'));
+ }
+ const result=element('p','');result.setAttribute('role','status');
+ const loadLabel=element('label','Load a saved wording file'),file=element('input','');file.type='file';file.accept='.json';loadLabel.append(file);form.append(loadLabel);
+ const context={network:lastStatus.network,question:row.id,revision:row.revision};
+ file.onchange=async()=>{try{
+  const selected=file.files[0];if(!selected)return;
+  if(selected.size>65536)throw Error('The wording file is too large.');
+  const draft=JSON.parse(await selected.text());
+  if(!Object.entries(context).every(([k,v])=>draft[k]===v)||typeof draft.title!=='string'||typeof draft.text!=='string')throw Error('Choose a wording file for this network, question and revision.');
+  title.value=draft.title;body.value=draft.text;if(category)category.value=Object.hasOwn(reviewScopes,draft.category)?draft.category:'protected';
+  result.textContent='Draft loaded. Review the wording before submitting it.';
+ }catch(err){result.textContent=err.message;}finally{file.value='';}};
+ const download=element('button','Save draft to file');download.type='button';
+ download.onclick=()=>{downloadInstruction({...context,title:title.value,text:body.value,...(category?{category:category.value}:{})},'DueByte-question-'+row.id+'.json');result.textContent='Draft download requested.';};
+ form.append(download);
+ if(row.canPrepare===false){
+  form.append(element('p','Save the wording on this device. The authorized reviewer can load the file for this revision when admission is available.'),result);
+  form.onsubmit=e=>e.preventDefault();parent.append(form);return;
+ }
+ const save=element('button',row.queued?'Save wording for the next agenda':'Submit wording for admission');form.append(save,result);
+ form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await api('/voting/submit',{type:'EDIT_COMMUNITY_TOPIC_V1',id:row.id,revision:row.revision,title:title.value.trim(),text:body.value.trim(),...(category?{category:category.value}:{})});result.textContent='Wording submitted. Waiting for network confirmation.';voteNext=0;}catch(err){result.textContent=err.message;save.disabled=false;}};
  parent.append(form);
 }
+const reviewScopes={protected:'Ordinary or protected decision · 14 days',organization:'Organizational recommendation · 72 hours if eligible','closed-pilot':'Closed pilot recommendation · 7 days if eligible'};
 function paintCommunity(value){
  communityState=value;$('community-topics').hidden=!value;
  const signature=JSON.stringify(value);if(signature===communitySignature)return;communitySignature=signature;
@@ -1240,7 +1268,12 @@ function paintCommunity(value){
  for(const row of value?.questions??[]){
   const detail=element('details','');detail.append(element('summary',row.title),element('p',row.text),element('p','Status: '+row.status));
   if(row.original.text!==row.text||row.original.title!==row.title)detail.append(element('p','Original submission: '+row.original.title+' — '+row.original.text));
-  if(value.editor&&row.status==='draft')topicEditor(detail,row);
+  if(row.timed)detail.append(element('p',reviewScopes[row.category]??reviewScopes.protected));
+  if(row.status==='prepared')detail.append(element('p',row.queued?'Wording saved. Admission follows the current vote.':'Ready for the authorized reviewer to submit for admission.'));
+  if(['draft','prepared','community'].includes(row.status)){
+   if(value.editor&&(row.status!=='community'||!row.canPrepare))topicEditor(detail,row);
+   else if(!value.editor&&row.queued)topicEditor(detail,{...row,canPrepare:false});
+  }
   $('community-list').append(detail);
  }
 }
