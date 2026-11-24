@@ -9,6 +9,24 @@ export const REGISTER_SERVER='REGISTER_SERVER_REWARD_ACCOUNT_V1';
 export const ENROLLMENT_HEAD='server-enrollment/head';
 export const NOMINATE_RECIPIENT='NOMINATE_SERVER_REWARD_RECIPIENT_V1';
 export const ACCEPT_RECIPIENT='ACCEPT_SERVER_REWARD_RECIPIENT_V1';
+export const RENEW_ENROLLMENT='RENEW_SERVER_REWARD_ENROLLMENT_V1';
+export function checkEnrollmentRenewal(terms){
+ exact(terms,['previous','blocks','limit']);
+ hex(terms.previous);integer(terms.blocks,1);integer(terms.limit,1);
+ assert(terms.blocks<=10001 && terms.limit<=1024,'Registration window bounds.');
+}
+export function renewReviewedEnrollment(s,config,terms,tx){
+ checkEnrollmentRenewal(terms);
+ const head=tx.get(ENROLLMENT_HEAD);
+ assert(head && head.id===terms.previous,'Registration policy has changed.');
+ assert(rewardsEnabled(s) && s.rewards && !s.authority.pending,'Registration authority is unavailable.');
+ assert(s.height>head.policy.expires || head.count===head.policy.limit,'The current registration window still has space.');
+ const policy={domain:OPEN_SERVER_ENROLLMENT,network:config.chainId,configHash:s.configHash,
+  generation:s.authority.generation,sequence:head.policy.sequence+1,notBefore:s.height,
+  expires:s.height+terms.blocks-1,limit:terms.limit};
+ tx.set(ENROLLMENT_HEAD,{policy,id:hash(policy),count:0});
+ return s;
+}
 export const offerKey=id=>'server-enrollment/recipient/'+hex(id);
 export const initialPayout=(configHash,node,wallet,sequence)=>({domain:REWARDS+'/BIND',configHash,node,sequence,payouts:[{wallet,weight:1}]});
 export function auditServerRegistration(records,s,config){
