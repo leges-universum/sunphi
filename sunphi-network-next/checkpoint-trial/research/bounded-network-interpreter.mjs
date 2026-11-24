@@ -1,3 +1,5 @@
+import {accountConfig,companyOperations,applyCompanyRegistration} from '../company-enrollment.mjs';
+import {COMPANY_MANDATE,checkCompanyAction,guardCompanyOutput,updateCompanyMandate} from '../company-account.mjs';
 import {posVotingAuthority} from './pos-authority-transition.mjs';
 import {OPEN_SERVER_ENROLLMENT,REGISTER_SERVER,ENROLLMENT_HEAD,serverRewardRegistration,NOMINATE_RECIPIENT,ACCEPT_RECIPIENT,serverRecipient,auditServerRegistration} from './server-reward-registration.mjs';
 import {OPEN_SEAT,JOIN_SEAT,advanceSeat,applySeat} from '../rotating-seat.mjs';
@@ -199,6 +201,8 @@ export class BoundedNetworkInterpreter{
    return withControllerContext(money,ctx,()=>{
     const ceiling=this.isolatedIssuance?null:productionIssuanceLimit(s,action,{at:at??s.money.time});
     s=apply(s,rules,tx,rewardContext(s,book))??s;
+    const accounts=accountConfig(s,this.config);
+    if(accounts.companyAccounts)for(const change of touched.values())if(change.bucket==='outputs')guardCompanyOutput(accounts,action,change.before,change.value);
     if(s.authority?.bondedAdmission?.boundary)s.authority.bondedAdmission.ordinaryIssuedMicro=ordinaryIssued(s);
     for(const bucket of ['outputs','requests','nodes'])assert.equal(s.money[bucket],money[bucket],'shared bounded monetary collection');
     Object.assign(money,s.money);s.money=money;reconcileWorkerSupport(s,touched);supported(s);auditMembership(s.authority,this.config,s.height);auditControllers(s);auditServiceBinding(tx.get,s);
@@ -289,9 +293,12 @@ export class BoundedNetworkInterpreter{
   }
  }
  _action(s,t,rules,tx){let a=t.body.action;const author=t.body.author;
+  checkCompanyAction(s,accountConfig(s,this.config),a,author);
+  if(a.type===COMPANY_MANDATE)return updateCompanyMandate(s,this.config,a,author);
   guardPreparedEconomy(s,a.type);
   if(governanceActions.includes(a.type))return operatorBallotAction(s,a,author,tx,this.config);
   if(tx.get(ballotHead))requireOperationalAction(s,a);
+  if(companyOperations.includes(a.type))return applyCompanyRegistration(s,a,author,rules.active);
   if(assuranceActions.includes(a.type))return applyAssurance(s,a,author,this.config,tx,guardCustodyRequest);
   if(a.type===OPEN_SERVER_ENROLLMENT||a.type===REGISTER_SERVER)return serverRewardRegistration(s,a,author,this.config,tx);
   if(a.type===NOMINATE_RECIPIENT||a.type===ACCEPT_RECIPIENT)return serverRecipient(s,a,author,this.config,tx,rewardContext(s,tx.get('meta/economics')));

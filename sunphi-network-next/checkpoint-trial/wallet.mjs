@@ -1,4 +1,6 @@
 import {pendingFunding} from './funding-outbox.mjs';
+import {accountConfig} from './company-enrollment.mjs';
+import {checkCompanyPayment} from './company-account.mjs';
 import assert from 'node:assert/strict';
 import {selectWalletInputs,WalletPreparationError} from './wallet-inputs.mjs';
 import {ensureWorkRoutes,collectWorkReceipts} from './wallet-work.mjs';
@@ -51,8 +53,8 @@ export class Wallet{
   }catch(e){this.db.exec('ROLLBACK');throw e;}
  }
  async quote(value,unitScale='1'){const {state}=await this.view({payment:{value,unitScale}});const quote=paymentQuote(state,value,unitScale);selectWalletInputs(state,this.key.publicKey,BigInt(quote.total));await ensureWorkRoutes({parts:isBoundedWalletView(state)?boundedPaymentPlan(state,quote.value):plan(state.money,quote.value),routes:this.routes,gateway:this.url});return quote;}
- async prepareTokens(q,persist=null){const delay=requestedRecipientDelay(q);return this.prepare(q.recipient,q.value,delay,q.delayed?86400:0,q,persist);}
- async prepare(recipient,value,delay=0,sendDelay=0,review=null,persist=null){
+ async prepareTokens(q,persist=null,beforeSign=null){const delay=requestedRecipientDelay(q);return this.prepare(q.recipient,q.value,delay,q.delayed?86400:0,q,persist,beforeSign);}
+ async prepare(recipient,value,delay=0,sendDelay=0,review=null,persist=null,beforeSign=null){
   let intent,wire,protectedPayment;
   try{
    assert(!pendingFunding(this.db),'Finish or cancel the pending collateral contribution first');publicKey(recipient);
@@ -64,7 +66,13 @@ export class Wallet{
    protectedPayment=spendPolicy(state,this.key.publicKey)?.enabled===true;
    const window=paymentWindow(money,this.client.config,{protectedPayment});
    intent={domain:sendDelay?SCHEDULE_DOMAIN:DOMAIN+'/INTENT',policy:policyId,network:policy.network,pid:hash({domain:PROFILE+'/PAYMENT',random:randomUUID()}),sender:this.key.publicKey,recipient,inputs,...(inputs.length>LEGACY_INPUTS?{inputPolicy:INPUT_FEATURE}:{}),value,fee:String(fee),abortFee:String(releaseFeeFor(value,scale,schedule)),...(schedule?{feeSchedule:schedule}:{}),...(scale==='1'?{}:{unitScale:scale}),epoch:money.epoch,...window,delay,parts,...(sendDelay?{sendDelay}:{})};
+   const accounts=accountConfig(state,this.client.config);
+   if(Object.hasOwn(accounts.companyAccounts??{},intent.sender)){
+    intent.companyRevision=state.companyMandates?.[intent.sender]?.revision;
+    checkCompanyPayment(state,accounts,intent,this.key.publicKey);
+   }
    if(resourceLimitsEnabled(state))intent.pid=resourcePaymentId(intent,state.configHash);
+   if(beforeSign)await beforeSign(intent,state);
    const signed={intent,signature:sign(intent,this.key.privateKey)};wire=envelope(this.client.config,{type:sendDelay?'SCHEDULE_PAYMENT_V1':'RESERVE',signed},this.key);
   }catch(e){throw e instanceof WalletPreparationError?e:new WalletPreparationError(e.message);}
   // Persistence errors stay uncertain: an outgoing record might already exist.

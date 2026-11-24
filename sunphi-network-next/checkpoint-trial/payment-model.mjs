@@ -52,7 +52,8 @@ export function audit(s){
   assert.equal(liabilities.size,0,'unknown worker');assert.equal(total,amount(s.supply),'conservation');return true;
 }
 export function validateIntentShape(i){
-  exact(i,['domain','policy','network','pid','sender','recipient','inputs','value','fee','abortFee','epoch','lastReserve','deadline','delay','parts',...(scheduled(i)?['sendDelay']:[]),...(i.feeSchedule?['feeSchedule']:[]),...(i.unitScale?['unitScale']:[]),...(Object.hasOwn(i,'timeBasis')?['timeBasis']:[]),...(Object.hasOwn(i,'inputPolicy')?['inputPolicy']:[])]);
+  exact(i,['domain','policy','network','pid','sender','recipient','inputs','value','fee','abortFee','epoch','lastReserve','deadline','delay','parts',...(scheduled(i)?['sendDelay']:[]),...(i.feeSchedule?['feeSchedule']:[]),...(i.unitScale?['unitScale']:[]),...(Object.hasOwn(i,'timeBasis')?['timeBasis']:[]),...(Object.hasOwn(i,'inputPolicy')?['inputPolicy']:[]),...(Object.hasOwn(i,'companyRevision')?['companyRevision']:[])]);
+  if(Object.hasOwn(i,'companyRevision'))assert(count(i.companyRevision)>0,'positive mandate revision required');
   if(Object.hasOwn(i,'timeBasis'))assert.equal(i.timeBasis,UTC_OBLIGATIONS,'supported payment clock');
   if(i.unitScale)assert.equal(i.unitScale,'1000000');
   if(i.feeSchedule){checkTariff(i.feeSchedule);assert.equal(i.unitScale,'1000000');assert(!terminalProgramFee(i),'terminal programme fee has its own rule');}
