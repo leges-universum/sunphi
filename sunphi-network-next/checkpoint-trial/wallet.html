@@ -460,14 +460,31 @@ html:root[data-theme=light] #wallet-picker:not(:disabled):is(:hover,:focus-visib
 #funding-feedback[data-state="COMMITTED"]{color:var(--green,#38ba82)}
 @media(max-width:600px){.governance-actions{display:grid;grid-template-columns:minmax(0,1fr)}.governance-actions>button{width:100%}}
 .vote-count:not([hidden]){display:inline-grid;place-items:center;min-width:1.45em;height:1.45em;padding:0 .25em;border-radius:1em;background:#b42331;color:#fff;font:700 12px/1 system-ui}
-#vote-inbox{grid-column:1/-1;max-width:52rem}
+#vote-inbox,#vote-history,#community-topics,#reserve-statement{grid-column:1/-1;box-sizing:border-box;width:100%;max-width:none;min-width:0}
 #vote-items>article{border-inline-start:3px solid #cf3946;padding:12px 18px;margin:12px 0;background:var(--section)}
 #vote-items h3{margin:0 0 .5rem}
 nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
-#vote-history,#community-topics{grid-column:1/-1;max-width:52rem}
-#vote-history footer,#community-topics form,.topic-editor{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center}
-#community-topics label,.topic-editor label{width:100%}
-#vote-history li{margin:.6rem 0}
+#vote-history footer{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center}
+#community-topics details,#vote-items article{min-width:0;overflow-wrap:anywhere}
+#community-list details>p,#vote-items article p{white-space:pre-wrap;max-width:none}
+#community-form p,.topic-editor p{max-width:none}
+#community-form,.topic-editor{display:grid;grid-template-columns:minmax(0,1fr);gap:1rem;margin-block:1rem 0}
+#community-form label,.topic-editor label{display:grid;gap:.4rem;min-width:0;margin:0}
+#community-form :is(input,textarea),.topic-editor :is(input,textarea){width:100%;max-width:none;min-width:0;box-sizing:border-box;margin:0}
+#community-form textarea,.topic-editor textarea{min-height:9rem;resize:vertical;padding:.75rem;font:inherit;line-height:1.5;color:var(--ink);background:var(--page);border:1px solid var(--border);border-radius:3px}
+#community-form button,.topic-editor button{justify-self:start}
+#community-form p,.topic-editor p{margin:0}
+#community-form [role=status]:empty,.topic-editor [role=status]:empty{display:none}
+#vote-history table{width:100%;border-collapse:collapse;table-layout:fixed}
+#vote-history th,#vote-history td{padding:.65rem .4rem;text-align:start;border-bottom:1px solid var(--border);vertical-align:top;overflow-wrap:anywhere}
+#vote-history thead{background:var(--section)}
+#vote-history th:nth-child(2){width:23%}
+#vote-history th:last-child{width:18%}
+#vote-history td:last-child,#vote-history th:last-child{text-align:end;font-variant-numeric:tabular-nums}
+#vote-history footer{position:static;margin:.8rem 0 0;padding:.65rem 0 0}
+#broker-panel #broker-message:empty{display:none}
+#broker-panel .broker-history{margin-block-start:1.5rem;padding-block-start:1rem;border-top:1px solid var(--border)}
+#broker-panel #broker-retry{margin-block:.25rem .75rem}
 #vote-inbox .panel-body{padding:0}
 #activity-feed li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
 #activity-feed p{margin:3px 0}
@@ -475,10 +492,19 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 #activity-receipt{width:min(38rem,90vw);max-height:85vh;overflow:auto}
 #activity-receipt dd{margin:0 0 12px;overflow-wrap:anywhere}
 #activity-receipt dt{color:var(--muted)}
-#reserve-statement{max-width:46rem;margin-block:1rem 2rem}
-#reserve-values{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.7rem 1.5rem}
-#reserve-values dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
-@media(max-width:480px){#reserve-values{grid-template-columns:1fr;gap:.2rem}#reserve-values dd{text-align:left;margin-bottom:.7rem}}
+#reserve-statement{width:100%;min-width:0;max-width:none;box-sizing:border-box;margin-block:1rem}
+#reserve-values table{width:100%;border-collapse:collapse;margin-block:1rem}
+#reserve-values caption{text-align:left;font-weight:600;padding-block:.5rem}
+#reserve-values th,#reserve-values td{padding:.55rem .65rem;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+#reserve-values th:first-child{text-align:left;width:55%}
+#reserve-values tbody th{font-weight:400}
+#reserve-values thead,#reserve-values tr.total{background:var(--section)}
+#reserve-values tr.total>*{font-weight:650}
+#reserve-values details{margin-block:1rem}
+#reserve-values summary{cursor:pointer}
+#reserve-values .table-scroll{overflow-x:auto}
+#reserve-values td{white-space:nowrap}
+@media(max-width:480px){#reserve-values th,#reserve-values td{padding:.45rem .3rem;font-size:.85rem}}
 #verification-records table{width:100%;border-collapse:collapse;text-align:left}
 #verification-records th,#verification-records td{padding:10px 14px;vertical-align:top;border-bottom:1px solid var(--border)}
 #verification-records code{display:block;max-width:26rem;overflow-wrap:anywhere}
@@ -519,19 +545,20 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <label for="verification-subject">Company reference</label>
 <div class="actions"><input id="verification-subject" maxlength="96"><button id="verification-find">Show verifiers</button></div>
 <p id="verification-status" role="status"></p><div id="verification-records" style="overflow-x:auto"></div></section>
-<section id="reserve-statement" hidden aria-labelledby="reserve-title"><h3 id="reserve-title">Network reserve</h3><dl id="reserve-values"></dl></section><table id="network-metrics" class="analytics-table" aria-label="Verified network metrics"></table><details class="verification-details"><summary>Verification details</summary><p id="analytics-scope" class="hint">Waiting for a verified network snapshot.</p><p id="verified-hash" class="address"></p><p class="section-help">The block hash and checkpoint identify the snapshot verified by this wallet.</p></details></div>
+<section id="reserve-statement" aria-labelledby="reserve-title"><h2 id="reserve-title">Network reserve</h2><p id="reserve-as-of" class="hint"></p><div id="reserve-values"></div></section><table id="network-metrics" class="analytics-table" aria-label="Verified network metrics"></table><details class="verification-details"><summary>Verification details</summary><p id="analytics-scope" class="hint">Waiting for a verified network snapshot.</p><p id="verified-hash" class="address"></p><p class="section-help">The block hash and checkpoint identify the snapshot verified by this wallet.</p></details></div>
 <div class="screen" data-screen="external" hidden>
 <section><h2>Reference prices in USD</h2>
 <table class="analytics-table" aria-label="Latest spot trades in USD"><thead><tr><th>Asset</th><th>Price · USD</th><th>Source and trade time</th></tr></thead><tbody id="external-prices"></tbody></table>
 <p id="price-status" class="hint" role="status"></p></section>
-<section><h2>Check an incoming transfer</h2>
+<section id="external-transfer-check"><details><summary>Verify a transfer to an external wallet</summary>
+<p>Expecting BTC on Bitcoin, or USDC or USDT on Ethereum? Use the transaction ID from the sender and the receiving address from your external wallet to check the amount and confirmations. DUBYT payments appear in Activity.</p>
 <form id="external-lookup">
 <label for="external-route">Asset and network</label><select id="external-route"><option value="btc-bitcoin">BTC · Bitcoin</option><option value="usdc-ethereum">USDC · Ethereum</option><option value="usdt-ethereum">USDT · Ethereum</option></select>
 <label for="external-tx">Transaction ID</label><input id="external-tx" required maxlength="66" autocomplete="off" spellcheck="false">
 <label for="external-address">Expected receiving address</label><input id="external-address" required maxlength="90" autocomplete="off" spellcheck="false">
 <p class="hint">The transaction ID is sent to the public network provider. Your receiving address is compared locally.</p>
 <button type="submit" id="external-check">Check transfer</button></form>
-<p id="external-result" role="status" aria-live="polite"></p></section></div>
+<p id="external-result" role="status" aria-live="polite"></p></details></section></div>
 <div class="screen" data-screen="exchange" hidden>
 <section aria-labelledby="reserve-access-title">
 <h2 id="reserve-access-title">Network reserve</h2>
@@ -547,10 +574,11 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <p class="hint">The offer shows exactly what you pay, what you receive, all fees and the expected wait. Payment details appear only when an exchange is available.</p>
 <p id="exchange-unavailable" role="status" aria-live="polite" hidden></p>
 </section><section id="broker-panel" class="panel" hidden>
-<div class="panel-head"><h2>Exchange</h2><p class="hint">Your selected provider holds the funds during exchange. Review the trade and withdrawal fees before confirming each step.</p></div>
+<div class="panel-head"><h2>Provider offer</h2><p id="broker-guidance" class="hint" aria-live="polite"></p></div>
 <div class="panel-body">
-<p id="broker-message" role="status" aria-live="polite" style="min-height:3em;max-height:none;overflow:visible"></p>
-<label for="broker-provider">Exchange provider</label><select id="broker-provider"></select>
+<p id="broker-message" role="status" aria-live="polite"></p>
+<button id="broker-retry" type="button" hidden>Check availability</button>
+<div id="broker-provider-field"><label for="broker-provider">Exchange provider</label><select id="broker-provider"></select></div>
 <form id="broker-form"><label id="broker-amount-label" for="broker-amount">Amount you exchange</label><input id="broker-amount" inputmode="decimal" maxlength="58" autocomplete="off" required>
 <div id="broker-swap-fields" hidden><label for="broker-route">Networks and rate</label><select id="broker-route"></select>
 <label for="broker-receive-address">Receiving address</label><input id="broker-receive-address" maxlength="256" autocomplete="off"><label for="broker-receive-memo">Receiving memo / tag, if required</label><input id="broker-receive-memo" maxlength="256" autocomplete="off">
@@ -559,7 +587,7 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <p id="broker-admission" class="hint"></p><button id="broker-review" class="primary">Review exchange</button></form>
 <div id="broker-preview" class="panel-band" hidden><h3>Review exact terms</h3><dl id="broker-terms" class="receipt-lines"></dl><p id="broker-expiry" class="hint"></p><div class="actions"><button id="broker-confirm" class="primary" type="button">Confirm exchange</button><button id="broker-back" type="button">Back</button></div></div>
 <div id="broker-withdraw" hidden><label for="broker-destination">Your registered receiving address</label><select id="broker-destination"></select><p class="hint">Choose an address verified with your provider. Its network and full address appear in the withdrawal review.</p><button id="broker-withdraw-review" type="button">Review withdrawal fee</button></div>
-<h3>Saved exchanges</h3><div id="broker-orders"></div>
+<h3 class="broker-history">Saved exchanges</h3><div id="broker-orders"></div>
 <nav class="history-pagination" aria-label="Exchange history pages"><button id="broker-prev" type="button">Previous</button><span id="broker-page"></span><button id="broker-next" type="button">Next</button></nav>
 <button id="broker-refresh" type="button">Refresh saved exchanges</button>
 </div></section><section id="two-way-panel" class="panel" hidden>
@@ -740,7 +768,7 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.142</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.143</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -1008,7 +1036,7 @@ const votingTab=document.createElement('button');votingTab.dataset.tab='voting';
 const votingScreen=document.createElement('div');votingScreen.className='screen screen-grid';votingScreen.dataset.screen='voting';votingScreen.hidden=true;
 document.querySelector('[data-screen="collateral"]').after(votingScreen);
 votingScreen.innerHTML='<section id="vote-inbox"><h2>Needs your attention</h2><p id="vote-availability" role="status">Checking for votes…</p><div id="vote-items"></div></section>';
-votingScreen.insertAdjacentHTML('beforeend','<section id="community-topics" hidden><h2>Community proposals</h2><div id="community-list"></div><details><summary>Propose a question</summary><form id="community-form"><label>Subject<input name="title" required maxlength="160"></label><label>Decision requested and reasons<textarea name="text" required maxlength="6000"></textarea></label><p>Your wording and wallet address will be public. Leave out personal contact details.</p><button>Publish proposal</button><p role="status"></p></form></details></section><section id="vote-history"><h2>Voting history</h2><ol></ol><p role="status">Checking voting history…</p><footer hidden><button type="button">Previous</button><span></span><button type="button">Next</button></footer></section>');
+votingScreen.insertAdjacentHTML('beforeend','<section id="community-topics" hidden><h2>Community proposals</h2><div id="community-list"></div><details><summary>Propose a question</summary><form id="community-form"><label>Subject<input name="title" required maxlength="160"></label><label>Decision requested and reasons<textarea name="text" required maxlength="6000"></textarea></label><p>Your wording and wallet address will be public. Leave out personal contact details.</p><button>Publish proposal</button><p role="status"></p></form></details></section><section id="vote-history"><h2 id="vote-history-title">Voting history</h2><table aria-labelledby="vote-history-title" hidden><thead><tr><th scope="col">Subject</th><th scope="col">Result</th><th scope="col">Block</th></tr></thead><tbody></tbody></table><p role="status">Checking voting history…</p><footer hidden><button type="button">Previous</button><span aria-live="polite"></span><button type="button">Next</button></footer></section>');
 const personalVotes=document.createElement('div');personalVotes.hidden=true;document.querySelector('[data-screen="overview"]').prepend(personalVotes);
 function placeVoting(eligible,personal,community){
  votingTab.hidden=!eligible;
@@ -1187,7 +1215,12 @@ function paintVoteHistory(h){
  if(!h)return;
  const pages=Math.max(1,Math.ceil(h.total/10));
  if(voteArchivePage>=pages){voteArchivePage=pages-1;voteNext=0;return;}
- archivePanel.querySelector('ol').replaceChildren(...h.rows.map(r=>element('li',r.title+' — '+r.result.replaceAll('_',' ')+(r.height?' · Block '+r.height:''))));
+ archivePanel.querySelector('tbody').replaceChildren(...h.rows.map(r=>{
+  const row=document.createElement('tr');
+  row.append(element('td',r.title),element('td',r.result.replaceAll('_',' ')),element('td',r.height==null?'—':String(r.height)));
+  return row;
+ }));
+ archivePanel.querySelector('table').hidden=h.rows.length===0;
  archivePanel.querySelector('[role=status]').textContent=h.total?'':'No confirmed decisions yet.';
  archiveNav.hidden=pages===1;archiveNav.firstElementChild.disabled=voteArchivePage===0;archiveNav.lastElementChild.disabled=voteArchivePage+1>=pages;
  archiveNav.querySelector('span').textContent='Page '+(voteArchivePage+1)+' of '+pages;
@@ -1264,7 +1297,7 @@ async function updateVoteInbox(s){
  if(identity!==voteIdentity){
   voteIdentity=identity;voteEpoch++;voteNext=0;voteBusy=false;voteSignature='';knownVoteItems=[];restoreVote();
   placeVoting(false,false,false);
-  voteArchivePage=0;archivePanel.querySelector('ol').replaceChildren();archivePanel.querySelector('[role=status]').textContent='Checking voting history…';archiveNav.hidden=true;paintCommunity(null);$('community-form').reset();$('community-form').querySelector('[role=status]').textContent='';
+  voteArchivePage=0;archivePanel.querySelector('tbody').replaceChildren();archivePanel.querySelector('table').hidden=true;archivePanel.querySelector('[role=status]').textContent='Checking voting history…';archiveNav.hidden=true;paintCommunity(null);$('community-form').reset();$('community-form').querySelector('[role=status]').textContent='';
   voteCount.hidden=true;votingTab.removeAttribute('aria-label');$('vote-items').replaceChildren();
   $('vote-availability').textContent='Checking for votes…';
  }
@@ -1507,36 +1540,67 @@ function paymentRecordElement(p){
   if(p.cancellationPending)li.append(element('p','Waiting for network confirmation. The payment is not cancelled yet.','hint'));return li;
 }
 function validatorScheduleText(policy){
+ return validatorScheduleRows(policy).map(([year,factor])=>year+' ×'+factor).join(' · ');
+}
+function validatorScheduleRows(policy){
  const years=policy.multiplierHalves.map((halves,index)=>[policy.programmeYear+index,halves/2]);
  const later=new Map([[policy.programmeYear+years.length,policy.continuingHalves/2]]);
  for(const c of policy.changes??[])later.set(c.year,c.factorBps/10000);
  const rates=[...years,...later];
- return rates.map(([year,factor],index)=>year+(index===rates.length-1?' onward':'')+' ×'+factor).join(' · ');
+ return rates.map(([year,factor],index)=>[year+(index===rates.length-1?' onward':''),factor]);
 }
-function renderReserveStatement(statement){
- const panel=$('reserve-statement'),values=$('reserve-values');
- panel.hidden=!statement;values.replaceChildren();
- if(!statement)return;
- if(statement.validatorPolicy){
-  const policy=statement.validatorPolicy;
-  values.append(element('dt','Active validator target / protocol ceiling'),element('dd',policy.activeTarget+' / '+policy.maximumActive),
-   element('dt','Verified work multipliers (UTC)'),element('dd',validatorScheduleText(policy)),
-   element('dt','Current multiplier'),element('dd',policy.currentFactorBps===null?'Starts in '+policy.programmeYear:'×'+policy.currentFactorBps/10000),
-   element('dt','Validator payouts'),element('dd',policy.workRate?'Base '+Number(policy.workRate.base30DaysMicro)/1000000+' DUBYT per 30 verified service days · daily budget '+policy.workRate.budgetBps/100+'% of net ordinary issuance.':'Awaiting a base rate and budget vote.'));
- }
- if(Object.hasOwn(statement,'retainedMicro'))values.append(element('dt','Retained after posted work commitments'),element('dd',statement.retainedMicro+' DUBYT'));
- for(const [key,label] of Object.entries({issuedMicro:'Ordinary issuance received',operatorCreditsMicro:'Credited to operators',marketInMicro:'DUBYT received from market settlement or refund',marketOutMicro:'DUBYT placed in exchange escrow',balanceMicro:'Fund balance',committedMicro:'Reserved for open service periods',forwardTargetMicro:'Forward payroll target',continuityTargetMicro:'Continuity target',surplusMicro:'Available above fund commitments'})){
-  if(!Object.hasOwn(statement,key))continue;
-  values.append(element('dt',label),element('dd',statement[key]+' DUBYT'));
- }
- if(statement.credit){
-  for(const [key,label] of Object.entries({drawn:'Loan principal disbursed',repaid:'Loan repayments received',capitalFunded:'Funded loss capital',riskHeld:'Reserved against loan losses',capitalUsed:'Realized principal losses covered',capitalAvailable:'Remaining unallocated loss capital',interestWaived:'Interest waived'})){
-   if(!Object.hasOwn(statement.credit,key))continue;
-   values.append(element('dt',label),element('dd',statement.credit[key]+' DUBYT'));
+let reserveRenderKey;
+function renderReserveStatement(statement,analytics,stale){
+ const asOf=$('reserve-as-of'),values=$('reserve-values');
+ asOf.textContent=!analytics?'Waiting for a verified reserve statement.':!statement?'No reserve statement is available at this block.':
+  (stale?'Last verified statement':'Verified statement')+' · Block '+analytics.appHeight.toLocaleString('en-US')+
+  (statement.mode==='CLOSED'?' · Purchases and loans are closed.':'');
+ const key=JSON.stringify(statement??null);
+ if(key===reserveRenderKey)return;
+ reserveRenderKey=key;
+ const expanded=new Set([...values.querySelectorAll('details[open]')].map(d=>d.querySelector('summary').textContent));
+ values.replaceChildren();if(!statement)return;
+ const policy=statement.validatorPolicy;
+ function table(parent,title,headings,rows){
+  const box=element('div','','table-scroll'),t=element('table',''),head=t.createTHead().insertRow();
+  t.createCaption().textContent=title;
+  for(const label of headings){const th=element('th',label);th.scope='col';head.append(th);}
+  const body=t.createTBody();
+  for(const [label,...cells] of rows){
+   const row=body.insertRow(),th=element('th',label);th.scope='row';row.append(th);
+   for(const value of cells)row.append(element('td',value??'—'));
   }
+  box.append(t);parent.append(box);return body;
+ }
+ function details(title){
+  const d=element('details','');d.append(element('summary',title));d.open=expanded.has(title);values.append(d);return d;
+ }
+ const flows=[['Ordinary issuance',statement.issuedMicro,null],['Validator work credited',null,statement.operatorCreditsMicro]];
+ if(statement.marketInMicro!=null||statement.marketOutMicro!=null)flows.push(['Exchange settlements and escrow',statement.marketInMicro,statement.marketOutMicro]);
+ if(statement.credit)flows.push(['Loan repayments and disbursements',statement.credit.repaid,statement.credit.drawn]);
+ table(values,'Cumulative fund movements',['Item','In (DUBYT)','Out (DUBYT)'],flows);
+ const balances=[['Fund balance',statement.balanceMicro],['Committed to validator work',statement.committedMicro],
+  ['Balance after work commitments',statement.retainedMicro],['Forward payroll target',statement.forwardTargetMicro],
+  ['Continuity target',statement.continuityTargetMicro],['Reserved for collateral quotes',statement.quotedPrincipalMicro],
+  ['Available above reserve requirements',statement.surplusMicro]];
+ const balanceTable=table(values,'Reserve position',['Item','DUBYT'],balances.filter(([,v])=>v!==undefined));
+ if(balanceTable.rows.length)balanceTable.rows[0].className='total';
+ if(statement.credit){
+  const labels={capitalFunded:'Funded loss capital',riskHeld:'Reserved for loan losses',capitalUsed:'Principal losses covered',capitalAvailable:'Unallocated loss capital',interestWaived:'Interest waived'};
+  const rows=Object.entries(labels).filter(([k])=>Object.hasOwn(statement.credit,k)).map(([k,label])=>[label,statement.credit[k]]);
+  if(rows.length)table(details('Loan loss coverage'),'Loan loss coverage',['Item','DUBYT'],rows);
+ }
+ if(policy){
+  const d=details('Validator admission and pay rules');
+  const rules=[['Active validator target',policy.activeTarget],['Protocol limit',policy.maximumActive],
+   ['Current multiplier',policy.currentFactorBps==null?'Starts in '+policy.programmeYear:'×'+policy.currentFactorBps/10000],
+   ['Base rate per 30 verified service days',policy.workRate?Number(policy.workRate.base30DaysMicro)/1000000+' DUBYT':'Awaiting vote'],
+   ['Daily budget as a share of net ordinary issuance',policy.workRate?policy.workRate.budgetBps/100+'%':'Awaiting vote']];
+  table(d,'Validator rules',['Parameter','Value'],rules);
+  table(d,'Verified work multipliers',['Year (UTC)','Multiplier'],validatorScheduleRows(policy).map(([year,factor])=>[year,'×'+factor]));
  }
 }
-function renderAnalytics(s){historySample(s);const a=s.analytics,k=JSON.stringify([a,!!s.error]);if(k===analyticsKey)return;analyticsKey=k;renderReserveStatement(a?.networkReserve);$('network-metrics').replaceChildren();if(!a){$('analytics-scope').textContent='Waiting for a verified network snapshot.';$('verified-hash').textContent='';return;}const head=document.createElement('thead'),tr=document.createElement('tr');for(const label of ['Metric','Value','Description'])tr.append(element('th',label));head.append(tr);const body=document.createElement('tbody');$('network-metrics').append(head,body);for(const [label,value,hint] of [['Verified block',a.height,'Confirmed consensus header'],['State block',a.appHeight,'State certified by that header'],['Confirmed payments',a.settled,'Payments settled across the network'],['Confirmed volume',a.volume,'DUBYT transferred across the network'],['Reserved payments',a.reserved,'Awaiting finalization or expiry'],['Live outputs',a.outputs,'Unspent balance records'],['Issued supply',a.supply,'DUBYT in the verified state']]){const row=element('tr','','metric'),name=element('th',a.scope==='owner'&&['Reserved payments','Live outputs'].includes(label)?'Your '+label.toLowerCase():label);name.scope='row';row.append(name,element('td',value==null?(a.networkStatus==='retry'?'Retrying…':'Updating…'):label==='Confirmed volume'?moneyText(a,'volume'):label==='Issued supply'?moneyText(a,'supply'):BigInt(value).toLocaleString('en-US'),'numeric'),element('td',hint,'description'));body.append(row);}$('analytics-scope').textContent=(s.error?'Last verified snapshot; current verification is unavailable. ':'')+(a.scope==='owner'?'Reserved payments and live outputs cover this wallet. The other figures cover the verified network.':'Counts describe retained verified records, not a complete lifetime archive. Updated after successful verification.');$('verified-hash').textContent='Block hash: '+a.blockHash+'\nCheckpoint: '+a.checkpoint;}
+function renderAnalytics(s){historySample(s);const a=s.analytics,k=JSON.stringify([a,!!s.error]);if(k===analyticsKey)return;analyticsKey=k;renderReserveStatement(a?.networkReserve,a,s.error);$('network-metrics').replaceChildren();if(!a){$('analytics-scope').textContent='Waiting for a verified network snapshot.';$('verified-hash').textContent='';return;}const head=document.createElement('thead'),tr=document.createElement('tr');for(const label of ['Metric','Value','Description'])tr.append(element('th',label));head.append(tr);const body=document.createElement('tbody');$('network-metrics').append(head,body);for(const [label,value,hint] of [['Verified block',a.height,'Confirmed consensus header'],['State block',a.appHeight,'State certified by that header'],['Confirmed payments',a.settled,'Payments settled across the network'],['Confirmed volume',a.volume,'DUBYT transferred across the network'],['Reserved payments',a.reserved,'Awaiting finalization or expiry'],['Live outputs',a.outputs,'Unspent balance records'],['Issued supply',a.supply,'DUBYT in the verified state']]){const row=element('tr','','metric'),name=element('th',a.scope==='owner'&&['Reserved payments','Live outputs'].includes(label)?'Your '+label.toLowerCase():label);name.scope='row';row.append(name,element('td',value==null?(a.networkStatus==='retry'?'Retrying…':'Updating…'):label==='Confirmed volume'?moneyText(a,'volume'):label==='Issued supply'?moneyText(a,'supply'):BigInt(value).toLocaleString('en-US'),'numeric'),element('td',hint,'description'));body.append(row);}$('analytics-scope').textContent=(s.error?'Last verified snapshot; current verification is unavailable. ':'')+(a.scope==='owner'?'Reserved payments and live outputs cover this wallet. The other figures cover the verified network.':'Counts describe retained verified records, not a complete lifetime archive. Updated after successful verification.');$('verified-hash').textContent='Block hash: '+a.blockHash+'\nCheckpoint: '+a.checkpoint;}
 async function copyPublicText(address){
  if(typeof address!=='string'||!/^[A-Za-z0-9_-]{14,196}$/.test(address))throw Error('Invalid public address');
  if(window.sunphiNode?.request){const result=await window.sunphiNode.request('copy-public-address',{address});if(!result?.ok)throw Error(result?.error||'Copy unavailable');return;}
@@ -2447,6 +2511,21 @@ function renderBrokerSwapFields(){
  $('broker-receive-address').readOnly=pair.to==='DUBYT';$('broker-refund-address').readOnly=pair.from==='DUBYT';
  $('broker-receive-memo').readOnly=pair.to==='DUBYT';$('broker-refund-memo').readOnly=pair.from==='DUBYT';
 }
+let brokerOffline=false;
+function paintProviderOffer(provider,pair,available){
+ const direction=pair.from&&pair.to?pair.from+' → '+pair.to:'this currency pair';
+ const chooseAnother=brokerProviders.length>1?' Choose another provider or change the pair above.':' Change the pair above or check availability again.';
+ $('broker-guidance').textContent=brokerOffline?'Home could not check offers for '+direction+'. Check availability again.':
+  !provider?'No provider is available for '+direction+'. Change the pair above or check availability again.':
+  !provider.admitted?provider.label+' is not enabled for this wallet.'+chooseAnother:
+  !available?provider.label+' has no route for '+direction+'.'+chooseAnother:
+  'Enter the amount of '+pair.from+' to exchange for '+pair.to+'. Review the provider’s amounts and fees before confirming.';
+ $('broker-provider-field').hidden=!provider||brokerOffline;
+ $('broker-form').hidden=!available;
+ $('broker-retry').hidden=!!available;
+ $('broker-retry').disabled=brokerBusy;
+ $('broker-admission').textContent=provider?.capability==='deposit_swap'?'The provider receives your deposit after you create and fund an order. Your sending wallet may charge a network fee.':'The trade uses your provider account balance. Review the withdrawal fee before moving funds to your wallet.';
+}
 function renderBrokerChoice(){
  $('broker-panel').hidden=!brokerConfigured;if(!brokerConfigured)return;
  for(const o of $('exchange-currency').options)o.textContent=({BTC:'Bitcoin · BTC',USDC:'USDC',USDT:'USDT',XMR:'Monero · XMR'})[o.value]||o.textContent;
@@ -2455,8 +2534,8 @@ function renderBrokerChoice(){
  const swap=p?.capability==='deposit_swap';renderBrokerSwapFields();
  $('exchange-network').textContent=swap?'Choose the exact networks. The exchanged funds go to the receiving address shown in your review.':'The receiving network and withdrawal fee are verified separately before sending to your wallet.';
  $('broker-amount-label').textContent='Amount you exchange · '+pair.from;
- const permitted=p?.routes.some(r=>r.from===pair.from&&r.to===pair.to);
- $('broker-admission').textContent=!p?.admitted?'This provider is not enabled for this wallet. Verification and route approval are required.':!permitted?'This pair is not available for your wallet.':swap?'Review → create order → fund once → follow the saved exchange. Sending-wallet network fees are additional.':'Use funds already credited to your provider account. Trading does not spend the local wallet balance.';
+ const permitted=!brokerOffline&&p?.admitted&&p.routes.some(r=>r.from===pair.from&&r.to===pair.to);
+ paintProviderOffer(p,pair,permitted);
  $('broker-review').disabled=brokerBusy||!permitted;const expiry=brokerFundingDraft?.expiresAt??brokerDraft?.review.expiresAt??0;$('broker-confirm').disabled=brokerBusy||expiry<=Date.now();
  for(const id of ['broker-provider','exchange-direction','exchange-currency','broker-amount','broker-refresh','broker-withdraw-review','broker-destination','broker-back'])$(id).disabled=brokerBusy;
  for(const id of ['broker-route','broker-receive-address','broker-receive-memo','broker-refund-address','broker-refund-memo'])$(id).disabled=brokerBusy;
@@ -2502,7 +2581,7 @@ function drawBrokerOrders(){
      if(!hash||!route||!address)continue;
      const check=element('button',label);check.type='button';
      check.onclick=()=>{
-      clearReceipt();externalTab.click();$('external-route').value=route;$('external-route').dispatchEvent(new Event('change'));
+      clearReceipt();openTransferCheck();$('external-route').value=route;$('external-route').dispatchEvent(new Event('change'));
       $('external-tx').value=hash;$('external-address').value=address;
       expectedReceipt=hash===r.payoutHash?r.actualReceive:r.refundAmount;
       $('external-lookup').requestSubmit();
@@ -2543,11 +2622,13 @@ async function loadBroker(){
   if(a.providers.some(p=>p.id===selected))$('broker-provider').value=selected;
   const provider=$('broker-provider').value;
   if(provider){const s=await api('/broker/status',{provider,offset:brokerOffset});if(context!==purchaseContext()||lastStatus.locked)return true;brokerOrders=s.orders;brokerMore=s.hasMore;drawBrokerOrders();}
-  $('broker-message').textContent=brokerSelected()?.capability==='deposit_swap'?'Saved orders checked. Fund each order only once; its payout goes to your reviewed receiving address.':'Saved operations checked. Exchange and withdrawal are separate steps.';return true;
+  else{brokerOrders=[];brokerMore=false;drawBrokerOrders();}
+  brokerOffline=false;$('broker-message').textContent='';return true;
  }catch(e){if(context===purchaseContext()){
-  brokerConfigured=true;$('broker-message').textContent='Exchange connection unavailable. Refresh saved operations before continuing.';
+  brokerConfigured=true;brokerOffline=true;$('broker-message').textContent='';
   brokerProviders=brokerProviders.map(p=>({...p,admitted:false,routes:[],destinations:[]}));
   brokerOrders=brokerOrders.map(o=>({...o,errorCode:'BROKER_UNAVAILABLE'}));drawBrokerOrders();
+  if(!brokerOrders.length)$('broker-orders').replaceChildren(element('p','Saved exchanges could not be checked.','hint'));
  }return true;}
  finally{brokerBusy=false;if(context===purchaseContext())renderBrokerChoice();}
 }
@@ -2568,6 +2649,7 @@ $('broker-provider').onchange=()=>{clearBrokerDraft();brokerOffset=0;brokerOrder
 $('broker-amount').oninput=()=>{clearBrokerDraft();renderBrokerChoice();};
 for(const id of ['broker-route','broker-receive-address','broker-receive-memo','broker-refund-address','broker-refund-memo'])$(id).addEventListener('change',()=>{clearBrokerDraft();renderBrokerChoice();});
 for(const id of ['exchange-direction','exchange-currency'])$(id).addEventListener('change',()=>{clearBrokerDraft();renderBrokerChoice();});
+$('broker-retry').onclick=loadBroker;
 $('broker-refresh').onclick=loadBroker;$('broker-prev').onclick=()=>{brokerOffset=Math.max(0,brokerOffset-20);void loadBroker();};$('broker-next').onclick=()=>{brokerOffset+=20;void loadBroker();};
 setInterval(()=>{if(brokerConfigured&&!lastStatus?.locked&&!document.querySelector('[data-screen=exchange]').hidden&&!brokerDraft&&!brokerFundingDraft&&!brokerParent)void loadBroker();},15000);
 async function loadPurchase(){
@@ -2642,6 +2724,13 @@ let assetsBusy=false,assetsContext=null,assetsAt=0,assetsRows=[],assetsRequest=n
 const emptyAssets=()=>['DUBYT','BTC','USDC','USDT','XMR'].map(asset=>({asset,status:asset==='XMR'?'not-supported':asset==='DUBYT'?'unavailable':'checking',available:null}));
 let receiptRevision=0,priceBusy=false,expectedReceipt=null;
 const externalPanel=document.querySelector('[data-screen=external]');
+const transferCheck=$('external-transfer-check');
+document.querySelector('[data-screen=receive]>section').after(transferCheck);
+screens.external[1]='View reference prices for external assets.';
+function openTransferCheck(){
+ selectTab('receive');transferCheck.querySelector('details').open=true;
+ transferCheck.querySelector('summary').focus();transferCheck.scrollIntoView({block:'nearest'});
+}
 function clearReceipt(){receiptRevision++;expectedReceipt=null;$('external-result').textContent='';$('external-check').disabled=false;}
 $('external-lookup').addEventListener('input',clearReceipt);
 $('external-route').addEventListener('change',clearReceipt);
