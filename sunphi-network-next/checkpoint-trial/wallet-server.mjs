@@ -1,3 +1,4 @@
+import {inspectSavedInvoice,matchInvoicePayment,readInvoiceNotice,saveInvoiceNotice} from './invoice-receipt.mjs';
 import {validateBinding,companyOperations,REVOKE_COMPANY} from './company-enrollment.mjs';
 import {publicReviewRows} from './company-verifiers.mjs';
 import {createServer} from 'node:http';
@@ -147,7 +148,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=(req.url==='/nodes/rule-review'?131072:16384));chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
  assert.equal(admittedEpoch,sessionEpoch,'Wallet session changed. Retry the action in the current session.');
  assert(!sessionDrain.pending,'Wallet switching is in progress. Please wait.');
- const proposalRead=['/nodes/rule-review','/nodes/vote-access','/nodes/vote-notices','/voting/list','/nodes/server-versions','/activity'].includes(req.url);
+ const proposalRead=['/nodes/rule-review','/nodes/vote-access','/nodes/vote-notices','/voting/list','/nodes/server-versions','/activity','/invoice/receipt'].includes(req.url);
  const voteSubmission=['/nodes/rule-confirm','/voting/submit'].includes(req.url==='/authorize-action'?q?.path:req.url);
  const portfolioAction=!!config.exchangeLab?.policy.reserve?.portfolio&&/^\/exchange\/(seriesStatus|loanStatus|(?:review|confirm|retry)(?:Loan|Series))$/.test(req.url==='/authorize-action'?q?.path:req.url);
  const corporateRequest=(req.url==='/authorize-action'?q?.path:req.url)==='/company/account';
@@ -242,6 +243,22 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  if(['/company/account','/voting/candidacy','/voting/submit','/collateral/pay','/send','/cancel-payment','/bond/confirm','/collateral/confirm','/collateral/retry','/collateral/cancel','/nodes/confirm','/nodes/rule-confirm','/node-alerts/confirm','/node-alerts/activate','/node-alerts/stop','/seller/start','/exchange/confirm','/exchange/resume','/exchange/refund','/exchange/confirmAsk','/exchange/retryAsk','/exchange/confirmSeries','/exchange/retrySeries','/exchange/confirmLoan','/exchange/retryLoan','/broker/confirm','/broker/fund'].includes(req.url)){
   const id=req.headers['x-duebyte-action'],permit=actionPermits.get(id);actionPermits.delete(id);
   assert(permit&&permit.expires>=Date.now()&&permit.digest===hash({path:req.url,data:q,activeId,sessionToken}),'Confirmation expired or changed. Review the payment again.');actionExpires=permit.expires;
+ }
+ if(req.url==='/invoice/receipt'){
+  assert(wallet,'Unlock your wallet to open an invoice receipt.');
+  const lookup=Object.hasOwn(q,'pid');
+  exact(q,[lookup?'pid':'archive']);
+  const archive=lookup?null:inspectSavedInvoice(q.archive);
+  const advice=lookup?readInvoiceNotice(wallet,q.pid):q.archive.receipt.invoiceAdvice;
+  if(!advice){res.end(JSON.stringify({matched:false}));return;}
+  const pid=advice.notice.body.pid;
+  const record=[...(indexedHistory()?.rows??[]),...records()].find(row=>row.pid===pid&&row.status==='SETTLED');
+  if(!record||config.chainId!==advice.bill.body.network||![advice.bill.body.buyer,advice.bill.body.supplier].includes(owner)){
+   res.end(JSON.stringify({archive,matched:false}));return;
+  }
+  const fields=matchInvoicePayment(advice,record,config.chainId,owner);
+  if(!lookup)saveInvoiceNotice(wallet,advice);
+  res.end(JSON.stringify({archive,matched:true,fields,record,advice}));return;
  }
  if(req.url==='/company/account'){
   assert(wallet&&view&&!error&&checkedAt,'Verified wallet required.');
@@ -492,6 +509,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
         assert(Array.isArray(q.nodes)&&q.nodes.length<=128&&q.nodes.every(id=>/^[a-f0-9]{64}$/.test(id)));
         const {state,certificate}=await active.view({rewardIds:q.nodes}),owner=active.key.publicKey,items=[];
         let incomplete=false,community=null,archive=[],archived=0,eligible=false;
+        const openBallots=[];
         try{
          const bondedNodes=Object.keys(state.workerFunding?.accounts??{}).filter(node=>state.workerFunding.accounts[node].owner===owner&&BigInt(state.money.nodes[node]?.consensusHeld??0)>0n);
          const data=await active.client.operatorBallots(certificate,owner,page,bondedNodes);
@@ -503,6 +521,12 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
          const canPrepare=!busyAgenda||!!data.policy?.reviewProcedure;
          if(Array.isArray(data.policy?.community))community={history:data.policy.history,questions:[],editor};
          for(const r of data.proposals??[]){
+          if(r.status==='open'&&BigInt(r.weights?.[owner]??0)>0n){
+           openBallots.push({id:r.id,title:r.subject??r.proposal.title,ends:r.ends,
+            choice:r.votes?.[owner]??null,consentHeight:r.earlyCloseConsents?.[owner]??null,
+            timingOpen:data.blockTime<Math.min(r.ends,procedureTerms.cutoff),
+            consentCount:Object.keys(r.earlyCloseConsents??{}).length,owners:Object.keys(r.weights).length});
+          }
           if(r.original&&['community','prepared','draft','open'].includes(r.status)){
            const question={id:r.id,title:r.proposal.title,text:r.proposal.text,original:r.original,status:r.status,revision:r.revision,
             canPrepare,queued:busyAgenda,timed:!!r.timedTopic&&data.blockTime<data.policy.reviewProcedure?.cutoff,category:r.category??'protected'};
@@ -574,7 +598,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
         past.sort((a,b)=>(b.height??0)-(a.height??0));
         const offset=Math.max(0,page*10-archived);
         const history={total:archived+past.length,rows:[...archive,...past.slice(offset,offset+10-archive.length)]};
-        return {items,incomplete,cutoverStatus,reserveStatus,history,community,eligible};
+        return {items,openBallots,incomplete,cutoverStatus,reserveStatus,history,community,eligible};
        }
        if(req.url==='/nodes/block-votes'){
         assert.deepEqual(q,{});return await recentBlockSignatures(active);
