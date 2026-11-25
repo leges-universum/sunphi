@@ -31,7 +31,12 @@ function votingPeriod(h,r,now){
  const days=r.original&&r.timedTopic?advisoryDays.get(r.category)??14:14;
  return (now+days*DAY<issuanceStart?days:14)*DAY;
 }
-export const governanceActions=['ENABLE_OPERATOR_BALLOTS_V4','FILE_OPERATOR_PROPOSAL_V1','ADMIT_OPERATOR_QUESTION_V2','CAST_OPERATOR_BALLOT_V1','FINISH_OPERATOR_BALLOT_V1',SUBMIT_TOPIC,EDIT_TOPIC,ENABLE_COMMUNITY];
+export const EARLY_CLOSE='CONSENT_TO_EARLY_BALLOT_CLOSE_V1';
+export function earlyCloseAction(r){
+ return {type:EARLY_CLOSE,id:r.id,openHeight:r.openHeight,scheduledEnd:r.ends,
+  snapshot:hash([EARLY_CLOSE,r.id,r.revision??null,r.proposal,r.context,r.weights,r.total])};
+}
+export const governanceActions=['ENABLE_OPERATOR_BALLOTS_V4','FILE_OPERATOR_PROPOSAL_V1','ADMIT_OPERATOR_QUESTION_V2','CAST_OPERATOR_BALLOT_V1','FINISH_OPERATOR_BALLOT_V1',SUBMIT_TOPIC,EDIT_TOPIC,ENABLE_COMMUNITY,EARLY_CLOSE];
 const [ENABLE,FILE,ADMIT,CAST,FINISH]=governanceActions;
 export const walletBallotActions=governanceActions.filter(x=>x!==ENABLE&&x!==ENABLE_COMMUNITY);
 export const warmupSigner=s=>s.networkReserves?developmentManager(s.networkReserves):null;
@@ -250,6 +255,12 @@ export function operatorBallotAction(s,a,author,tx,config){
   }
   finish('adopted');
  }
+ function countResult(){
+  const yes=amount(r.yes),no=amount(r.no);
+  if(decisionContext(s,h)!==r.context)finish('new_review_required');
+  else if(yes<=no||(yes+no)*10000n<amount(r.total)*BigInt(h.quorumBps))finish('rejected');
+  else adopt();
+ }
  if(a.type===ADMIT){
   exact(a,['type','id','phase','context','decision','review']);assert(r.status==='draft'&&now<r.expires,'only a current draft can be reviewed');
   assert(['admit','reject','revise','abstain'].includes(a.decision),'expert disposition');
@@ -286,14 +297,22 @@ export function operatorBallotAction(s,a,author,tx,config){
   exact(a,['type','id','choice']);assert(r.status==='open'&&now<r.ends);
   assert(r.weights[author]&&!Object.hasOwn(r.votes,author),'eligible unspent snapshot vote required');assert(['yes','no'].includes(a.choice));
   r.votes[author]=a.choice;r[a.choice]=String(amount(r[a.choice])+amount(r.weights[author]));
+ }else if(a.type===EARLY_CLOSE){
+  assert(r.status==='open'&&now<r.ends&&now<issuanceStart,'early closure is available only before the deadline and ordinary issuance');
+  assert.deepEqual(a,earlyCloseAction(r),'review the exact opening snapshot and scheduled deadline');
+  assert(Object.hasOwn(r.weights,author)&&amount(r.weights[author])>0n,'eligible opening-snapshot owner required');
+  r.earlyCloseConsents??={};
+  if(!Object.hasOwn(r.earlyCloseConsents,author))r.earlyCloseConsents[author]=s.height;
+  if(Object.keys(r.weights).every(owner=>Object.hasOwn(r.earlyCloseConsents,owner))){
+   r.earlyClosure={height:s.height,time:now,snapshot:a.snapshot};
+   countResult();
+  }
  }else{
   assert.equal(a.type,FINISH,'unsupported ballot action');exact(a,['type','id']);
   if(r.status==='draft'){assert(now>=r.expires);finish('expired');}
-  else{assert(r.status==='open'&&now>=r.ends);const yes=amount(r.yes),no=amount(r.no);
+  else{assert(r.status==='open'&&now>=r.ends);
    if(now>=r.ends+30*86400)finish('expired');
-   else if(decisionContext(s,h)!==r.context)finish('new_review_required');
-   else if(yes<=no||(yes+no)*10000n<amount(r.total)*BigInt(h.quorumBps))finish('rejected');
-   else adopt();
+   else countResult();
   }
  }
  tx.set(ballotKey(a.id),r);return s;

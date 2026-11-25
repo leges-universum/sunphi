@@ -18,7 +18,7 @@ import {scheduled} from './payment-model.mjs';
 import {delayedPaymentsEnabled} from './authority.mjs';
 import {WalletStore} from './wallet-store.mjs';
 import {envelope} from './core.mjs';
-import {candidateConsent,seatMandate,servingExperts,seatsAt,walletBallotActions} from './research/operator-ballots.mjs';
+import {candidateConsent,seatMandate,servingExperts,seatsAt,walletBallotActions,EARLY_CLOSE,earlyCloseAction,procedureTerms} from './research/operator-ballots.mjs';
 import {WalletSessionDrain,WalletPaymentLane} from './wallet-session-drain.mjs';
 const sessionDrain=new WalletSessionDrain(),paymentLane=new WalletPaymentLane();
 import {RewardWorker} from './reward-worker.mjs';
@@ -147,7 +147,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  assert.equal(req.method,'POST');let size=0,chunks=[];for await(const b of req){size+=b.length;assert(size<=(req.url==='/nodes/rule-review'?131072:16384));chunks.push(b);}const q=JSON.parse(Buffer.concat(chunks));
  assert.equal(admittedEpoch,sessionEpoch,'Wallet session changed. Retry the action in the current session.');
  assert(!sessionDrain.pending,'Wallet switching is in progress. Please wait.');
- const proposalRead=['/nodes/rule-review','/nodes/vote-notices','/voting/list','/nodes/server-versions','/activity'].includes(req.url);
+ const proposalRead=['/nodes/rule-review','/nodes/vote-access','/nodes/vote-notices','/voting/list','/nodes/server-versions','/activity'].includes(req.url);
  const voteSubmission=['/nodes/rule-confirm','/voting/submit'].includes(req.url==='/authorize-action'?q?.path:req.url);
  const portfolioAction=!!config.exchangeLab?.policy.reserve?.portfolio&&/^\/exchange\/(seriesStatus|loanStatus|(?:review|confirm|retry)(?:Loan|Series))$/.test(req.url==='/authorize-action'?q?.path:req.url);
  const corporateRequest=(req.url==='/authorize-action'?q?.path:req.url)==='/company/account';
@@ -155,6 +155,15 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  assert(Date.now()>=updateDrainUntil,'The node is installing an update. Please reopen the wallet after it restarts.');
  if(wallet && token !== sessionToken) throw new Error('Wallet is open in another session. Lock it there first.');
  if(!wallet)assert(['/status','/unlock','/create','/restore','/select-wallet','/lock'].includes(req.url),'unlock your wallet first');
+ if(req.url==='/nodes/vote-access'){
+  exact(q,[]);const active=wallet,current=view;
+  assert(active&&current?.certificate,'Waiting for a verified wallet view.');
+  const owner=active.key.publicKey,accounts=current.state.workerFunding?.accounts??{};
+  const candidates=Object.keys(accounts).filter(id=>accounts[id].owner===owner);
+  const access=await active.client.operatorBallots(current.certificate,owner,0,candidates,true);
+  assert(active===wallet&&admittedEpoch===sessionEpoch,'Wallet session changed.');
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify(access));return;
+ }
  if(req.url==='/company/verifiers'){
   exact(q,['subject']);assert(/^[A-Za-z0-9_-]{10,96}$/.test(q.subject),'Enter the company reference.');
   const local=process.env.DUEBYTE_QUALIFICATION_DIRECTORY;
@@ -409,7 +418,11 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
    try{const {certificate,state}=await active.view(),data=await active.client.operatorBallots(certificate,active.key.publicKey);
     if(req.url==='/voting/list'){
      assert.deepEqual(q,{});const owned=walletNodeOverview(state,active.key.publicKey).nodes.filter(n=>n.kind==='server'&&n.collateral?.owned);
-     return {...data,seats:seatsAt(data.policy,data.blockTime),serving:servingExperts(data.policy,data.blockTime),servers:owned.map(n=>({id:n.id,active:n.participation?.status==='active'}))};
+     const earlyCloseOffers={};
+     for(const r of data.proposals){
+      if(r.status==='open'&&data.blockTime<Math.min(r.ends,procedureTerms.cutoff)&&Object.hasOwn(r.weights,active.key.publicKey)&&!r.earlyCloseConsents?.[active.key.publicKey])earlyCloseOffers[r.id]=earlyCloseAction(r);
+     }
+     return {...data,earlyCloseOffers,seats:seatsAt(data.policy,data.blockTime),serving:servingExperts(data.policy,data.blockTime),servers:owned.map(n=>({id:n.id,active:n.participation?.status==='active'}))};
     }
     assert(data.policy,'Operator voting has not been activated by the network.');
     if(req.url==='/voting/candidacy'){
@@ -431,6 +444,11 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
     }
     if(q.type==='CAST_OPERATOR_BALLOT_V1'){
      const r=data.proposals.find(p=>p.id===q.id);assert(r?.status==='open'&&r.weights[active.key.publicKey]&&!r.votes[active.key.publicKey],'No available vote for this wallet');assert(['yes','no'].includes(q.choice));
+    }
+    if(q.type===EARLY_CLOSE){
+     const r=data.proposals.find(p=>p.id===q.id),owner=active.key.publicKey;
+     assert(r?.status==='open'&&data.blockTime<Math.min(r.ends,procedureTerms.cutoff)&&Object.hasOwn(r.weights,owner)&&!r.earlyCloseConsents?.[owner],'Refresh the ballot to check your timing consent.');
+     assert.deepEqual(q,earlyCloseAction(r),'The opening terms changed. Review the ballot again.');
     }
     assert(valid(),'Wallet session expired before signing');const wire=envelope(active.client.config,q,active.key);await active.broadcast(wire);return {submitted:true};
    }finally{working=false;walletBusy=false;}
@@ -497,6 +515,7 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
           const reviewed=r.admissionContext===data.agendaContext&&r.admissionPhase===data.phase&&r.admissions?.some(x=>x.key===owner);
           const admission=!busyAgenda&&r.status==='draft'&&data.blockTime<r.expires&&expert&&!reviewed;
           if(vote||admission)items.push({id:r.id,title:r.subject??r.proposal.title,kind:vote?'vote':'review',ends:vote?r.ends:r.expires});
+          if(r.status==='open'&&data.blockTime<Math.min(r.ends,procedureTerms.cutoff)&&r.votes?.[owner]&&!r.earlyCloseConsents?.[owner])items.push({id:r.id,title:r.subject??r.proposal.title,kind:'early-close',ends:r.ends});
          }
         }catch{incomplete=true;}
         if(!ruleReviewSessions.has(active))ruleReviewSessions.set(active,new WalletRuleReviews(active));

@@ -203,13 +203,18 @@ export class VerifiedClient{
   const request={type:'service-work',id:node},root=certificate.appHash;
   return boundedHttpQuery(this.bounded.url).withLease(root,async query=>{const r=verifyBoundedQuery(await query(request,root),request,root,hash(this.config));assert.equal(r.height,certificate.appHeight);assert(!r.isolatedIssuance);return r.data;});
  }
- async operatorBallots(certificate,owner,page=0,bondedNodes=[]){
+ async operatorBallots(certificate,owner,page=0,bondedNodes=[],eligibilityOnly=false){
   assert(Number.isSafeInteger(page)&&page>=0);
   assert(this.bounded&&hash(certificate)===this.verifiedServiceCertificate,'Current verified network view required');
   const root=certificate.appHash;
   return boundedHttpQuery(this.bounded.url).withLease(root,async query=>{
    const read=async id=>{const request={type:'operator-voting',id};
     const r=verifyBoundedQuery(await query(request,root),request,root,hash(this.config));assert.equal(r.height,certificate.appHeight);assert(!r.isolatedIssuance);return r.data;};
+   let eligible=false;
+   for(const node of bondedNodes){
+    if(await read('bond-'+node)===owner){eligible=true;break;}
+   }
+   if(eligibilityOnly)return {eligible};
    const summary=await read('summary'),proposals=[];
    const mine=owner&&summary.policy?await read('author-'+owner):[];
    const ids=new Set([...(summary.policy?.live??[]),...(summary.policy?.community??[]),...(summary.policy?.discussions??[]),...mine]);
@@ -221,12 +226,6 @@ export class VerifiedClient{
      const entries=await read(hash(['DUEBYTE_VOTING_HISTORY_PAGE_V1',n]));
      assert(Array.isArray(entries)&&entries.length<=10);
      archive.push(...entries.slice(Math.max(0,start-n*10),end-n*10));
-    }
-   }
-   let eligible=false;
-   for(const node of bondedNodes){
-    if(await read('bond-'+node)===owner){
-     eligible=true;break;
     }
    }
    return {...summary,proposals,archive:archive.reverse(),archived:total,eligible};
