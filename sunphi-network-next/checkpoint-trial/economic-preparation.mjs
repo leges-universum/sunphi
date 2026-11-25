@@ -4,7 +4,7 @@ import { exact, hash, integer, verify, hex } from './crypto.mjs';
 import {validatorQuorum} from './authority.mjs';
 import { developmentManager } from './reserve-recovery.mjs';
 import { makeEconomicPlan, ECONOMIC_POLICY_VERSION } from './economic-policy-v2.mjs';
-import {versionedEconomicPlan,memorialAware,ECONOMIC_POLICY_VERSION_V3,ECONOMIC_POLICY_VERSION_V4,economicTermsHash} from './economic-policy-v3.mjs';
+import {versionedEconomicPlan,memorialAware,ECONOMIC_POLICY_VERSION_V3,ECONOMIC_POLICY_VERSION_V4,economicTermsHash,assertV4Supply} from './economic-policy-v3.mjs';
 import {initialMemorialCustody,auditMemorialCustody} from './memorial-custody.mjs';
 import {auditCenturyFees} from './century-fees.mjs';
 import {auditCenturySubsidy} from './century-subsidy.mjs';
@@ -53,6 +53,7 @@ export function applyEconomicPreparation(base, action, config) {
 export function auditEconomicPreparation(s) {
   const e=s.economicPreparation;if(!e){assert(!s.centuryFees&&!s.centurySubsidy,'century accounting requires economic preparation');return;}
   const v3=memorialAware(e.plan.version);
+  assertV4Supply(s);
   exact(e,['plan','planHash','certificateHash',...(v3?['memorial']:[]),...(e.paidAdmission?['paidAdmission']:[])]);if(e.paidAdmission)auditPaidAdmissionHead(e.paidAdmission);assert.equal(hash(e.plan),e.planHash,'economic plan integrity');
   assert(e.plan.version===ECONOMIC_POLICY_VERSION||v3);assert.equal(e.plan.networkConfigHash,s.configHash);
   assert.equal(e.plan.issuanceEnabled,false);assert.equal(e.plan.warmupEnabled,false);

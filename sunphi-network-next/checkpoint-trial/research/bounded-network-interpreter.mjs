@@ -6,6 +6,7 @@ import {OPEN_SEAT,JOIN_SEAT,advanceSeat,applySeat} from '../rotating-seat.mjs';
 // Protocol candidate: sparse blocks, a versioned indexed root and retained journal.
 // Production issuance requires a committed, bounded zero-stage mandate.
 import assert from 'node:assert/strict';
+import {assertV4Supply} from '../economic-policy-v3.mjs';
 import {checkInputCapability,inputBudget,sharedInputsEnabled} from '../payment-input-policy.mjs';
 import {createWorkerIndex,updateWorkerIndex,auditWorkerIndex,workerAccess,workerCount,nonzeroWorkerCount,WORKER_NONZERO,REWARD_ENROLLMENT,enrollmentState,nextRewardWorkers} from './bounded-worker-index.mjs';
 import {paymentClock} from '../obligation-clock.mjs';
@@ -119,7 +120,7 @@ function decodedSections(tx){const cache=new Map(),dirty=new Set();return {
  flush(){for(const key of [...dirty].sort()){let value=cache.get(key);if(key==='meta/network'){value={...value};if(value.rewards)value.rewards=writeRewardRegistry(tx,value.rewards);if(value.centurySubsidy)value.centurySubsidy=writeEconomicRecords(tx,value.centurySubsidy);}putSection(tx,key,value);}}
 };}
 function overlay(parent){const values=new Map();return {get:key=>cloneSection(key,values.has(key)?values.get(key):parent.get(key)),set:(key,value)=>values.set(key,cloneSection(key,value)),delete(key){assert((values.has(key)?values.get(key):parent.get(key))!==undefined,'overlay deletes absent record: '+key);values.set(key,undefined);},commit(){for(const [key,value]of [...values].sort(([a],[b])=>a<b?-1:1)){if(value===undefined){if(parent.get(key)!==undefined)parent.delete(key);}else parent.set(key,value);}},size:()=>values.size};}
-function supported(s){feeOnly(s);assert(!s.launchFund,'active economic controller needs bounded integration');assert(!s.networkReserves?.issued,'issued legacy reserve needs bounded integration');}
+function supported(s){assertV4Supply(s);feeOnly(s);assert(!s.launchFund,'active economic controller needs bounded integration');assert(!s.networkReserves?.issued,'issued legacy reserve needs bounded integration');}
 export function evidenceBudget(m){const {outputs,requests,nodes,...head}=m;let reserve=196608;for(const r of Object.values(m.liability?.records??{}))for(const a of r.assignments)if(!r.faults[a.index+':'+a.node])reserve+=1200;return Buffer.byteLength(canonical(head))+reserve;}
 function moneyHeadroom(m){assert(evidenceBudget(m)<=128*24000,'bounded liability evidence headroom');}
 // A successful fault fork changes exactly these three existing JSON subtrees

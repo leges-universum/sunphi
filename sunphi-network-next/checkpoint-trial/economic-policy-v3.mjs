@@ -9,10 +9,20 @@ export const TOTAL_CAP_MICRO = CAP + MEMORIAL_MICRO;
 // Preserve signed V3 history. New approvals use a distinct V4 plan and terms hash.
 export const ECONOMIC_POLICY_VERSION_V4 = 'DUEBYTE_ECONOMY_10010000000_CENTURY_V4';
 export const MEMORIAL_V4_MICRO = 10000000n * UNIT;
+export const V4_SUPPLY_CAP_MICRO = CAP + MEMORIAL_V4_MICRO;
+export function assertV4Supply(state) {
+  const plan = state.economicPreparation?.plan;
+  if (plan?.version !== ECONOMIC_POLICY_VERSION_V4) return;
+  assert.equal(plan.capMicro, String(V4_SUPPLY_CAP_MICRO), 'V4 plan supply cap');
+  const scale = state.money.unitScale ?? '1';
+  assert(scale === '1' || scale === String(UNIT), 'unsupported V4 denomination');
+  const supplyMicro = amount(state.money.supply) * (UNIT / BigInt(scale));
+  assert(supplyMicro <= V4_SUPPLY_CAP_MICRO, 'V4 supply exceeds the century cap');
+}
 export const memorialAware=version=>[ECONOMIC_POLICY_VERSION_V3,ECONOMIC_POLICY_VERSION_V4].includes(version);
 export function makeEconomicPlanV4(state){
  const p=makeEconomicPlanV3(state);
- return {...p,version:ECONOMIC_POLICY_VERSION_V4,capMicro:String(CAP+MEMORIAL_V4_MICRO),memorialMicro:String(MEMORIAL_V4_MICRO),memorial:{...p.memorial,version:'DUEBYTE_MEMORIAL_POLICY_V2',allocationMicro:String(MEMORIAL_V4_MICRO)}};
+ return {...p,version:ECONOMIC_POLICY_VERSION_V4,capMicro:String(V4_SUPPLY_CAP_MICRO),memorialMicro:String(MEMORIAL_V4_MICRO),memorial:{...p.memorial,version:'DUEBYTE_MEMORIAL_POLICY_V2',allocationMicro:String(MEMORIAL_V4_MICRO)}};
 }
 export const versionedEconomicPlan=(state,version)=>{assert(memorialAware(version));return version===ECONOMIC_POLICY_VERSION_V4?makeEconomicPlanV4(state):makeEconomicPlanV3(state);};
 export const centuryWarmupAccounts=configHash=>['a','b'].map(role=>Buffer.from(hash({domain:'DUEBYTE_CENTURY_WARMUP_ACCOUNT_V1',configHash,role}),'hex').toString('base64url'));
