@@ -1,4 +1,10 @@
-# SunPhi · sun(φ)
+# Sun·Phi and DueByte
+
+## DueByte network software
+
+DueByte Home and Server are distributed through the [DueByte releases](https://github.com/leges-universum/sunphi/releases) and the [stable update channel](https://github.com/leges-universum/sunphi/tree/duebyte-updates-stable). The [DueByte protocol and verification guide](duebyte/README.md) identifies the executable monetary rules, historical schedules, release artifacts and trust assumptions. The DueByte asset symbol is DUBYT.
+
+## Sun·Phi research project
 
 Project website, working protocol documentation, and conditional research calculators.
 
@@ -8,7 +14,7 @@ Documentation: https://coin.sun-phi.com/#/docs
 
 GitHub: https://github.com/leges-universum/sunphi
 
-This repository is not a production cryptocurrency, wallet, or distributed consensus implementation. No tokens are issued by this code. The selected cap is 100 million, issued on completed purchases; network admission, custody, legal terms and client releases remain under development.
+The Sun·Phi research model on this branch uses a 100 million cap and models issuance on completed purchases. Its website and laboratory CLI simulate these operations. The DueByte network has its own software, denomination and supply policy.
 
 A local **SunPhi Wallet 0.1 laboratory CLI** is now available in [wallet/README.md](wallet/README.md).
 It creates encrypted local keys, verifies backups and signs both transfer circuits.
