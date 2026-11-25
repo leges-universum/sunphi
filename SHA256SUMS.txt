@@ -1,6 +1,5 @@
-2417b4b228a49890107991c5d270b16a0098f26d0c395c36c1772abb639ca7f9  DueByte-Home-0.3.145-Windows-x64.zip
-5c80732c59576b7a8f2fa421fa9b905b73f9f0d0bfc077a90283eb0bf62a92fd  DueByte-Home-0.3.145-Linux-x64.tar.gz
-e0e5b14e35060bf949b1e2b9ef098a509daed3e89db63e3932b0d630fc198eeb  DueByte-Server-0.3.145-Linux-x64.tar.gz
-e4f22e03e9db94be0f99e2f3bff2b25dbcbf277950ea981d877c755150f944a4  install-linux-node.sh
+5d9530843519c641b857048174b29ed7bbdcfbae6e35b8c86c1dba65d1e26bd7  DueByte-Home-0.3.146-Windows-x64.zip
+aec6eed983a84f693cfc1036e6382a99fd42931132988469e8b5a733b7c3ea66  DueByte-Home-0.3.146-Linux-x64.tar.gz
 e4f22e03e9db94be0f99e2f3bff2b25dbcbf277950ea981d877c755150f944a4  install-linux-server.sh
+e4f22e03e9db94be0f99e2f3bff2b25dbcbf277950ea981d877c755150f944a4  install-linux-node.sh
 aa7bb5e6ae24667faf822bcfd1139b28a98a9b069b7e60d831c25ecbae53dd0f  install-linux-server.sha256

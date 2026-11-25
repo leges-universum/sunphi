@@ -150,7 +150,8 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  const proposalRead=['/nodes/rule-review','/nodes/vote-notices','/voting/list','/nodes/server-versions','/activity'].includes(req.url);
  const voteSubmission=['/nodes/rule-confirm','/voting/submit'].includes(req.url==='/authorize-action'?q?.path:req.url);
  const portfolioAction=!!config.exchangeLab?.policy.reserve?.portfolio&&/^\/exchange\/(seriesStatus|loanStatus|(?:review|confirm|retry)(?:Loan|Series))$/.test(req.url==='/authorize-action'?q?.path:req.url);
- assert(!paymentLane.pending||proposalRead||voteSubmission||portfolioAction||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
+ const corporateRequest=(req.url==='/authorize-action'?q?.path:req.url)==='/company/account';
+ assert(!paymentLane.pending||corporateRequest||proposalRead||voteSubmission||portfolioAction||['/lock','/select-wallet','/assets'].includes(req.url),'A wallet operation is already in progress.');
  assert(Date.now()>=updateDrainUntil,'The node is installing an update. Please reopen the wallet after it restarts.');
  if(wallet && token !== sessionToken) throw new Error('Wallet is open in another session. Lock it there first.');
  if(!wallet)assert(['/status','/unlock','/create','/restore','/select-wallet','/lock'].includes(req.url),'unlock your wallet first');
@@ -235,24 +236,38 @@ const server=createServer(async(req,res)=>{try{assert.equal(req.headers.host,`12
  }
  if(req.url==='/company/account'){
   assert(wallet&&view&&!error&&checkedAt,'Verified wallet required.');
-  const active=wallet,{state}=await active.view(),registry=state.companyRegistry;
-  assert(registry&&sessionEpoch===admittedEpoch&&active===wallet&&Date.now()<=actionExpires,'Refresh the account review.');
-  const a=q.packet;
-  if(q.operation==='consent'){
-   validateBinding(a,state.money.time);assert(registry.key&&a.configHash===state.configHash&&a.decision===registry.decision);
-   assert(a.account===owner||a.holder===owner,'This wallet is not a party to this request.');
-   res.end(JSON.stringify({signature:sign(a,active.key.privateKey)}));return;
-  }
-  assert(q.operation==='submit'&&companyOperations.includes(a.type));
-  if(a.type===REVOKE_COMPANY){
-   exact(a,['type','account','revision']);
-   assert(owner===a.account&&state.companyMandates?.[a.account]?.revision+1===a.revision,'Refresh the corporate account mandate.');
-  }else{
-   validateBinding(a.body,state.money.time);
-   assert(a.body.account===owner&&a.type===a.body.type&&a.body.configHash===state.configHash&&a.body.decision===registry.decision&&verify(a.body,a.registrarSignature,registry.key),'Review the signed registrar packet.');
-  }
-  const wire=envelope(config,a,active.key);
-  await active.broadcast(wire);res.end(JSON.stringify({submitted:true}));return;
+  const active=wallet,a=q.packet;
+  const valid=()=>sessionEpoch===admittedEpoch&&active===wallet&&!sessionDrain.pending&&!res.destroyed&&Date.now()<=actionExpires;
+  const result=await paymentLane.run({busy:()=>working||walletBusy,valid,waitForCurrent:true,timeoutMs:25000,
+   timeoutMessage:'Wallet verification is still running. Reopen the corporate request and review it again.',execute:async()=>{
+    const {state}=await active.view(),registry=state.companyRegistry;
+    assert(valid()&&registry,'Refresh the account review.');
+    const consent=q.operation==='consent';
+    assert(consent||q.operation==='submit'&&companyOperations.includes(a.type));
+    if(!consent&&a.type===REVOKE_COMPANY){
+     exact(a,['type','account','revision']);
+     assert(owner===a.account&&state.companyMandates?.[a.account]?.revision+1===a.revision,'Refresh the corporate account mandate.');
+    }else{
+     const b=consent?a:a.body;
+     assert(registry.key,'The network suspended the corporate registrar. Wait for an active registrar before requesting a new review.');
+     assert(b.configHash===state.configHash,'This authorization belongs to another DueByte network.');
+     assert(b.decision===registry.decision,'The registrar appointment changed. Request authorization from the current registrar.');
+     const prior=state.companyMandates?.[b.account];
+     if(prior?.revision>=b.revision){
+      assert(prior.active,'The company revoked the representative. Request a new appointment before submitting this authorization.');
+      throw Error('The company already recorded this or a later mandate revision. Check the current representative before requesting a new review.');
+     }
+     assert(b.revision===(prior?.revision??0)+1,'The mandate revision changed. Refresh the account and request a new review.');
+     validateBinding(b,state.money.time);
+     if(consent){
+      assert(b.account===owner||b.holder===owner,'This wallet is not a party to this request.');
+      return {signature:sign(b,active.key.privateKey)};
+     }
+     assert(b.account===owner&&a.type===b.type&&verify(b,a.registrarSignature,registry.key),'Review the signed registrar packet.');
+    }
+    await active.broadcast(envelope(config,a,active.key));return {submitted:true};
+   }});
+  res.end(JSON.stringify(result));return;
  }
  if(['/broker/availability','/broker/review','/broker/confirm','/broker/status','/broker/fundingReview','/broker/fund'].includes(req.url)){
   assert(wallet&&!working&&!walletBusy,'Wait for current wallet verification.');
