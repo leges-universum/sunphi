@@ -43,7 +43,16 @@ Encode the schema-validated message as UTF-8. Objects use lexicographically sort
 | --- | --- | --- |
 | Validators | Ed25519 precommits and voting power identify the signers of a block. A dated observation verified 264 signatures across 24 blocks, heights 129652–129675. | Identify independent beneficial control, hosting and recovery custody. Exercise quorum loss and recovery across those operators. |
 | Checkpoint and client bootstrap | A pinned network and authenticated checkpoint give clients a starting state. | Demonstrate independent checkpoint verification and recovery from a separately administered archive. |
-| Software releases | Signed catalog metadata authenticates selected packages under the client's update roots. | Separate signing custody, demonstrate loss and rotation of a release key, independently rebuild artifacts, and verify platform publisher signatures. |
+| Software releases | The reference catalog requires two of three keys for root and target metadata. Snapshot and timestamp metadata each require one key. | Separate signing custody, demonstrate loss and rotation of a release key, independently rebuild artifacts, and verify platform publisher signatures. |
 | Fund and award administration | Protocol rules restrict balances, signatures and payment limits. | Document conflicts of interest, independent review of work coefficients, withdrawal controls and a funded procedure for claims. A protection reserve pays only under its rules and up to available funds. |
 
 For Windows reviewers, `Test-WindowsPublishers.ps1` checks every executable, including compatibility copies, against Windows trust and a publisher thumbprint allowlist supplied independently for each binary name. A missing executable or unapproved signature fails the check. For Home 0.3.146 the launcher and consensus executables still require publisher signatures. The controlled pilot and scheduled network programme are distinct from acceptance of customer money, lending authority or insurance coverage.
+
+### Bridge build evidence
+
+On 25 November 2026 two local builds of the candidate ABCI bridge produced identical Linux and Windows executables. Each build had its own source directory and initially empty compilation cache. Both used the same verified Go 1.27.3 toolchain, module cache and host, with CGO disabled, read-only module versions, trimmed paths and VCS stamping disabled. These hashes identify the unsigned candidate bridge before packaging. Independent reproduction of the complete Home and Server packages is a separate qualification.
+
+| Candidate bridge | SHA-256 |
+| --- | --- |
+| Linux amd64 | `8ce3360d1bc51056eb176ddfec68bd2824e9c6285cecd7a5e0dd2fdd4257f42a` |
+| Windows amd64 | `bafd7d7ee04e2184b7dca18d7a5926391149a43dce3f2b884f7e7df535e8db8a` |
