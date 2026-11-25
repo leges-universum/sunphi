@@ -10,8 +10,12 @@ assert(folder && policyFile && calendarFile, 'usage: node verify-economics.mjs S
 const read = name => readFileSync(join(folder, name));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const manifestBytes = read('manifest.json');
-assert.equal(sha(manifestBytes), '65bd3ae76c98b927a2a04db0f2f9640d2204998b8af4db514f13b2a6bd6b5554', 'Server 0.3.145 manifest');
 const manifest = JSON.parse(manifestBytes);
+const referencePins = {
+  '0.3.145': '65bd3ae76c98b927a2a04db0f2f9640d2204998b8af4db514f13b2a6bd6b5554',
+  '0.3.147': 'c7e4499ec6cf4275aedb729fdb59e6eeac4f552ecadd48181d698e5f727ea49c'
+};
+assert.equal(sha(manifestBytes), referencePins[manifest.version], 'reviewed Server manifest');
 for (const [name, digest] of Object.entries(manifest.files)) {
   assert.equal(sha(read(name)), digest, name);
 }

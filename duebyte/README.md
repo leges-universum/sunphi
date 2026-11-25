@@ -5,8 +5,10 @@ The release catalog selects the software a node installs. Its target metadata id
 | Artifact | Purpose |
 | --- | --- |
 | [Stable channel](https://github.com/leges-universum/sunphi/tree/duebyte-updates-stable) | Signed update metadata and edition-specific targets |
-| [Server 0.3.145](https://github.com/leges-universum/sunphi/releases/tag/duebyte-v0.3.145) and [Home 0.3.146](https://github.com/leges-universum/sunphi/releases/tag/duebyte-v0.3.146) | Reference installations for this review |
-| [Pinned Server target](https://github.com/leges-universum/sunphi/blob/c16426909c49e980ff7ac71fc8ce8037eb873e02/targets/storage-v1-server-linux-x64.json) | Server archive selection, network pin and manifest digest |
+| [Home and Server 0.3.147](https://github.com/leges-universum/sunphi/releases/tag/duebyte-v0.3.147) | Windows and Linux Home, Linux Server, checksums and installers |
+| [Pinned catalog for 0.3.147](https://github.com/leges-universum/sunphi/tree/f6064319ff3310b6369b3ce00351554a4fe54615) | Role signatures, target hashes, network pin and edition-specific upgrade routes |
+| [Build recipe and qualification record](https://github.com/leges-universum/sunphi/tree/duebyte-v0.3.147/reproduce) | Pinned archives, bridge source, deterministic packing tools, direct upgrade sources and test counts |
+| [Predecessor catalog](https://github.com/leges-universum/sunphi/tree/c16426909c49e980ff7ac71fc8ce8037eb873e02/targets) | Signed selection of the Home 0.3.146 and Server 0.3.145 inputs |
 | [V4 planning export](https://duebyte.com/economic-policy-v4.json) and [ordinary node schedule](https://duebyte.com/ordinary-node-calendar.csv) | Historical preparation example and smoothed annual budgets for 2027–2126 |
 | [Research award proposal](https://duebyte.com/human-ai-research-fund-v2.json) | Proposed use of the restricted allocation, including governance and eligibility |
 
@@ -21,19 +23,25 @@ One DUBYT contains 1,000,000 base units. The century ceiling is 10,010,000,000 D
 | `economic-preparation.mjs`, `research/bounded-reward-context.mjs`, `research/bounded-network-interpreter.mjs` | Preparation prevents legacy issuance activation. The bounded execution path checks legacy reward coefficients, issuance deltas and controller state. |
 | `research/bounded-zero-stage-issuance.mjs`, `research/main-programme-transition.mjs`, `research/smooth-emission.mjs` | Pilot issuance, programme transition and the smoothed node allowance use distinct authority and accounting checks. |
 
+In 0.3.147, the V4 state audit and bounded execution both convert the ledger supply to integer base units and compare it with 10,010,000,000,000,000. Bounded execution checks the state on entry and after applying each transaction frame or block frame, before committing its staged writes. The supply delta must agree with the authorized issuance counters. The indexed ledger also verifies conservation as balances move between accounts, payment reservations and custody. These checks cover signed actions, batched fault reports and automatic block processing, including blocks containing no user transaction.
+
 The V4 planning export illustrates a starting balance of 2,000 DUBYT. The published ordinary schedule presents the full node allocation of 9,880,000,000 DUBYT. These inputs explain why adding the rows of the historical example produces a different total. The January 2027 programme transition has its own state and rules. The historical export's empty start date describes the preparation object. The Human–AI Research Fund proposal concerns the purpose of the existing restricted allocation. Execution of research awards requires separate authority and software support.
 
 ### Repeat the comparison
 
-Download the named `DueByte-Server-0.3.145-Linux-x64.tar.gz` release asset and verify its SHA-256 before extracting into an empty directory. The reference archive digest is `e0e5b14e35060bf949b1e2b9ef098a509daed3e89db63e3932b0d630fc198eeb`. Save the two economic files linked above alongside it. With Node.js 24 run
+Download the named `DueByte-Server-0.3.147-Linux-x64.tar.gz` release asset and verify its SHA-256 before extracting into an empty directory. The reference archive digest is `d5a1864743937e2557d834642b90cbbf37837dd3d6d1f86c4ccc725b262c8806`. Save the two economic files linked above alongside it. With Node.js 24 run
 
 ```sh
-node verify-economics.mjs DueByte-Server-0.3.145-Linux-x64 economic-policy-v4.json ordinary-node-calendar.csv
+node verify-economics.mjs DueByte-Server-0.3.147-Linux-x64 economic-policy-v4.json ordinary-node-calendar.csv
 ```
 
 The verifier checks the pinned manifest and every listed file before loading the release planner. It compares the allocations, ten decade totals, 100 planning years and all 100 annual budgets and cumulative totals in the ordinary schedule using integer arithmetic. At every UTC midnight in the century it also checks that the cumulative allowance stays within the node budget and never decreases. This comparison establishes agreement for these artifacts. Exhaustive transition reachability and independent reconstruction of the release binaries require additional evidence.
 
 ## Trust and operational evidence
+
+### Upgrade coverage for 0.3.147
+
+On each Home platform, all 67 published storage-v1 source versions from 0.3.72 through 0.3.146 staged the real target archive. Each encrypted test wallet reopened with its previous key and history. Windows runs also exercised the released update helper and GUI readiness. Linux runs verified executable modes and the native entry point. Clients on 0.3.71 retain the signed history-reader transition through 0.3.72. Server uses explicit operator installation and records ten qualified predecessor manifests. A 0.3.124 Home with a failed 0.3.125 staging record recovered directly to the new target on both platforms.
 
 ### Signed application messages
 
@@ -46,13 +54,13 @@ Encode the schema-validated message as UTF-8. Objects use lexicographically sort
 | Software releases | The reference catalog requires two of three keys for root and target metadata. Snapshot and timestamp metadata each require one key. | Separate signing custody, demonstrate loss and rotation of a release key, independently rebuild artifacts, and verify platform publisher signatures. |
 | Fund and award administration | Protocol rules restrict balances, signatures and payment limits. | Document conflicts of interest, independent review of work coefficients, withdrawal controls and a funded procedure for claims. A protection reserve pays only under its rules and up to available funds. |
 
-For Windows reviewers, `Test-WindowsPublishers.ps1` checks every executable, including compatibility copies, against Windows trust and a publisher thumbprint allowlist supplied independently for each binary name. A missing executable or unapproved signature fails the check. For Home 0.3.146 the launcher and consensus executables still require publisher signatures. The controlled pilot and scheduled network programme are distinct from acceptance of customer money, lending authority or insurance coverage.
+For Windows reviewers, `Test-WindowsPublishers.ps1` checks every executable, including compatibility copies, against Windows trust and a publisher thumbprint allowlist supplied independently for each binary name. A missing executable or unapproved signature fails the check. The Home 0.3.147 launcher and ABCI bridge lack Windows publisher signatures. Clients verify releases using the signed update channel. The controlled pilot and scheduled network programme are distinct from acceptance of customer money, lending authority or insurance coverage.
 
-### Bridge build evidence
+### Package and bridge build evidence
 
-On 25 November 2026 two local builds of the candidate ABCI bridge produced identical Linux and Windows executables. Each build had its own source directory and initially empty compilation cache. Both used the same verified Go 1.27.3 toolchain, module cache and host, with CGO disabled, read-only module versions, trimmed paths and VCS stamping disabled. These hashes identify the unsigned candidate bridge before packaging. Independent reproduction of the complete Home and Server packages is a separate qualification.
+Two local builds of each complete 0.3.147 package and a third reconstruction using the public recipe produced matching archive bytes. Each of the two initial bridge builds had its own source directory and initially empty compilation cache. Both used the same verified Go 1.27.3 toolchain, module cache and host, with CGO disabled, read-only module versions, trimmed paths and VCS stamping disabled. The recipe identifies third-party runtimes inherited from the pinned releases. A separate build operator can compare all three resulting archive hashes with the public qualification record.
 
-| Candidate bridge | SHA-256 |
+| Shipped bridge | SHA-256 |
 | --- | --- |
 | Linux amd64 | `8ce3360d1bc51056eb176ddfec68bd2824e9c6285cecd7a5e0dd2fdd4257f42a` |
 | Windows amd64 | `bafd7d7ee04e2184b7dca18d7a5926391149a43dce3f2b884f7e7df535e8db8a` |

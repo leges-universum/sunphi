@@ -18,7 +18,10 @@ assert(root, 'usage: node verify-canonical.mjs SERVER_DIR');
 const file = 'sunphi-network-next/checkpoint-trial/crypto.mjs';
 const manifest = readFileSync(resolve(root,'manifest.json'));
 const sha = data => createHash('sha256').update(data).digest('hex');
-assert.equal(sha(manifest), '65bd3ae76c98b927a2a04db0f2f9640d2204998b8af4db514f13b2a6bd6b5554');
+assert([
+  '65bd3ae76c98b927a2a04db0f2f9640d2204998b8af4db514f13b2a6bd6b5554',
+  'c7e4499ec6cf4275aedb729fdb59e6eeac4f552ecadd48181d698e5f727ea49c'
+].includes(sha(manifest)), 'reviewed Server manifest');
 assert.equal(sha(readFileSync(resolve(root,file))), JSON.parse(manifest).files[file]);
 const { canonical, hash } = await import(pathToFileURL(resolve(root,file)).href);
 for (const [value,text] of vectors) {
