@@ -44,7 +44,19 @@ assert.equal(policy.issuanceEnabled, plan.issuanceEnabled);
 assert.equal(policy.startDate, plan.emissionStart);
 
 // The full main-programme schedule accounts for pilot advances within allocations.
-const curve = compileOrdinaryCurve(annualRegularCeilings(0n).map(String));
+const annual = annualRegularCeilings(0n);
+const curve = compileOrdinaryCurve(annual.map(String));
+const start = Date.UTC(2027, 0, 1) / 1000;
+const end = Date.UTC(2127, 0, 1) / 1000;
+const fullBudget = annual.reduce((sum,value) => sum + value, 0n);
+assert.equal(curve.cumulative(start), 0n);
+let last = 0n;
+for (let midnight = start + 86400; midnight <= end; midnight += 86400) {
+  const issued = curve.cumulative(midnight);
+  assert(issued >= last && issued <= fullBudget, 'ordinary allowance at UTC second ' + midnight);
+  last = issued;
+}
+assert.equal(last, fullBudget);
 const rows = readFileSync(calendarFile, 'utf8').trim().split(/\r?\n/);
 assert.equal(rows.shift(), 'year_utc,ordinary_budget_DUBYT,cumulative_ordinary_DUBYT');
 assert.equal(rows.length, 100);
@@ -57,4 +69,4 @@ for (const [i, row] of rows.entries()) {
   previous = total;
 }
 assert.equal(previous, 9880000000000000n);
-console.log('Verified Server manifest and files, V4 allocations, ten decades, 100 planning years and 100 ordinary schedule years.');
+console.log('Verified Server manifest and files, V4 allocations, ten decades, 100 planning years, 100 schedule years and every daily allowance boundary.');

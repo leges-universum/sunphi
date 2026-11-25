@@ -31,7 +31,7 @@ Download the named `DueByte-Server-0.3.145-Linux-x64.tar.gz` release asset and v
 node verify-economics.mjs DueByte-Server-0.3.145-Linux-x64 economic-policy-v4.json ordinary-node-calendar.csv
 ```
 
-The verifier checks the pinned manifest and every listed file before loading the release planner. It compares the allocations, ten decade totals, 100 planning years and all 100 annual budgets and cumulative totals in the ordinary schedule using integer arithmetic. This comparison establishes agreement for these artifacts. Exhaustive transition reachability and independent reconstruction of the release binaries require additional evidence.
+The verifier checks the pinned manifest and every listed file before loading the release planner. It compares the allocations, ten decade totals, 100 planning years and all 100 annual budgets and cumulative totals in the ordinary schedule using integer arithmetic. At every UTC midnight in the century it also checks that the cumulative allowance stays within the node budget and never decreases. This comparison establishes agreement for these artifacts. Exhaustive transition reachability and independent reconstruction of the release binaries require additional evidence.
 
 ## Trust and operational evidence
 
