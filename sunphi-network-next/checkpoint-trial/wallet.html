@@ -129,6 +129,10 @@ details{border-top:1px solid var(--border);padding-top:12px;font-size:12px}
 details p{max-width:90ch;overflow-wrap:anywhere}
 summary{cursor:pointer;font-size:12px;font-weight:500;min-height:24px;line-height:24px}
 .verification-details{margin-top:16px}
+#exchange-prices{border:1px solid var(--border);background:var(--surface);padding:12px 16px;min-width:0}
+#exchange-prices summary{cursor:pointer;font-weight:600}
+#exchange-prices td:nth-child(2){text-align:right;font-variant-numeric:tabular-nums}
+#price-status:empty{display:none}
 .verification-details[open]{padding:12px 16px;border:1px solid var(--border);background:var(--surface)}
 #network,#verified-hash{overflow-wrap:anywhere}
 #verified-hash{white-space:pre-line;font-size:11px}
@@ -546,6 +550,15 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <div class="screen screen-grid" data-screen="overview"><section><small class="eyebrow">Available balance · DUBYT</small><div class="value" id="available">—</div><p id="held"></p><div class="actions"><button data-go="send" class="primary">Send payment</button><button data-go="receive">Receive</button><button data-go="activity">View activity</button></div><p class="section-help">Only verified balances are shown. Reserved and recipient-locked amounts cannot be spent.</p></section><section><h2>Your wallet</h2><p class="eyebrow">Public address</p><p id="owner"></p><p class="hint">This address receives payments on the DueByte network. Your private key stays encrypted on this computer.</p><button data-go="security">Backup &amp; security</button></section><details id="wallet-rewards"><summary>Rewards</summary><dl aria-label="Rewards in DUBYT"><div><dt>Accrued · DUBYT</dt><dd aria-label="Accrued amount unavailable">—</dd></div><div><dt>Awaiting payment</dt><dd aria-label="Pending amount unavailable">—</dd></div><div><dt>Paid · DUBYT</dt><dd aria-label="Paid amount unavailable">—</dd></div></dl><p class="hint">No confirmed reward statement is available for this wallet yet. Amounts are unavailable, not zero.</p></details></div>
 <div class="screen" data-screen="send" hidden><section><h2>Send payment</h2><form id="payment" novalidate><label for="recipient">Recipient public address</label><input id="recipient" autocomplete="off" spellcheck="false" aria-describedby="recipient-help"><p id="recipient-help" class="hint">Use a DueByte public address. Verify it with the recipient before confirming.</p><label for="amount">Amount · DUBYT</label><input id="amount" inputmode="decimal" aria-describedby="fee-help"><div class="payment-options"><label class="check"><input id="delayed-send" type="checkbox" disabled aria-describedby="delayed-help">Send after 24 hours</label><p id="delayed-help" class="hint">Checking network availability.</p><label class="check"><input id="protection" type="checkbox" aria-describedby="lock-help">Lock recipient spending for 24 hours</label><p id="lock-help" class="hint">The recipient can spend the funds 24 hours after execution. With delayed sending, this clock starts after the sending delay. This limits onward transfers; it does not allow cancellation after execution.</p></div><p id="fee-help" class="hint">The verified network tariff and exact total are shown before you sign.</p><p id="payment-available" class="hint"></p><p id="payment-readiness" class="hint" role="status" aria-live="polite"></p><button class="primary" id="send" aria-describedby="payment-readiness payment-available">Review and send</button></form></section></div>
 <div class="screen" data-screen="receive" hidden><section><h2>Receive DUBYT</h2><p class="hint">Share your public address with the sender.</p><p id="receive-address" class="address"></p><button id="copy-address">Copy address</button><p class="section-help">Check the network and address before sharing. Your password and encrypted backup are never needed to receive a payment.</p></section>
+<section id="external-transfer-check"><details><summary>Verify a transfer to an external wallet</summary>
+<p>Expecting BTC on Bitcoin, or USDC or USDT on Ethereum? Use the transaction ID from the sender and the receiving address from your external wallet to check the amount and confirmations. DUBYT payments appear in Activity.</p>
+<form id="external-lookup">
+<label for="external-route">Asset and network</label><select id="external-route"><option value="btc-bitcoin">BTC · Bitcoin</option><option value="usdc-ethereum">USDC · Ethereum</option><option value="usdt-ethereum">USDT · Ethereum</option></select>
+<label for="external-tx">Transaction ID</label><input id="external-tx" required maxlength="66" autocomplete="off" spellcheck="false">
+<label for="external-address">Expected receiving address</label><input id="external-address" required maxlength="90" autocomplete="off" spellcheck="false">
+<p class="hint">The transaction ID is sent to the public network provider. Your receiving address is compared locally.</p>
+<button type="submit" id="external-check">Check transfer</button></form>
+<p id="external-result" role="status" aria-live="polite"></p></details></section>
 <section><h2>Server rewards</h2><button id="open-server-rewards" type="button">Connect a server to this wallet</button></section></div>
 <div class="screen" data-screen="activity" hidden><section><h2 id="history-heading" tabindex="-1">Payment activity</h2><p class="hint">Up to 200 recent records available in the verified state and this wallet’s local outbox. A queued payment is not yet confirmed. Do not resend it while its outcome is pending.</p><button id="history-refresh" type="button" hidden></button><ul id="payments"></ul><nav id="history-pagination" class="history-pagination" aria-label="Payment history pages" hidden><div id="history-pages" class="history-page-actions"></div><p id="history-range" aria-live="polite" aria-atomic="true"></p></nav><p id="empty-payments">No payment records yet.</p></section></div>
 <section id="wallet-activity" hidden><h2>Wallet activity</h2>
@@ -569,19 +582,6 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <div class="actions"><input id="verification-subject" maxlength="96"><button id="verification-find">Show verifiers</button></div>
 <p id="verification-status" role="status"></p><div id="verification-records" style="overflow-x:auto"></div></section>
 <section id="reserve-statement" aria-labelledby="reserve-title"><h2 id="reserve-title">Network reserve</h2><p id="reserve-as-of" class="hint"></p><div id="reserve-values"></div></section><table id="network-metrics" class="analytics-table" aria-label="Verified network metrics"></table><details class="verification-details"><summary>Verification details</summary><p id="analytics-scope" class="hint">Waiting for a verified network snapshot.</p><p id="verified-hash" class="address"></p><p class="section-help">The block hash and checkpoint identify the snapshot verified by this wallet.</p></details></div>
-<div class="screen" data-screen="external" hidden>
-<section><h2>Reference prices in USD</h2>
-<table class="analytics-table" aria-label="Latest spot trades in USD"><thead><tr><th>Asset</th><th>Price · USD</th><th>Source and trade time</th></tr></thead><tbody id="external-prices"></tbody></table>
-<p id="price-status" class="hint" role="status"></p></section>
-<section id="external-transfer-check"><details><summary>Verify a transfer to an external wallet</summary>
-<p>Expecting BTC on Bitcoin, or USDC or USDT on Ethereum? Use the transaction ID from the sender and the receiving address from your external wallet to check the amount and confirmations. DUBYT payments appear in Activity.</p>
-<form id="external-lookup">
-<label for="external-route">Asset and network</label><select id="external-route"><option value="btc-bitcoin">BTC · Bitcoin</option><option value="usdc-ethereum">USDC · Ethereum</option><option value="usdt-ethereum">USDT · Ethereum</option></select>
-<label for="external-tx">Transaction ID</label><input id="external-tx" required maxlength="66" autocomplete="off" spellcheck="false">
-<label for="external-address">Expected receiving address</label><input id="external-address" required maxlength="90" autocomplete="off" spellcheck="false">
-<p class="hint">The transaction ID is sent to the public network provider. Your receiving address is compared locally.</p>
-<button type="submit" id="external-check">Check transfer</button></form>
-<p id="external-result" role="status" aria-live="polite"></p></details></section></div>
 <div class="screen" data-screen="exchange" hidden>
 <section aria-labelledby="reserve-access-title">
 <h2 id="reserve-access-title">Network reserve</h2>
@@ -596,7 +596,14 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <ol class="exchange-steps" aria-label="Exchange steps"><li>Choose amount</li><li>Review exact offer</li><li>Confirm &amp; follow progress</li><li>Receive funds</li></ol>
 <p class="hint">The offer shows exactly what you pay, what you receive, all fees and the expected wait. Payment details appear only when an exchange is available.</p>
 <p id="exchange-unavailable" role="status" aria-live="polite" hidden></p>
-</section><section id="broker-panel" class="panel" hidden>
+</section>
+<details id="exchange-prices">
+<summary>Reference prices in USD</summary>
+<p class="hint">These are recent market trades. Review your provider’s rate and fees in the exchange offer.</p>
+<table class="analytics-table" aria-label="Latest spot trades in USD"><thead><tr><th scope="col">Asset</th><th scope="col">Price · USD</th><th scope="col">Source and trade time</th></tr></thead><tbody id="external-prices"></tbody></table>
+<p id="price-status" class="hint" role="status"></p>
+</details>
+<section id="broker-panel" class="panel" hidden>
 <div class="panel-head"><h2>Provider offer</h2><p id="broker-guidance" class="hint" aria-live="polite"></p></div>
 <div class="panel-body">
 <p id="broker-message" role="status" aria-live="polite"></p>
@@ -788,7 +795,7 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.151</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.152</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -1109,8 +1116,6 @@ function placeVoting(eligible,personal,community){
 const voteCount=document.createElement('span');voteCount.className='vote-count';voteCount.hidden=true;voteCount.setAttribute('aria-hidden','true');votingTab.append(voteCount);
 const votingRecords=$('node-votes');votingRecords.querySelector('summary').textContent='Governance records and tools';
 votingScreen.append(votingRecords);
-screens.external=['External assets','View reference prices and check transfers on their original networks.'];
-const externalTab=document.createElement('button');externalTab.dataset.tab='external';externalTab.textContent='External assets';document.querySelector('[data-tab=exchange]').before(externalTab);
 screens.loans=['Borrow DUBYT','Review secured loans from the network reserve.'];
 const loanTab=document.createElement('button');
 loanTab.type='button';loanTab.dataset.tab='loans';loanTab.textContent='Borrow DUBYT';
@@ -2905,10 +2910,9 @@ const loadingStyle=document.createElement('style');loadingStyle.textContent=`
 let assetsBusy=false,assetsContext=null,assetsAt=0,assetsRows=[],assetsRequest=null,assetsVerification='';
 const emptyAssets=()=>['DUBYT','BTC','USDC','USDT','XMR'].map(asset=>({asset,status:asset==='XMR'?'not-supported':asset==='DUBYT'?'unavailable':'checking',available:null}));
 let receiptRevision=0,priceBusy=false,expectedReceipt=null;
-const externalPanel=document.querySelector('[data-screen=external]');
+const exchangePrices=$('exchange-prices');
+const exchangeScreen=exchangePrices.closest('[data-screen]');
 const transferCheck=$('external-transfer-check');
-document.querySelector('[data-screen=receive]>section').after(transferCheck);
-screens.external[1]='View reference prices for external assets.';
 function openTransferCheck(){
  selectTab('receive');transferCheck.querySelector('details').open=true;
  transferCheck.querySelector('summary').focus();transferCheck.scrollIntoView({block:'nearest'});
@@ -2918,8 +2922,9 @@ $('external-lookup').addEventListener('input',clearReceipt);
 $('external-route').addEventListener('change',clearReceipt);
 function resetAssets(){clearReceipt();$('external-lookup').reset();$('external-route').dispatchEvent(new Event('change'));assetsRequest?.abort();assetsRequest=null;assetsBusy=false;assetsContext=null;assetsAt=0;assetsVerification='';drawAssets(emptyAssets());}
 async function refreshMarketPrices(){
- if(priceBusy||externalPanel.hidden||document.hidden||lastStatus?.locked!==false)return;
+ if(priceBusy||!exchangePrices.open||exchangeScreen.hidden||document.hidden||lastStatus?.locked!==false)return;
  priceBusy=true;
+ if(!$('external-prices').childElementCount)$('price-status').textContent='Loading reference prices…';
  try{
   const {prices}=await api('/external/prices',{});
   if(!Array.isArray(prices))throw Error();
@@ -2930,12 +2935,12 @@ async function refreshMarketPrices(){
    for(const text of [p.asset,p.price??'—',info]){const td=document.createElement('td');td.textContent=text;tr.append(td);}
    return tr;
   });
-  $('external-prices').replaceChildren(...rows);$('price-status').textContent='';
+   $('external-prices').replaceChildren(...rows);$('price-status').textContent=rows.length?'':'No reference prices available.';
  }catch{$('external-prices').replaceChildren();$('price-status').textContent='Price source unavailable.';}
  finally{priceBusy=false;}
 }
-externalTab.querySelector('.nav-icon').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>';
-externalTab.addEventListener('click',refreshMarketPrices);
+exchangePrices.addEventListener('toggle',refreshMarketPrices);
+document.querySelector('[data-tab=exchange]').addEventListener('click',refreshMarketPrices);
 setInterval(refreshMarketPrices,60000);
 $('external-lookup').onsubmit=async event=>{
  event.preventDefault();

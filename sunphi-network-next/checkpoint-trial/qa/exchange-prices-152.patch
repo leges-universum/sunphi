@@ -1,0 +1,64 @@
+--- wallet.html
++++ wallet.html
+@@ -131,0 +132,4 @@
++#exchange-prices{border:1px solid var(--border);background:var(--surface);padding:12px 16px;min-width:0}
++#exchange-prices summary{cursor:pointer;font-weight:600}
++#exchange-prices td:nth-child(2){text-align:right;font-variant-numeric:tabular-nums}
++#price-status:empty{display:none}
+@@ -548,0 +553,9 @@
++<section id="external-transfer-check"><details><summary>Verify a transfer to an external wallet</summary>
++<p>Expecting BTC on Bitcoin, or USDC or USDT on Ethereum? Use the transaction ID from the sender and the receiving address from your external wallet to check the amount and confirmations. DUBYT payments appear in Activity.</p>
++<form id="external-lookup">
++<label for="external-route">Asset and network</label><select id="external-route"><option value="btc-bitcoin">BTC · Bitcoin</option><option value="usdc-ethereum">USDC · Ethereum</option><option value="usdt-ethereum">USDT · Ethereum</option></select>
++<label for="external-tx">Transaction ID</label><input id="external-tx" required maxlength="66" autocomplete="off" spellcheck="false">
++<label for="external-address">Expected receiving address</label><input id="external-address" required maxlength="90" autocomplete="off" spellcheck="false">
++<p class="hint">The transaction ID is sent to the public network provider. Your receiving address is compared locally.</p>
++<button type="submit" id="external-check">Check transfer</button></form>
++<p id="external-result" role="status" aria-live="polite"></p></details></section>
+@@ -572,13 +584,0 @@
+-<div class="screen" data-screen="external" hidden>
+-<section><h2>Reference prices in USD</h2>
+-<table class="analytics-table" aria-label="Latest spot trades in USD"><thead><tr><th>Asset</th><th>Price · USD</th><th>Source and trade time</th></tr></thead><tbody id="external-prices"></tbody></table>
+-<p id="price-status" class="hint" role="status"></p></section>
+-<section id="external-transfer-check"><details><summary>Verify a transfer to an external wallet</summary>
+-<p>Expecting BTC on Bitcoin, or USDC or USDT on Ethereum? Use the transaction ID from the sender and the receiving address from your external wallet to check the amount and confirmations. DUBYT payments appear in Activity.</p>
+-<form id="external-lookup">
+-<label for="external-route">Asset and network</label><select id="external-route"><option value="btc-bitcoin">BTC · Bitcoin</option><option value="usdc-ethereum">USDC · Ethereum</option><option value="usdt-ethereum">USDT · Ethereum</option></select>
+-<label for="external-tx">Transaction ID</label><input id="external-tx" required maxlength="66" autocomplete="off" spellcheck="false">
+-<label for="external-address">Expected receiving address</label><input id="external-address" required maxlength="90" autocomplete="off" spellcheck="false">
+-<p class="hint">The transaction ID is sent to the public network provider. Your receiving address is compared locally.</p>
+-<button type="submit" id="external-check">Check transfer</button></form>
+-<p id="external-result" role="status" aria-live="polite"></p></details></section></div>
+@@ -599 +599,8 @@
+-</section><section id="broker-panel" class="panel" hidden>
++</section>
++<details id="exchange-prices">
++<summary>Reference prices in USD</summary>
++<p class="hint">These are recent market trades. Review your provider’s rate and fees in the exchange offer.</p>
++<table class="analytics-table" aria-label="Latest spot trades in USD"><thead><tr><th scope="col">Asset</th><th scope="col">Price · USD</th><th scope="col">Source and trade time</th></tr></thead><tbody id="external-prices"></tbody></table>
++<p id="price-status" class="hint" role="status"></p>
++</details>
++<section id="broker-panel" class="panel" hidden>
+@@ -1112,2 +1118,0 @@
+-screens.external=['External assets','View reference prices and check transfers on their original networks.'];
+-const externalTab=document.createElement('button');externalTab.dataset.tab='external';externalTab.textContent='External assets';document.querySelector('[data-tab=exchange]').before(externalTab);
+@@ -2908 +2913,2 @@
+-const externalPanel=document.querySelector('[data-screen=external]');
++const exchangePrices=$('exchange-prices');
++const exchangeScreen=exchangePrices.closest('[data-screen]');
+@@ -2910,2 +2915,0 @@
+-document.querySelector('[data-screen=receive]>section').after(transferCheck);
+-screens.external[1]='View reference prices for external assets.';
+@@ -2921 +2925 @@
+- if(priceBusy||externalPanel.hidden||document.hidden||lastStatus?.locked!==false)return;
++ if(priceBusy||!exchangePrices.open||exchangeScreen.hidden||document.hidden||lastStatus?.locked!==false)return;
+@@ -2922,0 +2927 @@
++ if(!$('external-prices').childElementCount)$('price-status').textContent='Loading reference prices…';
+@@ -2933 +2938 @@
+-  $('external-prices').replaceChildren(...rows);$('price-status').textContent='';
++   $('external-prices').replaceChildren(...rows);$('price-status').textContent=rows.length?'':'No reference prices available.';
+@@ -2937,2 +2942,2 @@
+-externalTab.querySelector('.nav-icon').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>';
+-externalTab.addEventListener('click',refreshMarketPrices);
++exchangePrices.addEventListener('toggle',refreshMarketPrices);
++document.querySelector('[data-tab=exchange]').addEventListener('click',refreshMarketPrices);

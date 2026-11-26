@@ -23,9 +23,9 @@ def digest(file):
     with file.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
-def wallet_overlay(data):
+def wallet_overlay(data, patch_file="settlement-wallet-151.patch"):
     source = data.decode().splitlines(keepends=True)
-    patch = (QA / "settlement-wallet-151.patch").read_text(encoding="utf-8").splitlines()[2:]
+    patch = (QA / patch_file).read_text(encoding="utf-8").splitlines()[2:]
     output = []
     cursor = 0
     for line in patch:
@@ -46,10 +46,10 @@ def wallet_overlay(data):
             raise ValueError("Unexpected wallet change")
     return "".join(output + source[cursor:]).encode()
 
-def build(prior, out, rcedit, copy=False):
+def build(prior, out, rcedit, copy=False, *, version=VERSION, pins=PINS, wallet_patch="settlement-wallet-151.patch"):
     edition, platform = prior["edition"], prior["platform"]
     previous, archive = Path(prior["folder"]), Path(prior["archive"])
-    assert digest(archive) == PINS[edition, platform]
+    assert digest(archive) == pins[edition, platform]
     old = prior["version"]
     win = platform == "windows-x64"
     inner = Path("resources/app") if win else Path()
@@ -58,7 +58,7 @@ def build(prior, out, rcedit, copy=False):
     manifest = json.loads((oldroot / "manifest.json").read_bytes())
     for filename, expected in manifest["files"].items():
         assert digest(oldroot / filename) == expected, filename
-    folder = out / previous.name.replace(old, VERSION)
+    folder = out / previous.name.replace(old, version)
     root = folder / inner
     versioned = ["release-config.json", "package.json", PREFIX+"consumer.html", PREFIX+"wallet.html"]
     if not win:
@@ -73,9 +73,9 @@ def build(prior, out, rcedit, copy=False):
         file = root / name
         data = file.read_bytes()
         if name == PREFIX+"wallet.html" and edition == "home":
-            data = wallet_overlay(data)
+            data = wallet_overlay(data, wallet_patch)
         assert old.encode() in data, name
-        file.write_bytes(data.replace(old.encode(), VERSION.encode()))
+        file.write_bytes(data.replace(old.encode(), version.encode()))
         manifest["files"][name] = digest(file)
     additions = {}
     if edition == "server":
@@ -92,22 +92,22 @@ def build(prior, out, rcedit, copy=False):
         shutil.copyfile(source, file)
         manifest["files"][name] = digest(file)
     intro = folder / "START-HERE.txt"
-    info = intro.read_bytes().replace(old.encode(), VERSION.encode())
+    info = intro.read_bytes().replace(old.encode(), version.encode())
     if edition == "server":
         info += b"\nFor native invoice reconciliation, see integrations/tryton/README.md.\n"
     intro.write_bytes(info)
-    manifest["version"] = VERSION
+    manifest["version"] = version
     mf = root / "manifest.json"
     mf.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf8",newline="\n")
     result = out / (folder.name + (".zip" if win else ".tar.gz"))
     if win:
         assert digest(rcedit) == "e2df7b664db830f159d0dc6b3da8a95442cca175b9577f2d19952646d37ac32f"
-        subprocess.run([rcedit, folder/"DueByte.exe", "--set-file-version",VERSION,"--set-product-version",VERSION],check=True)
+        subprocess.run([rcedit, folder/"DueByte.exe", "--set-file-version",version,"--set-product-version",version],check=True)
         pack = [QA/"pack-home-windows-repro.py", folder, result]
     else:
         pack = [QA/"pack-home-linux-overlay.py", archive, folder, result, *additions]
     subprocess.run([sys.executable,*pack],check=True)
-    return {**prior, "version":VERSION,"folder":str(folder),"archive":str(result),"sha256":digest(result),
+    return {**prior, "version":version,"folder":str(folder),"archive":str(result),"sha256":digest(result),
             "manifestSha256":digest(mf),"bytes":result.stat().st_size}
 
 if __name__ == "__main__":
