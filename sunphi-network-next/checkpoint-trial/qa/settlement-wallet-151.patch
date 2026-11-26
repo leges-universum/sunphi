@@ -1,0 +1,46 @@
+--- wallet-0.3.150.html
++++ wallet-0.3.151.html
+@@ -687,4 +687 @@
+-<p>Distribute 9,880,000,000 DUBYT in ordinary node rewards over 100 years using a smooth daily schedule. The four funds keep their existing schedules and management rules.</p>
+-<p>The proposed schedule runs from 1 January 2027 through 31 December 2126. Each decade keeps its ordinary reward budget. The daily rate declines continuously across decade boundaries and reaches zero at the end of the programme.</p>
+-<p>Each UTC day receives the difference between the cumulative allowances at its opening and closing midnights. The proposal changes the timing of ordinary node rewards. The warm-up, development, research and founder funds retain their schedules and management rules.</p>
+-<p>The development fund manager and the financial validator quorum must authorize this schedule. You can check which of your linked servers are eligible and then decide whether to approve. The signing window ends on 27 November 2026 at 12:24:19 UTC.</p>
++<p>The schedule covers ordinary node rewards from 2027 through 2126.</p>
+@@ -1114 +1111 @@
+-document.querySelector('[data-screen="activity"]').append(votingRecords);
++votingScreen.append(votingRecords);
+@@ -1116,0 +1114,23 @@
++screens.loans=['Borrow DUBYT','Review secured loans from the network reserve.'];
++const loanTab=document.createElement('button');
++loanTab.type='button';loanTab.dataset.tab='loans';loanTab.textContent='Borrow DUBYT';
++document.querySelector('[data-tab="exchange"]').before(loanTab);
++const loanScreen=document.createElement('div');
++loanScreen.className='screen screen-grid';loanScreen.dataset.screen='loans';loanScreen.hidden=true;
++loanScreen.innerHTML='<section aria-labelledby="fund-loans-heading"><h2 id="fund-loans-heading">Network reserve loans</h2><p id="fund-loan-state" role="status">Checking loan availability…</p><div class="actions" id="fund-loan-actions" hidden></div></section>';
++document.querySelector('[data-screen="exchange"]').before(loanScreen);
++function updateFundLoanAccess(ready,closedFund){
++ const actions=$('fund-loan-actions');
++ const links=['reserve-loan','reserve-backed-loan'].map(id=>document.getElementById(id)).filter(button=>button&&!button.hidden);
++ const enabled=Boolean(ready&&!closedFund&&links.length);
++ actions.hidden=!enabled;
++ $('fund-loan-state').textContent=!ready?'Waiting for verified network data.':closedFund?'The network reserve is closed to new loans.':enabled?'Open your loan to review its terms and available actions.':'There is no funded loan offer for this wallet.';
++ const key=enabled?links.map(button=>button.id).join(' '):'';
++ if(actions.dataset.links===key)return;
++ actions.dataset.links=key;actions.replaceChildren();
++ if(enabled)for(const link of links){
++  const button=document.createElement('button');button.type='button';button.textContent=link.textContent;
++  button.onclick=()=>{if(!link.hidden){selectTab('exchange');link.click();}};
++  actions.append(button);
++ }
++}
+@@ -1143,0 +1164 @@
++loanTab.querySelector('.nav-icon').textContent='◇';
+@@ -1204 +1225,5 @@
+-   }else card.append(element('p',r.proposal.text,'proposal-wording'));
++   }else {
++    const wording=element('details','');
++    wording.append(element('summary','Read signed ballot text'),element('p',r.proposal.text,'proposal-wording'));
++    card.append(wording);
++   }
+@@ -2400,0 +2426 @@
++ updateFundLoanAccess(ready,closedFund);

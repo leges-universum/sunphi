@@ -684,10 +684,7 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <button id="server-receive-sign" class="primary" type="button">Sign and connect</button><button id="server-receive-back" type="button">Back</button></dialog></section>
 <details id="node-votes" class="panel"><summary>Node voting</summary><div class="panel-body">
 <details id="issuance-terms" name="financial-proposal" class="panel"><summary id="issuance-heading">Smooth issuance schedule</summary>
-<p>Distribute 9,880,000,000 DUBYT in ordinary node rewards over 100 years using a smooth daily schedule. The four funds keep their existing schedules and management rules.</p>
-<p>The proposed schedule runs from 1 January 2027 through 31 December 2126. Each decade keeps its ordinary reward budget. The daily rate declines continuously across decade boundaries and reaches zero at the end of the programme.</p>
-<p>Each UTC day receives the difference between the cumulative allowances at its opening and closing midnights. The proposal changes the timing of ordinary node rewards. The warm-up, development, research and founder funds retain their schedules and management rules.</p>
-<p>The development fund manager and the financial validator quorum must authorize this schedule. You can check which of your linked servers are eligible and then decide whether to approve. The signing window ends on 27 November 2026 at 12:24:19 UTC.</p>
+<p>The schedule covers ordinary node rewards from 2027 through 2126.</p>
 <ul id="issuance-servers" class="address" hidden></ul>
 <div id="issuance-step"><p id="issuance-status" role="status" aria-live="polite"></p>
 <div class="governance-actions"><button type="button" id="issuance-review" hidden>Check again</button><button type="button" class="primary" id="issuance-approve" hidden></button><button type="button" id="issuance-confirm" class="primary" hidden>Confirm approval</button><button type="button" id="issuance-back" hidden>Back</button><button type="button" id="issuance-save" hidden>Save verified signatures</button></div></div>
@@ -791,7 +788,7 @@ nav [data-tab="voting"][hidden],#vote-history footer[hidden]{display:none}
 <div class="actions"><button id="bond-export" hidden>Save request for server signatures</button><button id="bond-sign" class="primary" hidden>Sign bond authorization</button><button id="bond-recover" hidden>Save signed authorization</button><button id="bond-back">Close</button></div></dialog>
 <dialog id="collateral-review-dialog" aria-labelledby="collateral-review-title"><small class="eyebrow">Server collateral</small><h2 id="collateral-review-title">Review your contribution</h2><p id="collateral-review-node" class="address"></p><dl id="collateral-review-values"></dl><p id="collateral-review-expiry" class="hint"></p><p class="hint">Confirming sends this exact request to the server operator. After operator approval, this wallet submits the deposit automatically while unlocked. A deposit is complete only after network confirmation.</p><p id="collateral-error" role="alert"></p><div class="actions"><button id="collateral-confirm" class="primary">Confirm contribution</button><button id="collateral-back">Back</button></div></dialog>
 <dialog id="node-link-dialog" aria-labelledby="node-link-title"><small class="eyebrow">Node connection</small><h2 id="node-link-title">Confirm in two places</h2><p id="node-link-summary" class="address"></p><p class="hint">1. Sign and download this request. 2. Open it with the server approval command and compare the code. 3. Import the server approval here. No private key is shared.</p><p id="node-link-code" class="sunphi-code"></p><p id="node-link-warning" role="status"></p><p id="node-link-error" role="alert"></p><div class="actions"><button id="node-link-confirm" class="primary">Sign &amp; download request</button><button id="node-link-cancel">Back</button></div></dialog>
-</main><footer><span>DueByte · DUBYT · 0.3.150</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
+</main><footer><span>DueByte · DUBYT · 0.3.151</span><a class="sunphi-affiliation" href="https://sun-phi.com/" target="_blank" rel="noopener noreferrer" aria-label="Sun·Phi — opens website"><span class="sunphi-symbol" aria-hidden="true"></span><span class="sunphi-lockup" aria-hidden="true"><span class="sunphi-wordmark">Sun<span class="sunphi-dot">·</span>Phi</span><small>NETWORK</small></span></a></footer>
 <script src="/activity-plots.js"></script>
 <script>
 const newSession=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -1111,9 +1108,32 @@ function placeVoting(eligible,personal,community){
 }
 const voteCount=document.createElement('span');voteCount.className='vote-count';voteCount.hidden=true;voteCount.setAttribute('aria-hidden','true');votingTab.append(voteCount);
 const votingRecords=$('node-votes');votingRecords.querySelector('summary').textContent='Governance records and tools';
-document.querySelector('[data-screen="activity"]').append(votingRecords);
+votingScreen.append(votingRecords);
 screens.external=['External assets','View reference prices and check transfers on their original networks.'];
 const externalTab=document.createElement('button');externalTab.dataset.tab='external';externalTab.textContent='External assets';document.querySelector('[data-tab=exchange]').before(externalTab);
+screens.loans=['Borrow DUBYT','Review secured loans from the network reserve.'];
+const loanTab=document.createElement('button');
+loanTab.type='button';loanTab.dataset.tab='loans';loanTab.textContent='Borrow DUBYT';
+document.querySelector('[data-tab="exchange"]').before(loanTab);
+const loanScreen=document.createElement('div');
+loanScreen.className='screen screen-grid';loanScreen.dataset.screen='loans';loanScreen.hidden=true;
+loanScreen.innerHTML='<section aria-labelledby="fund-loans-heading"><h2 id="fund-loans-heading">Network reserve loans</h2><p id="fund-loan-state" role="status">Checking loan availability…</p><div class="actions" id="fund-loan-actions" hidden></div></section>';
+document.querySelector('[data-screen="exchange"]').before(loanScreen);
+function updateFundLoanAccess(ready,closedFund){
+ const actions=$('fund-loan-actions');
+ const links=['reserve-loan','reserve-backed-loan'].map(id=>document.getElementById(id)).filter(button=>button&&!button.hidden);
+ const enabled=Boolean(ready&&!closedFund&&links.length);
+ actions.hidden=!enabled;
+ $('fund-loan-state').textContent=!ready?'Waiting for verified network data.':closedFund?'The network reserve is closed to new loans.':enabled?'Open your loan to review its terms and available actions.':'There is no funded loan offer for this wallet.';
+ const key=enabled?links.map(button=>button.id).join(' '):'';
+ if(actions.dataset.links===key)return;
+ actions.dataset.links=key;actions.replaceChildren();
+ if(enabled)for(const link of links){
+  const button=document.createElement('button');button.type='button';button.textContent=link.textContent;
+  button.onclick=()=>{if(!link.hidden){selectTab('exchange');link.click();}};
+  actions.append(button);
+ }
+}
 const passwordDialog=$('password-dialog'),passwordForm=$('password-change-form');
 let passwordWallet=null;
 $('open-password-change').onclick=()=>{
@@ -1141,6 +1161,7 @@ function selectTab(name){if(!screens[name]||(name==='voting'&&votingTab.hidden))
 for(const b of document.querySelectorAll('[data-tab],[data-go]')){b.onclick=()=>selectTab(b.dataset.tab||b.dataset.go);if(b.dataset.tab){const icon=document.createElement('span');icon.className='nav-icon';icon.setAttribute('aria-hidden','true');const paths={overview:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M9 10h12"/>',send:'<path d="M6 18 18 6M6 6h12v12"/>',receive:'<path d="M18 6 6 18M6 6v12h12"/>',activity:'<path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/>',exchange:'<path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/>',network:'<circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="m11 7-5 10m7-10 5 10M7 19h10"/>',security:'<path d="m12 3 8 3v5c0 5-8 10-8 10S4 16 4 11V6Z"/><path d="m8 12 3 3 5-6"/>'};icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+paths[b.dataset.tab]+'</svg>';b.prepend(icon);}}
 collateralTab.querySelector('.nav-icon').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>';
 votingTab.querySelector('.nav-icon').textContent='✓';
+loanTab.querySelector('.nav-icon').textContent='◇';
 let ballotView=null,revisionId=null;
 function ballotFormMode(){
  if(!ballotView?.policy)return;
@@ -1201,7 +1222,11 @@ async function loadBallots(openedId=null){
    card.append(element('summary',(r.subject??r.proposal.title)+' · '+r.status));
    if(r.subject){
     const note=element('details','');note.append(element('summary','Author’s explanation'),element('p',r.proposal.title),element('p',r.proposal.text,'proposal-wording'));card.append(note);
-   }else card.append(element('p',r.proposal.text,'proposal-wording'));
+   }else {
+    const wording=element('details','');
+    wording.append(element('summary','Read signed ballot text'),element('p',r.proposal.text,'proposal-wording'));
+    card.append(wording);
+   }
    const facts=element('table','','ballot-facts');facts.createCaption().textContent='Ballot details';
    const factRows=facts.createTBody();
    const fact=(label,value)=>{const row=factRows.insertRow(),heading=element('th',label);heading.scope='row';row.append(heading,element('td',String(value)));};
@@ -2398,6 +2423,7 @@ function renderReserveAccess(){
  $('reserve-buy').hidden=!routed;
  $('reserve-buy').disabled=twoWayBusy||submitting;
  $('reserve-loan').hidden=!active||askContext!==context||$('secured-credit').hidden;
+ updateFundLoanAccess(ready,closedFund);
  $('reserve-access-status').textContent=!ready?'Waiting for verified wallet data.':closedFund?'Fund established at block '+lastStatus.analytics.networkReserve.preparedHeight+'. Purchases and loans are closed. No settlement or collateral asset has been approved.':!active?'Fund purchases and secured loans are unavailable on this network.':routed?'Review a fund quote before buying test DUBYT.':twoWayHasOrders?'Your exchange status is shown below.':'No purchase quote is available on this connection.';
 }
 $('reserve-buy').onclick=()=>{
