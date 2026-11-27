@@ -1,5 +1,21 @@
 # Sun·Phi and DueByte
 
+## The shared economic model
+
+One commercial agreement connects the three services. It specifies what the buyer is purchasing, what evidence establishes acceptance and when the supplier earns payment. The parties can trace an agreed purchase from the initial request to an invoice and, when they choose DUBYT, to a network receipt for the amount paid.
+
+| Service | Its role in a business transaction |
+| --- | --- |
+| [Sun·Phi](https://sun-phi.com/) | Buyers and suppliers find each other for goods, contract work and professional services. AI helps them compare offers and prepare negotiations. The parties agree on the price, delivery and acceptance terms. |
+| [AI Agent Online](https://ai-agent-online.com/Home) | Companies use the Sun·Phi workspace to manage opportunities, negotiations and shared deals. Registration is free. A company can request a separate paid manual review of its registration in its jurisdiction. The review record identifies who checked it, what they checked and the outcome. |
+| [DueByte](https://duebyte.com/) | When the parties agree to settle in DUBYT, the payer signs in Home and the network records the payment. The parties can reconcile their wallet receipts with the invoice and their accounting records. |
+
+**Who earns what.** The supplier earns the agreed price for the goods, work or services the buyer accepts. A legal reviewer earns a fee for performing a requested check, whatever its outcome. In the [institutional finance model](https://duebyte.com/institutional-finance.html), a bank can provide financing or issue a tokenised deposit under its own terms, an insurer can cover an agreed risk, and a logistics provider can document delivery. Each provider is responsible for its own service. A tokenised deposit is a claim on its issuing bank. A delivery record establishes what the carrier observed; the contract determines whether that observation is sufficient for acceptance.
+
+**How the network is funded.** A DUBYT payment carries a network fee. Under the [DueByte economic policy](https://duebyte.com/economics.html), fees and issuance for verified node work are accounted for separately. The Development Reserve has its own allocation and release schedule. To assess commercial use, count invoices settled between buyers and suppliers, their value and repeat business. Track service revenue, payment fees and newly issued rewards separately so that one invoice cannot be counted several times as economic output.
+
+**How company verification relates to payment authority.** Company registration and a representative’s authority are two distinct legal checks. Under the corporate-account protocol, a network-appointed registrar signs the binding between the company, its account and its representative, and the corporate wallet must consent. For an outgoing corporate payment, the node checks the signer, the current mandate revision, its expiry and the total debit including the fee. Revoking the mandate blocks further payments under it. Auditors can inspect the [review records](duebyte/released-source/server-linux-x64/sunphi-network-next/checkpoint-trial/company-verifiers.mjs), [account registration](duebyte/released-source/server-linux-x64/sunphi-network-next/checkpoint-trial/company-enrollment.mjs) and [payment checks](duebyte/released-source/server-linux-x64/sunphi-network-next/checkpoint-trial/company-account.mjs) in the shipped Server source.
+
 ## DueByte network software
 
 ### Review the stable release
@@ -101,7 +117,7 @@ The purchase ledger is a serial, in-memory reference: trusted test payment and a
 
 Do not submit wallet keys, credentials, private data, or unreviewed exploit details in public issues. A private vulnerability-reporting route, contribution process, release-signing policy, and project license have not yet been established. Dependencies retain their own licenses.
 
-Only the dedicated SunPhi website and research files belong in this publication. The existing business-platform repository is separate.
+The commercial workspace is maintained separately. This repository contains the Sun·Phi research materials and the DueByte release evidence linked above.
 
 ## Tooling status
 
