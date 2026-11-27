@@ -1,0 +1,121 @@
+/* Empty draggable Windows caption; native minimize/maximize/close remain available. */
+.desktop-caption{position:sticky;top:0;z-index:20;flex:none;height:32px;line-height:32px;padding:0 152px 0 12px;background:#050609;color:#f3f4f5;font:12px/32px Inter,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;-webkit-app-region:drag;app-region:drag}
+.desktop-window body{padding-top:32px}
+.desktop-window .desktop-caption{position:fixed;inset:0 0 auto;height:32px}
+:root[data-theme=light] .desktop-caption{background:#f8f9fa;color:#111317}
+#theme{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;min-height:34px;padding:6px;flex:none}
+#theme svg{width:21px;height:21px;flex:none}
+#theme .theme-moon{display:none}
+:root[data-theme=light] #theme .theme-sun{display:none}
+:root[data-theme=light] #theme .theme-moon{display:block}
+/* Zoom controls shared by the node and its wallet window. */
+footer .window-zoom{display:flex;align-items:center;gap:2px;margin-left:auto;flex:none}
+footer:has(.window-zoom) #theme{margin-left:8px}
+.window-zoom button{min-width:32px;min-height:32px;padding:4px 6px;font-size:14px;line-height:1.2}
+.window-zoom button:nth-child(2){min-width:52px;font-size:12px;font-variant-numeric:tabular-nums}
+
+/* Shared dark depth: darker canvas, cool graphite cards, then raised controls.
+   Keep semantic colours, chart series and the light palette unchanged. */
+html:root:is([data-theme=dark],[data-theme=graphite]),
+html:root:is([data-theme=dark],[data-theme=graphite]) body.consumer{
+ --page:#030305;--surface:#14171c;--surface-adjacent:#1c2026;
+ --section:#242930;--raised:#2c323b;
+}
+html:root:is([data-theme=dark],[data-theme=graphite]) .desktop-caption{background:#030305}
+html:root:is([data-theme=dark],[data-theme=graphite]) body.consumer .dashboard-grid>.action-card{background:var(--surface-adjacent)}
+html:root:is([data-theme=dark],[data-theme=graphite]) .reward-accounting{background:var(--section)}
+html:root:is([data-theme=dark],[data-theme=graphite]) .reward-wallet-row:is(:hover,.selected){background:var(--section)}
+html:root:is([data-theme=dark],[data-theme=graphite]) body.consumer #details{background:var(--surface)}
+html:root:is([data-theme=dark],[data-theme=graphite]) input:not([type=checkbox]):not([type=radio]){background:var(--page)}
+html:root:is([data-theme=dark],[data-theme=graphite]) dialog{background:var(--raised)}
+html:root:is([data-theme=dark],[data-theme=graphite]) .chart-grid{stroke:#303740}
+/* The expanded disclosure rises above its card instead of disappearing into black. */
+html:root:is([data-theme=dark],[data-theme=graphite]) body.consumer .node-dashboard #details>summary:hover{background:var(--section);color:var(--ink)}
+html:root:is([data-theme=dark],[data-theme=graphite]) body.consumer .node-dashboard #details[open]>summary,
+html:root:is([data-theme=dark],[data-theme=graphite]) body.consumer .node-dashboard #details>summary:focus-visible{background:var(--raised);color:var(--ink);box-shadow:inset 3px 0 var(--accent)}
+html:root:is([data-theme=dark],[data-theme=graphite]) body.consumer .node-dashboard #details[open]>summary{border-bottom:1px solid var(--strong)}
+html:root:is([data-theme=dark],[data-theme=graphite]) body.consumer .node-dashboard button:not(:disabled):is(:hover,:active,:focus-visible),
+html:root[data-theme=graphite] body>main button:not(:disabled):is(:hover,:active,:focus-visible){background:var(--raised);color:var(--ink);border-color:var(--strong)}
+html:root:is([data-theme=dark],[data-theme=graphite]) input::placeholder{color:var(--muted);opacity:1}
+html:root:is([data-theme=dark],[data-theme=graphite]) input:not([type=checkbox]):not([type=radio]),
+html:root[data-theme=graphite] select{border-color:#59636f}
+html:root:is([data-theme=dark],[data-theme=graphite]) input:not([type=checkbox]):focus,
+html:root[data-theme=graphite] select:focus{border-color:var(--accent)}
+
+/* Light depth follows the Market Intelligence reference: white cards, pale
+   inset fields and a grey supporting plane, with red reserved for actions. */
+html:root[data-theme=light] body.consumer>header{background:var(--surface)}
+html:root[data-theme=light] body.consumer .node-dashboard :is(.dashboard-grid,.reward-destinations,.home-updates,#details),
+html:root[data-theme=light] body:not(.consumer) main section{border-color:#8a919b}
+html:root[data-theme=light] body.consumer .dashboard-grid>.action-card{background:var(--page)}
+html:root[data-theme=light] input:not([type=checkbox]):not([type=radio]),
+html:root[data-theme=light] select{background:var(--page)}
+html:root[data-theme=light] .reward-accounting{background:var(--section)}
+html:root[data-theme=light] .reward-wallet-row:is(:hover,.selected){background:#e8ebef}
+html:root[data-theme=light] body:not(.consumer) .screen-grid{padding:16px;background:#d5dae0;border:1px solid #8a919b;border-radius:3px}
+@media(max-width:700px){html:root[data-theme=light] body:not(.consumer) .screen-grid{padding:12px}}
+
+/* Native inputs retain labels, keyboard control, disabled and focus semantics. */
+html body input[type=checkbox]{
+ appearance:none;-webkit-appearance:none;display:inline-grid;place-content:center;
+ width:16px;height:16px;min-height:16px;flex:0 0 16px;padding:0;
+ border:1px solid var(--strong);border-radius:3px;background:transparent;
+ color:var(--accent);vertical-align:middle;cursor:pointer;
+}
+html body input[type=checkbox]::after{content:'';width:7px;height:4px;border:0;border-left:1.7px solid currentColor;border-bottom:1.7px solid currentColor;transform:translateY(-1px) rotate(-45deg);visibility:hidden}
+html body input[type=checkbox]:checked{background:transparent;border-color:var(--accent)}
+html body input[type=checkbox]:checked::after{visibility:visible;border-color:currentColor}
+html[data-theme=light] body input[type=checkbox]:checked{background:#e60012;border-color:#e60012;color:#fff}
+html body input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+html body input[type=checkbox]:disabled{opacity:.45;cursor:default}
+@media(forced-colors:active){html body input[type=checkbox]{appearance:auto;-webkit-appearance:auto}html body input[type=checkbox]::after{display:none}}
+
+/* One subdued utility hierarchy, including the zoom value and affiliation. */
+html:root body>footer,html:root body>footer .sunphi-affiliation,
+html:root body>footer .sunphi-wordmark,html:root body>footer .sunphi-dot,
+html:root body>footer button{color:var(--muted)}
+html:root body>footer .sunphi-affiliation{display:inline-flex;align-items:center;gap:7px;min-height:32px;text-decoration:none;flex:none}
+html:root body>footer .sunphi-symbol{width:24px;height:24px;flex:0 0 24px;background:url('./sunphi-mark.svg') center/contain no-repeat}
+html:is([data-theme=dark],[data-theme=graphite]) body>footer .sunphi-symbol{background-image:url('./sunphi-mark-light.svg')}
+html:root body>footer .sunphi-lockup{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+html:root body>footer .sunphi-wordmark{font:500 11px/1 Inter,system-ui,sans-serif;letter-spacing:0;white-space:nowrap}
+html:root body>footer .sunphi-lockup small{font:500 7px/1 Inter,system-ui,sans-serif;letter-spacing:.16em;color:inherit;margin:0}
+html:root body>footer .window-zoom button{font-size:11px;font-weight:400;background:transparent;border-color:transparent}
+html:root body>footer button:is(:hover,:focus-visible){color:var(--muted);background:var(--section);border-color:transparent}
+html:root body>footer .sunphi-affiliation:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* Compact, readable utility type; reserve the smallest size for the logo only. */
+html body.consumer .node-dashboard .reward-heading h2{font-size:16px}
+html body.consumer .reward-wallet-copy strong{font-size:13px}
+html body.consumer .reward-wallet-copy>span,
+html body.consumer .node-dashboard .reward-destinations .reward-footnote,
+html body.consumer .node-metrics dt{font-size:11px}
+html body.consumer .reward-badge{font-size:10px}
+html body.consumer .chart-axis{font-size:10px}
+html body.consumer .node-dashboard .reward-accounting #node-earnings,
+html body.consumer .node-dashboard .reward-accounting #reward-status,
+html body.consumer .updates-controls button,
+html body.consumer .reward-selection-footer button{font-size:12px}
+html body:not(.consumer) .screen>section>h2{font-size:14px}
+
+/* Quiet numbered pagination, aligned with Sun·Phi's public catalogue. */
+html body .history-pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:20px 0 0;padding:16px 0 0;border:0;border-top:1px solid var(--border)}
+.history-page-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+html body .history-pagination button{min-width:34px;min-height:34px;margin:0;padding:0 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--ink);font-size:11px;font-weight:500;line-height:32px}
+html body .history-pagination button[aria-current=page]{background:var(--section);color:var(--ink);border-color:var(--strong);box-shadow:0 3px 0 -1px var(--accent)}
+html[data-theme=light] body .history-pagination button[aria-current=page]{background:#111317;color:#fff;border-color:#111317}
+html body .history-pagination p{margin:0;font:11px/1.5 Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--muted)}
+.history-page-gap{padding:0 3px;color:var(--muted)}
+html body #history-refresh{margin:8px 0;border-color:var(--accent);font-size:12px}
+html body #history-heading:focus{outline:none}
+@media(max-width:600px){html body .history-pagination{gap:12px}html body .history-pagination p{width:100%}.history-page-actions{gap:4px}html body .history-pagination button{padding:0 7px;min-width:30px}}
+
+/* Native disclosures retain keyboard semantics and animate in both directions. */
+@supports (interpolate-size:allow-keywords){
+ html body details::details-content{interpolate-size:allow-keywords;block-size:0;opacity:0;overflow:clip;transition:block-size .24s cubic-bezier(.2,.7,.2,1),opacity .18s ease,content-visibility .24s allow-discrete}
+ html body details[open]::details-content{block-size:auto;opacity:1}
+ html body details{transition:padding-block-end .24s cubic-bezier(.2,.7,.2,1),background-color .18s ease,border-color .18s ease}
+}
+html body.consumer .node-dashboard #details>summary{border-bottom:1px solid transparent}
+html body .verification-details{padding:12px 16px;border:1px solid var(--border)}
+@media(prefers-reduced-motion:reduce){html body details,html body details::details-content{transition:none}}

@@ -2,6 +2,16 @@
 
 ## DueByte network software
 
+### Review the stable release
+
+| Product | Download | Shipped application source | Signed catalog entry |
+| --- | --- | --- | --- |
+| Home 0.3.152 · Windows x64 | [Windows ZIP](https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.152/DueByte-Home-0.3.152-Windows-x64.zip) | [Home on Windows](duebyte/released-source/home-windows-x64/) | [Windows target](https://github.com/leges-universum/sunphi/blob/5097f67384c26f26c9fb49f14d0a43ce275ba336/targets/storage-v1-home-windows-x64.json) |
+| Home 0.3.152 · Linux x64 | [Linux archive](https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.152/DueByte-Home-0.3.152-Linux-x64.tar.gz) | [Home on Linux](duebyte/released-source/home-linux-x64/) | [Linux Home target](https://github.com/leges-universum/sunphi/blob/5097f67384c26f26c9fb49f14d0a43ce275ba336/targets/storage-v1-home-linux-x64.json) |
+| Server 0.3.151 · Linux x64 | [Server archive](https://github.com/leges-universum/sunphi/releases/download/duebyte-v0.3.151/DueByte-Server-0.3.151-Linux-x64.tar.gz) | [Server on Linux](duebyte/released-source/server-linux-x64/) | [Linux Server target](https://github.com/leges-universum/sunphi/blob/5097f67384c26f26c9fb49f14d0a43ce275ba336/targets/storage-v1-server-linux-x64.json) |
+
+[Verify the downloaded archive, application manifest and source files](duebyte/README.md#verify-the-stable-release). The [signed targets metadata](https://github.com/leges-universum/sunphi/blob/5097f67384c26f26c9fb49f14d0a43ce275ba336/metadata/targets.json) authenticates each catalog entry. For monetary policy, begin with the [V4 planner](duebyte/released-source/server-linux-x64/sunphi-network-next/checkpoint-trial/economic-policy-v3.mjs) and [execution checks](duebyte/released-source/server-linux-x64/sunphi-network-next/checkpoint-trial/research/bounded-network-interpreter.mjs). The historical emission calendar is retained for replay.
+
 DueByte Home and Server are distributed through the [DueByte releases](https://github.com/leges-universum/sunphi/releases) and the [stable update channel](https://github.com/leges-universum/sunphi/tree/duebyte-updates-stable). The [DueByte protocol and verification guide](duebyte/README.md) identifies the executable monetary rules, historical schedules, release artifacts and trust assumptions. The DueByte asset symbol is DUBYT.
 
 ## Sun·Phi research project

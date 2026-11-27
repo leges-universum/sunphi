@@ -1,5 +1,27 @@
 # DueByte protocol and verification
 
+## Verify the stable release
+
+Use the named archive from the [edition table](../README.md#review-the-stable-release). Extract it to a fresh directory. From this repository run the matching command with Node.js 24. Replace the last two arguments with your extracted application directory and the original downloaded file.
+
+```sh
+node duebyte/verify-release.mjs home-windows-x64 PATH/TO/DueByte-Home-0.3.152-Windows-x64/resources/app PATH/TO/DueByte-Home-0.3.152-Windows-x64.zip
+node duebyte/verify-release.mjs home-linux-x64 PATH/TO/DueByte-Home-0.3.152-Linux-x64 PATH/TO/DueByte-Home-0.3.152-Linux-x64.tar.gz
+node duebyte/verify-release.mjs server-linux-x64 PATH/TO/DueByte-Server-0.3.151-Linux-x64 PATH/TO/DueByte-Server-0.3.151-Linux-x64.tar.gz
+```
+
+The verifier pins the recorded catalog commit and release root, checks the Ed25519 targets threshold, then checks the descriptor, complete archive, application manifest, every manifest entry and the full inventory of published source files. For an independent trust check, compare the root digest in the verifier with the SHA-256 of `update-root.json` from a previously trusted installation. This procedure authenticates a historical snapshot. Released updaters check freshness and upgrade eligibility when installing.
+
+The review trees contain the shipped application scripts, interface and integration source in the first-party application directories, including the compatibility reader. Binary executables, third-party runtimes, package configuration and build tools are available for inspection through the original release assets and tag recipes. The SHA-256 check covers the entire downloaded archive. See the [Home qualification record](https://github.com/leges-universum/sunphi/blob/duebyte-v0.3.152/reproduce/qualification-152.json) and [Server qualification record](https://github.com/leges-universum/sunphi/blob/duebyte-v0.3.151/reproduce/qualification-151.json).
+
+To check the current Server monetary policy, run the following with the two public economics files linked below.
+
+```sh
+node duebyte/verify-economics.mjs PATH/TO/DueByte-Server-0.3.151-Linux-x64 economic-policy-v4.json ordinary-node-calendar.csv
+```
+
+## Earlier release evidence
+
 The release catalog selects the software a node installs. Its target metadata identifies the archive and the digest of the file manifest. Each release archive contains the corresponding protocol modules. For a reproducible review, identify the catalog commit, target, version, manifest digest, network pin and block height. GitHub's automatically generated source archives describe the tag tree. Use the named Home and Server release assets for inspection of shipped software.
 
 | Artifact | Purpose |

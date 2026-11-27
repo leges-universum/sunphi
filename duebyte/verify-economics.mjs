@@ -13,7 +13,8 @@ const manifestBytes = read('manifest.json');
 const manifest = JSON.parse(manifestBytes);
 const referencePins = {
   '0.3.145': '65bd3ae76c98b927a2a04db0f2f9640d2204998b8af4db514f13b2a6bd6b5554',
-  '0.3.147': 'c7e4499ec6cf4275aedb729fdb59e6eeac4f552ecadd48181d698e5f727ea49c'
+  '0.3.147': 'c7e4499ec6cf4275aedb729fdb59e6eeac4f552ecadd48181d698e5f727ea49c',
+  '0.3.151': '82aca14d376e1bd6553abbefd7fcb633ad36b3222c40a4fd3f210231bd8f7728'
 };
 assert.equal(sha(manifestBytes), referencePins[manifest.version], 'reviewed Server manifest');
 for (const [name, digest] of Object.entries(manifest.files)) {
